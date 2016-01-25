@@ -23,3 +23,7 @@ git clone https://github.com/<account>/<app>_ynh
  * check no sources are retrieve from internet via wget or curl for security reason
  * warn missing sudo before commands
  * make sure verifications are done before modifications on the system
+
+## License
+
+* GNU GPLv3
