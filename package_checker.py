@@ -167,11 +167,11 @@ if __name__ == '__main__':
 	check_files_exist(app_path)
 	check_manifest(app_path + "/manifest.json")
 	check_install_script(app_path + "/scripts/install")
-	check_remove_script(app_path + "scripts/remove")
+	check_remove_script(app_path + "/scripts/remove")
 	"""
-	check_upgrade_script(app_path + "scripts/upgrade")
-	check_backup_script(app_path + "scripts/backup")
-	check_restore_script(app_path + "scripts/restore")
+	check_upgrade_script(app_path + "/scripts/upgrade")
+	check_backup_script(app_path + "/scripts/backup")
+	check_restore_script(app_path + "/scripts/restore")
 	"""
 
 
