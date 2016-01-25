@@ -56,7 +56,7 @@ def check_manifest(manifest):
 		with open(manifest, encoding='utf-8') as data_file:
 			manifest = json.loads(data_file.read())
 		print_right("Manifest syntax is good.")
-	except: print_wrong("There is a syntax (comma) issue in manifest.json. Can't do follwing tests."); return
+	except: print_wrong("There is a syntax (comma) issue in manifest.json. Can't do following tests."); return
 	i, fields = 0, ("name", "id", "description", "url", "license", \
 	"maintainer", "multi_instance", "services", "arguments")
 	while (i < len(fields)): 
