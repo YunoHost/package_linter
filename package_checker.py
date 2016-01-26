@@ -121,8 +121,8 @@ def check_sudo_prefix_commands(script):
 	"""
 	Check if commands are prefix with "sudo"
 	"""
-	cmd = ("cp", "mkdir", "rm", "chown", "chmod", "apt-get", "apt", \
-	"service", "yunohost", "find" "swapon", "mkswap", "useradd")#, "dd")
+	cmd = ("rm", "chown", "chmod", "apt-get", "apt", \
+	"service", "yunohost", "find" "swapon", "mkswap", "useradd")#, "dd") cp, mkdir
 	i, ok = 0, 1
 	while i < len(script):
 		j = 0
