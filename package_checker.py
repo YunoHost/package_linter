@@ -78,11 +78,11 @@ def check_manifest(manifest):
 	if "multi_instance" in manifest and manifest["multi_instance"] != "true" and manifest["multi_instance"] != "false":
 		print_wrong("multi_instance field must use 'true' or 'false' value.");
 	if "services" in manifest:
-		services = ("nginx", "php5-fpm", "mysql", "uwsgi", "metronome")
+		services = ("nginx", "php5-fpm", "mysql", "uwsgi", "metronome", "postfix", "dovecot") #, "rspamd", "rmilter")
 		i = 0
 		while (i < len(manifest["services"])):
 			if manifest["services"][i] not in services:
-				print(manifest["services"][i] + " service doesn't exist")
+				print_wrong(manifest["services"][i] + " service doesn't exist")
 			i+=1
 	if "install" in manifest["arguments"]:
 		types = ("domain", "path", "password")
