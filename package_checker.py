@@ -96,7 +96,7 @@ def check_manifest(manifest):
 				j+=1
 			i+=1
 
-def check_scripts(path, script_name):
+def check_script(path, script_name):
 	script_path = path + "/scripts/" + script_name
 	if check_file_exist(script_path) == 0: return
 	print (c.BOLD + c.HEADER + "\n>>>>", scripts[i].upper(), "SCRIPT <<<<" + c.END);
@@ -162,7 +162,7 @@ if __name__ == '__main__':
 	check_manifest(app_path + "/manifest.json")
 	i, scripts = 0, ("install", "remove", "upgrade", "backup", "restore")
 	while i < len(scripts):
-		check_scripts(app_path, scripts[i])
+		check_script(app_path, scripts[i])
 		i+=1
 
 """
