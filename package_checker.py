@@ -95,23 +95,17 @@ def check_manifest(manifest):
 						print("You should specify " + types[i] + " type: \"type\": \"" + types[i] + "\",")
 				j+=1
 			i+=1
-def check_install_script(install_path):
-	if check_file_exist(install_path) == 0: return
-	print (c.BOLD + c.HEADER + "\n>>>> INSTALL SCRIPT <<<<" + c.END);
-	install = read_file(install_path)
-	check_script_header_presence(install)
-	check_sudo_prefix_commands(install)
-	check_verifications_done_before_modifying_system(install)
-	if "wget" in install or "curl" in install:
-		print("You should not fetch sources from internet with curl or wget for security reasons.")
 
-def check_remove_script(remove_path):
-	if check_file_exist(remove_path) == 0: return
-	print (c.BOLD + c.HEADER + "\n>>>> REMOVE SCRIPT <<<<" + c.END);
-	remove = read_file(remove_path)
-	check_script_header_presence(remove)
-	check_sudo_prefix_commands(remove)
-	check_verifications_done_before_modifying_system(remove)
+def check_scripts(path, script_name):
+	script_path = path + "/scripts/" + script_name
+	if check_file_exist(script_path) == 0: return
+	print (c.BOLD + c.HEADER + "\n>>>>", scripts[i].upper(), "SCRIPT <<<<" + c.END);
+	script = read_file(script_path)
+	check_script_header_presence(script)
+	check_sudo_prefix_commands(script)
+	check_verifications_done_before_modifying_system(script)
+	if "wget" in script or "curl" in script:
+		print("You should not fetch sources from internet with curl or wget for security reasons.")
 
 def check_script_header_presence(script):
 	if "#!/bin/bash" in script[0]: print_right("Script contain at first line \"#!/bin/bash\"")
@@ -166,14 +160,10 @@ if __name__ == '__main__':
 	header(app_path)
 	check_files_exist(app_path)
 	check_manifest(app_path + "/manifest.json")
-	check_install_script(app_path + "/scripts/install")
-	check_remove_script(app_path + "/scripts/remove")
-	"""
-	check_upgrade_script(app_path + "/scripts/upgrade")
-	check_backup_script(app_path + "/scripts/backup")
-	check_restore_script(app_path + "/scripts/restore")
-	"""
-
+	i, scripts = 0, ("install", "remove", "upgrade", "backup", "restore")
+	while i < len(scripts):
+		check_scripts(app_path, scripts[i])
+		i+=1
 
 """
 ## Todo ##
