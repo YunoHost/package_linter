@@ -145,13 +145,14 @@ def check_verifications_done_before_modifying_system(script):
 		if i >= ex: break
 		j = 0
 		while (j < len(cmd)):
-			if cmd[j] in script[i] and script[i][0] != '#':
-				print(c.FAIL + "✘ At line", i + 1, "\"" + cmd[j] + "\" command is executed before verifications are made." + c.END)
-				print("This system modification is an issue if a verification exit the script.")
-				print("You should move this command bellow verifications."); ok = 0
+			if cmd[j] in script[i] and script[i][0] != '#': ok = 0
 			j+=1
 		i+=1
-	if ok == 1: print_right("Verifications (with exit commands) are done before any system modifications.")
+	if ok == 0:
+		print(c.FAIL + "✘ At line", ex + 1, "'exit' command is executed with system modification before.")
+		print("This system modification is an issue if a verification exit the script.")
+		print("You should move this verification before any system modification." + c.END);
+	else: print_right("Verifications (with exit commands) are done before any system modification.")
 
 if __name__ == '__main__':
 	os.system("clear")
