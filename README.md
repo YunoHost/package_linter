@@ -17,6 +17,7 @@ git clone https://github.com/<account>/<app>_ynh
 * Check manifest
  * syntax
  * missing fields
+ * missing type
  * (field value)
 * Check scripts
  * check bash header is present
