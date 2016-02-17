@@ -85,7 +85,7 @@ def check_manifest(manifest):
 				print_wrong(manifest["services"][i] + " service doesn't exist")
 			i+=1
 	if "install" in manifest["arguments"]:
-		types = ("user", "domain", "path", "password", "user", "admin")
+		types = ("domain", "path", "password", "user", "admin")
 		i = 0
 		while (i < len(types)):
 			j = 0
@@ -93,7 +93,7 @@ def check_manifest(manifest):
 				if types[i] == manifest["arguments"]["install"][j]["name"]:
 					if "type" not in manifest["arguments"]["install"][j]:
 						print("You should specify the type of the key with", end =" ")
-						print(types[i - 1]) if i == 5 else print(types[i])
+						print(types[i - 1]) if i == 4 else print(types[i])
 				j+=1
 			i+=1
 
