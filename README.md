@@ -5,8 +5,8 @@ Checker for YunoHost applications packages
 ## Use
 
 ```sh
-git clone https://github.com/YunoHost/package_checker
-cd package_checker
+git clone https://github.com/YunoHost/package_linter
+cd package_linter
 git clone https://github.com/<account>/<app>_ynh
 ./package_checker.py <app>_ynh
 ```

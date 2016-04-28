@@ -15,7 +15,7 @@ class c:
 	UNDERLINE = '\033[4m'
 
 def header(app_path):
-	print(c.UNDERLINE + c.HEADER + c.BOLD + "YUNOHOST APP PACKAGE CHECKER\n" + c.END)
+	print(c.UNDERLINE + c.HEADER + c.BOLD + "YUNOHOST APP PACKAGE LINTER\n" + c.END)
 	print("App packaging documentation: https://yunohost.org/#/packaging_apps")
 	print("App package example: https://github.com/YunoHost/example_ynh\n")
 	print("Checking " + c.BOLD + app_path + c.END + " package\n")
