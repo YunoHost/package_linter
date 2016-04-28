@@ -78,7 +78,8 @@ def check_manifest(manifest):
 		print_wrong("You should specify 'free' or 'non-free' software package in the license field.")
 	elif "license" in manifest: print_right("\"licence\" key value is good")
 	if "multi_instance" in manifest and manifest["multi_instance"] != 1 and manifest["multi_instance"] != 0:
-	    print_wrong("multi_instance field must be boolean type values 'true' or 'false' and not string type.")
+	    print_wrong("\"multi_instance\" field must be boolean type values 'true' or 'false' and not string type")
+	elif "multi_instance" in manifest: print_right("\"multi_isntance\" field is good")
 	if "services" in manifest:
 		services = ("nginx", "php5-fpm", "mysql", "uwsgi", "metronome", "postfix", "dovecot") #, "rspamd", "rmilter")
 		i = 0
