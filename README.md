@@ -1,6 +1,6 @@
-# YunoHost apps package checker
+# YunoHost apps package linter
 
-Checker for YunoHost applications packages
+Linter for YunoHost applications packages
 
 ## Use
 
