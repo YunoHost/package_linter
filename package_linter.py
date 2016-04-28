@@ -57,26 +57,28 @@ def check_manifest(manifest):
 			manifest = json.loads(data_file.read())
 		print_right("Manifest syntax is good.")
 	except: print_wrong("There is a syntax (comma) issue in manifest.json. Can't check manifest."); return
-	i, fields = 0, ("name", "id", "description", "url", "license", \
-	"maintainer", "multi_instance", "services", "arguments")
+	i, fields = 0, ("name", "id", "packaging_format", "description", "url", \
+        "license", "maintainer", "multi_instance", "services", "arguments") # "requirements"
 	while (i < len(fields)): 
 		if fields[i] in manifest: print_right("\"" + fields[i] + "\" fields is present")
 		else: print_wrong("\"" + fields[i] + "\" field is missing")
 		i+=1
-	
+	"""
+	Check values in keys
+	"""
 # Check under array
 #		manifest["description"]["en"]
 #		manifest["maintainer"]["name"]
 #		manifest["maintainer"]["email"]
 #		manifest["arguments"]["install"]
-	"""
-	Check values in keys
-	"""
+	if "packaging_format" in manifest and isinstance(manifest["packaging_format"], int) == 1 and manifest["packaging_format"] >= 1:
+            print_right("\"packaging_format\" field is good")
+	elif "packaging_format" in manifest: print_wrong("\"packaging_format\" field value must be a unsigned integer")
 	if "license" in manifest and manifest["license"] != "free" and manifest["license"] != "non-free":
 		print_wrong("You should specify 'free' or 'non-free' software package in the license field.")
-	elif "license" in manifest: print_right("'licence' key value is good.")
+	elif "license" in manifest: print_right("\"licence\" key value is good")
 	if "multi_instance" in manifest and manifest["multi_instance"] != 1 and manifest["multi_instance"] != 0:
-		print_wrong("multi_instance field must be boolean type values 'true' or 'false' and not string type.");
+	    print_wrong("multi_instance field must be boolean type values 'true' or 'false' and not string type.")
 	if "services" in manifest:
 		services = ("nginx", "php5-fpm", "mysql", "uwsgi", "metronome", "postfix", "dovecot") #, "rspamd", "rmilter")
 		i = 0
