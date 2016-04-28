@@ -8,7 +8,7 @@ Linter for YunoHost applications packages
 git clone https://github.com/YunoHost/package_linter
 cd package_linter
 git clone https://github.com/<account>/<app>_ynh
-./package_checker.py <app>_ynh
+./package_linter.py <app>_ynh
 ```
 
 ## Checks
