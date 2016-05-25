@@ -40,7 +40,7 @@ def check_files_exist(app_path):
 		i+=1
 
 def check_file_exist(file_path):
-	return 1 if os.path.isfile(file_path) else 0
+	return 1 if os.path.isfile(file_path) and os.stat(file_path).st_size > 0 else 0
 
 def read_file(file_path):
 	with open(file_path) as f:
