@@ -71,9 +71,12 @@ def check_manifest(manifest):
 #		manifest["maintainer"]["name"]
 #		manifest["maintainer"]["email"]
 #		manifest["arguments"]["install"]
-	if "packaging_format" in manifest and isinstance(manifest["packaging_format"], int) == 1 and manifest["packaging_format"] >= 1:
-            print_right("\"packaging_format\" field is good")
-	elif "packaging_format" in manifest: print_wrong("\"packaging_format\" field value must be a unsigned integer")
+	pf = 1
+	if "packaging_format" not in manifest: print_wrong("\"packaging_format\" key is missing"); pf = 0
+	if pf == 1 and isinstance(manifest["packaging_format"], int) != 1: print_wrong("\"packaging_format\": value isn't an integer type"); pf = 0
+	if pf == 1 and manifest["packaging_format"] != 1: print_wrong("\"packaging_format\" field: current format value is '1'"); pf = 0
+	if pf == 1: print_right("\"packaging_format\" field is good")
+
 	if "license" in manifest and manifest["license"] != "free" and manifest["license"] != "non-free":
 		print_wrong("You should specify 'free' or 'non-free' software package in the license field.")
 	elif "license" in manifest: print_right("\"licence\" key value is good")
