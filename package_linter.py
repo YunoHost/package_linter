@@ -56,11 +56,11 @@ def check_manifest(manifest):
 		with open(manifest, encoding='utf-8') as data_file:
 			manifest = json.loads(data_file.read())
 		print_right("Manifest syntax is good.")
-	except: print_wrong("There is a syntax (comma) issue in manifest.json. Can't check manifest."); return
+	except: print_wrong("Syntax (comma) or encoding issue with manifest.json. Can't check file."); return
 	i, fields = 0, ("name", "id", "packaging_format", "description", "url", \
         "license", "maintainer", "multi_instance", "services", "arguments") # "requirements"
 	while (i < len(fields)): 
-		if fields[i] in manifest: print_right("\"" + fields[i] + "\" fields is present")
+		if fields[i] in manifest: print_right("\"" + fields[i] + "\" field is present")
 		else: print_wrong("\"" + fields[i] + "\" field is missing")
 		i+=1
 	"""
@@ -82,7 +82,7 @@ def check_manifest(manifest):
 	elif "license" in manifest: print_right("\"licence\" key value is good")
 	if "multi_instance" in manifest and manifest["multi_instance"] != 1 and manifest["multi_instance"] != 0:
 	    print_wrong("\"multi_instance\" field must be boolean type values 'true' or 'false' and not string type")
-	elif "multi_instance" in manifest: print_right("\"multi_isntance\" field is good")
+	elif "multi_instance" in manifest: print_right("\"multi_instance\" field is good")
 	if "services" in manifest:
 		services = ("nginx", "php5-fpm", "mysql", "uwsgi", "metronome", "postfix", "dovecot") #, "rspamd", "rmilter")
 		i = 0
@@ -115,8 +115,8 @@ def check_script(path, script_name):
 		print("You should not fetch sources from internet with curl or wget for security reasons.")
 
 def check_script_header_presence(script):
-	if "#!/bin/bash" in script[0]: print_right("Script contain at first line \"#!/bin/bash\"")
-	else: print_wrong("Script must contain at first line \"#!/bin/bash\"")
+	if "#!/bin/bash" in script[0]: print_right("Script starts with \"#!/bin/bash\"")
+	else: print_wrong("Script must start with \"#!/bin/bash\"")
 
 def check_sudo_prefix_commands(script):
 	"""
