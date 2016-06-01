@@ -132,7 +132,8 @@ def check_sudo_prefix_commands(script):
 			and "yunohost service" not in script[i] and "-exec " + cmd[j] not in script[i] \
 			and ".service" not in script[i] and script[i][0] != '#':
 				print(c.FAIL + "✘ Line ", i + 1, "you should add \"sudo\" before this command line:", c.END)
-				print(script[i]); ok = 0
+				print("  " + script[i].replace(cmd[j], c.BOLD + c.FAIL + cmd[j] + c.END));
+				ok = 0
 			j+=1
 		i+=1
 	if ok == 1: print_right("All commands are prefix with \"sudo\".")
