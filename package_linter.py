@@ -58,7 +58,7 @@ def check_manifest(manifest):
 		print_right("Manifest syntax is good.")
 	except: print_wrong("Syntax (comma) or encoding issue with manifest.json. Can't check file."); return
 	i, fields = 0, ("name", "id", "packaging_format", "description", "url", \
-        "license", "maintainer", "multi_instance", "services", "arguments") # "requirements"
+        "license", "maintainer", "requirements", "multi_instance", "services", "arguments")
 	while (i < len(fields)): 
 		if fields[i] in manifest: print_right("\"" + fields[i] + "\" field is present")
 		else: print_wrong("\"" + fields[i] + "\" field is missing")
