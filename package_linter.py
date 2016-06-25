@@ -111,8 +111,6 @@ def check_script(path, script_name):
 	check_script_header_presence(script)
 	check_sudo_prefix_commands(script)
 	check_verifications_done_before_modifying_system(script)
-	if "wget" in script or "curl" in script:
-		print("You should not fetch sources from internet with curl or wget for security reasons.")
 
 def check_script_header_presence(script):
 	if "#!/bin/bash" in script[0]: print_right("Script starts with \"#!/bin/bash\"")
