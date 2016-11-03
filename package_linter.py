@@ -214,7 +214,11 @@ if __name__ == '__main__':
     header(app_path)
     check_files_exist(app_path)
     check_manifest(app_path + "/manifest.json")
-    i, scripts = 0, ("install", "remove", "upgrade", "backup", "restore")
+    i, scripts = 0, ["install", "remove", "upgrade", "backup", "restore"]
+    for (dirpath, dirnames, filenames) in os.walk(os.path.join(app_path, "scripts")):
+        for filename in filenames:
+            if filename not in scripts:
+                scripts.append(filename)
     while i < len(scripts):
         check_script(app_path, scripts[i])
         i += 1
