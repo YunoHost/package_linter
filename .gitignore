@@ -60,3 +60,8 @@ target/
 
 # YunoHost packages
 *_ynh
+
+# Vim swap files
+# *~
+# *.swp
+# *.swo
