@@ -217,7 +217,7 @@ if __name__ == '__main__':
     i, scripts = 0, ["install", "remove", "upgrade", "backup", "restore"]
     for (dirpath, dirnames, filenames) in os.walk(os.path.join(app_path, "scripts")):
         for filename in filenames:
-            if filename not in scripts:
+            if filename not in scripts and filename[-4:] != ".swp":
                 scripts.append(filename)
     while i < len(scripts):
         check_script(app_path, scripts[i])
