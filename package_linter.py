@@ -181,7 +181,7 @@ def check_verifications_done_before_modifying_system(script):
     """
     ex, i = 0, 0
     while i < len(script):
-        if "exit" in script[i]:
+        if "ynh_die" in script[i] or "exit" in script[i]:
             ex = i
         i += 1
     cmd = ("cp", "mkdir", "rm", "chown", "chmod", "apt-get", "apt", "service",
@@ -198,12 +198,12 @@ def check_verifications_done_before_modifying_system(script):
         i += 1
     if ok == 0:
         print(c.FAIL + "✘ At line", ex + 1,
-              "'exit' command is executed with system modification before.")
+              "'ynh_die' or 'exit' command is executed with system modification before.")
         print("This system modification is an issue if a verification exit the script.")
         print("You should move this verification before any system modification." + c.END)
     else:
         print_right(
-            "Verifications (with exit commands) are done before any system modification.")
+            "Verifications (with 'ynh_die' or 'exit' commands) are done before any system modification.")
 
 if __name__ == '__main__':
     os.system("clear")
