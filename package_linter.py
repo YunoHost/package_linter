@@ -80,13 +80,8 @@ def check_manifest(manifest):
             print_wrong("\"" + fields[i] + "\" field is missing")
         i += 1
     """
-	Check values in keys
-	"""
-# Check under array
-#		manifest["description"]["en"]
-#		manifest["maintainer"]["name"]
-#		manifest["maintainer"]["email"]
-#		manifest["arguments"]["install"]
+    Check values in keys
+    """
     pf = 1
     if "packaging_format" not in manifest:
         print_wrong("\"packaging_format\" key is missing")
@@ -249,17 +244,3 @@ if __name__ == '__main__':
     while i < len(scripts):
         check_script(app_path, scripts[i])
         i += 1
-
-"""
-## Todo ##
-* Si nginx dans les services du manifest, vérifier :
-	* présence de /conf/nginx.conf
-	* sudo service reload nginx dans les scripts install, remove, upgrade, restore (backup n’est pas nécessaire)
-
-* Helper propositions
-	if "apt" in install: print("You should use this helper: \"sudo yunohost \".")
-
-* use jsonchema to check the manifest
-https://github.com/YunoHost/yunotest/blob/master/apps_tests/manifest_schema.json
-https://github.com/YunoHost/yunotest/blob/master/apps_tests/__init__.py
-"""
