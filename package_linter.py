@@ -142,6 +142,7 @@ def check_script(path, script_name):
     check_script_header_presence(script)
     check_sudo_prefix_commands(script)
     check_verifications_done_before_modifying_system(script)
+    check_non_helpers_usage(script)
 
 
 def check_script_header_presence(script):
@@ -204,6 +205,32 @@ def check_verifications_done_before_modifying_system(script):
     else:
         print_right(
             "Verifications (with 'ynh_die' or 'exit' commands) are done before any system modification.")
+
+def check_non_helpers_usage(script):
+    """
+    check if deprecated commands are used and propose helpers:
+    - 'yunohost app setting' –> ynh_app_setting_(set,get,delete)
+    - 'exit' –> 'ynh_die'
+    """
+    i, ok = 0, 1
+    while i < len(script):
+        if "yunohost app setting" in script[i]:
+            print_wrong("Line {}: 'yunohost app setting' command is deprecated, please use helpers ynh_app_setting_(set,get,delete).".format(i + 1))
+            ok = 0
+        i += 1
+    if ok == 1:
+        print_right("Only helpers are used")
+    else:
+        print_wrong("Helpers documentation: https://yunohost.org/#/packaging_apps_helpers\ncode: https://github.com/YunoHost/yunohost/…helpers")
+
+    i, ok = 0, 1
+    while i < len(script):
+        if "exit" in script[i]:
+            print_wrong("Line {}: 'exit' command shouldn't be used. Use 'ynh_die' helper instead.".format(i + 1))
+            ok = 0
+        i += 1
+    if ok == 1:
+        print_right("no 'exit' command found: 'ynh_die' helper is possibly used")
 
 if __name__ == '__main__':
     os.system("clear")
