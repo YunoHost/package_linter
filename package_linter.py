@@ -132,7 +132,8 @@ def check_script(path, script_name):
     if check_file_exist(script_path) == 0:
         return
     print (c.BOLD + c.HEADER + "\n>>>>",
-           scripts[i].upper(), "SCRIPT <<<<" + c.END)
+           script_name.upper(), "SCRIPT <<<<" + c.END)
+
     script = read_file(script_path)
     check_script_header_presence(script)
     check_sudo_prefix_commands(script)
