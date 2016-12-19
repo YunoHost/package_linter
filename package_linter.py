@@ -18,10 +18,10 @@ class c:
 
 def header(app_path):
     print(c.UNDERLINE + c.HEADER + c.BOLD +
-          "YUNOHOST APP PACKAGE LINTER\n" + c.END)
-    print("App packaging documentation: https://yunohost.org/#/packaging_apps")
-    print("App package example: https://github.com/YunoHost/example_ynh\n")
-    print("Checking " + c.BOLD + app_path + c.END + " package\n")
+          "YUNOHOST APP PACKAGE LINTER\n", c.END,
+    "App packaging documentation: https://yunohost.org/#/packaging_apps\n",
+    "App package example: https://github.com/YunoHost/example_ynh\n",
+    "Checking " + c.BOLD + app_path + c.END + " package\n")
 
 
 def print_right(str):
@@ -203,9 +203,9 @@ def check_verifications_done_before_modifying_system(script):
 
     if not ok:
         print(c.FAIL + "✘ At line", ex + 1,
-              "'ynh_die' or 'exit' command is executed with system modification before.")
-        print("This system modification is an issue if a verification exit the script.")
-        print("You should move this verification before any system modification." + c.END)
+              "'ynh_die' or 'exit' command is executed with system modification before.\n",
+        "This system modification is an issue if a verification exit the script.\n",
+        "You should move this verification before any system modification." + c.END)
     else:
         print_right(
             "Verifications (with 'ynh_die' or 'exit' commands) are done before any system modification.")
