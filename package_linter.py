@@ -37,14 +37,14 @@ def check_files_exist(app_path):
     Check files exist
     """
     print (c.BOLD + c.HEADER + ">>>> MISSING FILES <<<<" + c.END)
-    fname = ("manifest.json", "scripts/install", "scripts/remove",
+    fnames = ("manifest.json", "scripts/install", "scripts/remove",
              "scripts/upgrade", "scripts/backup", "scripts/restore", "LICENSE", "README.md")
 
-    for i in fname:
-        if check_file_exist(app_path + "/" + i):
-            print_right(i)
+    for fname in fnames:
+        if check_file_exist(app_path + "/" + fname):
+            print_right(fname)
         else:
-            print_wrong(i)
+            print_wrong(fname)
 
 
 def check_file_exist(file_path):
@@ -75,11 +75,11 @@ def check_manifest(manifest):
     fields = ("name", "id", "packaging_format", "description", "url",
               "license", "maintainer", "requirements", "multi_instance", "services", "arguments")
 
-    for i in fields:
-        if i in manifest:
-            print_right("\"" + i + "\" field is present")
+    for field in fields:
+        if field in manifest:
+            print_right("\"" + field + "\" field is present")
         else:
-            print_wrong("\"" + i + "\" field is missing")
+            print_wrong("\"" + field + "\" field is missing")
 
     """
     Check values in keys
@@ -118,19 +118,19 @@ def check_manifest(manifest):
         services = ("nginx", "php5-fpm", "mysql", "uwsgi", "metronome",
                     "postfix", "dovecot")  # , "rspamd", "rmilter")
 
-        for i in manifest["services"]:
-            if i not in services:
-                print_wrong(i + " service doesn't exist")
+        for service in manifest["services"]:
+            if service not in services:
+                print_wrong(service + " service doesn't exist")
 
     if "install" in manifest["arguments"]:
         types = ("domain", "path", "password", "user", "admin")
 
-        for number, i in enumerate(types):
-            for j in manifest["arguments"]["install"]:
-                if i == j["name"]:
-                    if "type" not in j:
+        for nbr, typ in enumerate(types):
+            for install_arg in manifest["arguments"]["install"]:
+                if typ == install_arg["name"]:
+                    if "type" not in install_arg:
                         print("You should specify the type of the key with", end=" ")
-                        print(types[number - 1]) if number == 4 else print(i)
+                        print(types[nbr - 1]) if nbr == 4 else print(typ)
 
 
 def check_script(path, script_name):
@@ -161,19 +161,19 @@ def check_sudo_prefix_commands(script):
     """
     Check if commands are prefix with "sudo"
     """
-    cmd = ("rm", "chown", "chmod", "apt-get", "apt",
+    cmds = ("rm", "chown", "chmod", "apt-get", "apt",
            "service", "yunohost", "find" "swapon", "mkswap", "useradd")  # , "dd") cp, mkdir
     ok = True
 
-    for line_nbr, i in enumerate(script):
-        for j in cmd:
-            if j + " " in i and "sudo " + j + " " not in i \
-                    and "yunohost service" not in i and "-exec " + j not in i \
-                    and ".service" not in i and i[0] != '#':
+    for line_nbr, line in enumerate(script):
+        for cmd in cmds:
+            if cmd + " " in line and "sudo " + cmd + " " not in line \
+                    and "yunohost service" not in line and "-exec " + cmd not in line \
+                    and ".service" not in line and line[0] != '#':
                 print(c.FAIL + "✘ Line ", line_nbr + 1,
                       "you should add \"sudo\" before this command line:", c.END)
-                print("  " + i.replace(j,
-                                       c.BOLD + c.FAIL + j + c.END))
+                print("  " + line.replace(cmd,
+                                       c.BOLD + c.FAIL + cmd + c.END))
                 ok = False
     if ok:
         print_right("All commands are prefix with \"sudo\".")
@@ -184,21 +184,21 @@ def check_verifications_done_before_modifying_system(script):
     Check if verifications are done before modifying the system
     """
     ex = 0
-    for line_number, i in enumerate(script):
-        if "ynh_die" in i or "exit" in i:
+    for line_number, line in enumerate(script):
+        if "ynh_die" in line or "exit" in line:
             ex = line_number
 
-    cmd = ("cp", "mkdir", "rm", "chown", "chmod", "apt-get", "apt", "service",
+    cmds = ("cp", "mkdir", "rm", "chown", "chmod", "apt-get", "apt", "service",
            "find", "sed", "mysql", "swapon", "mount", "dd", "mkswap", "useradd")  # "yunohost"
 
     ok = True
 
-    for line_number, i in enumerate(script):
-        if line_number >= ex:
+    for line_nbr, line in enumerate(script):
+        if line_nbr >= ex:
             break
 
-        for j in cmd:
-            if j in i and i[0] != '#':
+        for cmd in cmds:
+            if cmd in line and line[0] != '#':
                 ok = False
 
     if not ok:
@@ -218,9 +218,9 @@ def check_non_helpers_usage(script):
     """
     ok = True
 
-    for line_number, i in enumerate(script):
-        if "yunohost app setting" in i:
-            print_wrong("Line {}: 'yunohost app setting' command is deprecated, please use helpers ynh_app_setting_(set,get,delete).".format(line_number + 1))
+    for line_nbr, line in enumerate(script):
+        if "yunohost app setting" in line:
+            print_wrong("Line {}: 'yunohost app setting' command is deprecated, please use helpers ynh_app_setting_(set,get,delete).".format(line_nbr + 1))
             ok = False
 
     if ok:
@@ -230,9 +230,9 @@ def check_non_helpers_usage(script):
 
     ok = True
 
-    for line_number, i in enumerate(script):
-        if "exit" in i:
-            print_wrong("Line {}: 'exit' command shouldn't be used. Use 'ynh_die' helper instead.".format(line_number + 1))
+    for line_nbr, line in enumerate(script):
+        if "exit" in line:
+            print_wrong("Line {}: 'exit' command shouldn't be used. Use 'ynh_die' helper instead.".format(line_nbr + 1))
             ok = False
 
     if ok:
@@ -256,5 +256,5 @@ if __name__ == '__main__':
             if filename not in scripts and filename[-4:] != ".swp":
                 scripts.append(filename)
 
-    for i in scripts:
-        check_script(app_path, i)
+    for script in scripts:
+        check_script(app_path, script)
