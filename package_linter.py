@@ -165,15 +165,15 @@ def check_sudo_prefix_commands(script):
            "service", "yunohost", "find" "swapon", "mkswap", "useradd")  # , "dd") cp, mkdir
     ok = True
 
-    for i in script:
+    for line_nbr, i in enumerate(script):
         for j in cmd:
             if j + " " in i and "sudo " + j + " " not in i \
                     and "yunohost service" not in i and "-exec " + j not in i \
                     and ".service" not in i and i[0] != '#':
-                print(c.FAIL + "✘ Line ", i + 1,
+                print(c.FAIL + "✘ Line ", line_nbr + 1,
                       "you should add \"sudo\" before this command line:", c.END)
                 print("  " + i.replace(j,
-                                       c.BOLD + c.FAIL + cmd[j] + c.END))
+                                       c.BOLD + c.FAIL + j + c.END))
                 ok = False
     if ok:
         print_right("All commands are prefix with \"sudo\".")
