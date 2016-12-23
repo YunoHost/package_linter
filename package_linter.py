@@ -2,6 +2,7 @@
 
 import sys
 import os
+import re
 import json
 
 
@@ -53,7 +54,8 @@ def check_file_exist(file_path):
 
 def read_file(file_path):
     with open(file_path) as f:
-        file = f.read().splitlines()
+        # remove every comments from the file content to avoid false positives
+        file = re.sub("#.*[^\n]", "", f.read()).splitlines()
     return file
 
 
