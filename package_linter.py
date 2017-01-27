@@ -36,6 +36,8 @@ def check_files_exist(app_path):
     """
     Check files exist
     """
+    return_code = 0
+
     print (c.BOLD + c.HEADER + ">>>> MISSING FILES <<<<" + c.END)
     fnames = ("manifest.json", "scripts/install", "scripts/remove",
              "scripts/upgrade", "scripts/backup", "scripts/restore", "LICENSE", "README.md")
@@ -45,6 +47,9 @@ def check_files_exist(app_path):
             print_right(fname)
         else:
             print_wrong(fname)
+            return_code = 1
+
+    return return_code
 
 
 def check_file_exist(file_path):
@@ -63,6 +68,8 @@ def check_manifest(manifest):
     Check if there is no comma syntax issue
     """
 
+    return_code = 0
+
     try:
         with open(manifest, encoding='utf-8') as data_file:
             manifest = json.loads(data_file.read())
@@ -70,7 +77,7 @@ def check_manifest(manifest):
     except:
         print_wrong(
             "Syntax (comma) or encoding issue with manifest.json. Can't check file.")
-        return
+        return 1
 
     fields = ("name", "id", "packaging_format", "description", "url",
               "license", "maintainer", "requirements", "multi_instance", "services", "arguments")
@@ -80,6 +87,7 @@ def check_manifest(manifest):
             print_right("\"" + field + "\" field is present")
         else:
             print_wrong("\"" + field + "\" field is missing")
+            return_code = 1
 
     """
     Check values in keys
@@ -89,14 +97,17 @@ def check_manifest(manifest):
 
     if "packaging_format" not in manifest:
         print_wrong("\"packaging_format\" key is missing")
+        return_code = 1
         pf = 0
 
     if pf == 1 and isinstance(manifest["packaging_format"], int) != 1:
         print_wrong("\"packaging_format\": value isn't an integer type")
+        return_code = 1
         pf = 0
 
     if pf == 1 and manifest["packaging_format"] != 1:
         print_wrong("\"packaging_format\" field: current format value is '1'")
+        return_code = 1
         pf = 0
 
     if pf == 1:
@@ -105,12 +116,14 @@ def check_manifest(manifest):
     if "license" in manifest and manifest["license"] != "free" and manifest["license"] != "non-free":
         print_wrong(
             "You should specify 'free' or 'non-free' software package in the license field.")
+        return_code = 1
     elif "license" in manifest:
         print_right("\"licence\" key value is good")
 
     if "multi_instance" in manifest and manifest["multi_instance"] != 1 and manifest["multi_instance"] != 0:
         print_wrong(
             "\"multi_instance\" field must be boolean type values 'true' or 'false' and not string type")
+        return_code = 1
     elif "multi_instance" in manifest:
         print_right("\"multi_instance\" field is good")
 
@@ -121,6 +134,7 @@ def check_manifest(manifest):
         for service in manifest["services"]:
             if service not in services:
                 print_wrong(service + " service doesn't exist")
+                return_code = 1
 
     if "install" in manifest["arguments"]:
         types = ("domain", "path", "password", "user", "admin")
@@ -131,9 +145,14 @@ def check_manifest(manifest):
                     if "type" not in install_arg:
                         print("You should specify the type of the key with", end=" ")
                         print(types[nbr - 1]) if nbr == 4 else print(typ)
+                        return_code = 1
+
+    return return_code
 
 
 def check_script(path, script_name):
+    return_code = 0
+
     script_path = path + "/scripts/" + script_name
 
     if check_file_exist(script_path) == 0:
@@ -144,17 +163,21 @@ def check_script(path, script_name):
 
     script = read_file(script_path)
 
-    check_script_header_presence(script)
-    check_sudo_prefix_commands(script)
-    check_verifications_done_before_modifying_system(script)
-    check_non_helpers_usage(script)
+    return_code = check_script_header_presence(script) or return_code
+    return_code = check_sudo_prefix_commands(script) or return_code
+    return_code = check_verifications_done_before_modifying_system(script) or return_code
+    return_code = check_non_helpers_usage(script) or return_code
+
+    return return_code
 
 
 def check_script_header_presence(script):
     if "#!/bin/bash" in script[0]:
         print_right("Script starts with \"#!/bin/bash\"")
+        return 0
     else:
         print_wrong("Script must start with \"#!/bin/bash\"")
+        return 1
 
 
 def check_sudo_prefix_commands(script):
@@ -177,6 +200,9 @@ def check_sudo_prefix_commands(script):
                 ok = False
     if ok:
         print_right("All commands are prefix with \"sudo\".")
+        return 0
+
+    return 1
 
 
 def check_verifications_done_before_modifying_system(script):
@@ -206,9 +232,11 @@ def check_verifications_done_before_modifying_system(script):
               "'ynh_die' or 'exit' command is executed with system modification before.\n",
         "This system modification is an issue if a verification exit the script.\n",
         "You should move this verification before any system modification." + c.END)
+        return 1
     else:
         print_right(
             "Verifications (with 'ynh_die' or 'exit' commands) are done before any system modification.")
+        return 0
 
 def check_non_helpers_usage(script):
     """
@@ -216,6 +244,8 @@ def check_non_helpers_usage(script):
     - 'yunohost app setting' –> ynh_app_setting_(set,get,delete)
     - 'exit' –> 'ynh_die'
     """
+    return_code = 0
+
     ok = True
 
     for line_nbr, line in enumerate(script):
@@ -227,6 +257,7 @@ def check_non_helpers_usage(script):
         print_right("Only helpers are used")
     else:
         print_wrong("Helpers documentation: https://yunohost.org/#/packaging_apps_helpers\ncode: https://github.com/YunoHost/yunohost/…helpers")
+        return_code = 1
 
     ok = True
 
@@ -237,18 +268,30 @@ def check_non_helpers_usage(script):
 
     if ok:
         print_right("no 'exit' command found: 'ynh_die' helper is possibly used")
+    else:
+        return_code = 1
+
+    return return_code
 
 if __name__ == '__main__':
     os.system("clear")
+
+    return_code = 0
 
     if len(sys.argv) != 2:
         print("Give one app package path.")
         exit()
 
+    # "or" trick to always be 1 if 1 is present:
+    # 1 or 0 = 1
+    # 1 or 1 = 1
+    # 0 or 1 = 1
+    # 0 or 0 = 0
+
     app_path = sys.argv[1]
     header(app_path)
-    check_files_exist(app_path)
-    check_manifest(app_path + "/manifest.json")
+    return_code = check_files_exist(app_path) or return_code
+    return_code = check_manifest(app_path + "/manifest.json") or return_code
 
     scripts = ["install", "remove", "upgrade", "backup", "restore"]
     for (dirpath, dirnames, filenames) in os.walk(os.path.join(app_path, "scripts")):
@@ -257,4 +300,6 @@ if __name__ == '__main__':
                 scripts.append(filename)
 
     for script in scripts:
-        check_script(app_path, script)
+        return_code = check_script(app_path, script) or return_code
+
+    sys.exit(return_code)
