@@ -2,7 +2,7 @@
 
 Linter for YunoHost applications packages
 
-## Use
+## Usage
 
 ```bash
 git clone https://github.com/YunoHost/package_linter
@@ -20,11 +20,10 @@ git clone https://github.com/<account>/<app>_ynh
  * missing type
  * (field value)
 * Check scripts
- * check bash header is present
  * warn missing sudo before commands
  * make sure verifications are done before modifications on the system
  * check non usage of helpers and propose them
 
 ## License
 
-* GNU GPLv3
+* GNU AGPLv3
