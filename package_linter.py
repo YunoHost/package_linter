@@ -115,12 +115,14 @@ def check_manifest(manifest):
     if pf == 1:
         print_right("\"packaging_format\" field is good")
 
+    """
     if "license" in manifest and manifest["license"] != "free" and manifest["license"] != "non-free":
         print_wrong(
             "You should specify 'free' or 'non-free' software package in the license field.")
         return_code = 1
     elif "license" in manifest:
         print_right("\"licence\" key value is good")
+    """
 
     if "multi_instance" in manifest and manifest["multi_instance"] != 1 and manifest["multi_instance"] != 0:
         print_wrong(
