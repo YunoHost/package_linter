@@ -163,21 +163,11 @@ def check_script(path, script_name):
 
     script = read_file(script_path)
 
-    return_code = check_script_header_presence(script) or return_code
     return_code = check_sudo_prefix_commands(script) or return_code
     return_code = check_verifications_done_before_modifying_system(script) or return_code
     return_code = check_non_helpers_usage(script) or return_code
 
     return return_code
-
-
-def check_script_header_presence(script):
-    if "#!/bin/bash" in script[0]:
-        print_right("Script starts with \"#!/bin/bash\"")
-        return 0
-    else:
-        print_wrong("Script must start with \"#!/bin/bash\"")
-        return 1
 
 
 def check_sudo_prefix_commands(script):
