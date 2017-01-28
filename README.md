@@ -23,6 +23,7 @@ git clone https://github.com/<account>/<app>_ynh
  * warn missing sudo before commands
  * make sure verifications are done before modifications on the system
  * check non usage of helpers and propose them
+ - check 'set -eu' usage
 
 ## License
 

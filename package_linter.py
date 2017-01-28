@@ -171,6 +171,7 @@ def check_script(path, script_name, script_nbr):
     return_code = check_non_helpers_usage(script) or return_code
     if script_nbr < 5:
         return_code = check_verifications_done_before_modifying_system(script) or return_code
+        return_code = check_set_usage(script_name, script) or return_code
 
     return return_code
 
@@ -264,6 +265,24 @@ def check_non_helpers_usage(script):
     if ok:
         print_right("no 'exit' command found: 'ynh_die' helper is possibly used")
     else:
+        return_code = 1
+
+    return return_code
+
+
+def check_set_usage(script_name, script):
+    return_code = 0
+    present = False
+    set_val = "set -u" if script_name == "remove" else "set -eu"
+
+    for line in script:
+        if set_val in line:
+            present = True
+            break
+    if present:
+        print_right(set_val + " is present")
+    else:
+        print_wrong(set_val + " is missing. For details, look at https://dev.yunohost.org/issues/419")
         return_code = 1
 
     return return_code
