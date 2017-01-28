@@ -154,7 +154,7 @@ def check_manifest(manifest):
     return return_code
 
 
-def check_script(path, script_name):
+def check_script(path, script_name, script_nbr):
     return_code = 0
 
     script_path = path + "/scripts/" + script_name
@@ -168,8 +168,9 @@ def check_script(path, script_name):
     script = read_file(script_path)
 
     return_code = check_sudo_prefix_commands(script) or return_code
-    return_code = check_verifications_done_before_modifying_system(script) or return_code
     return_code = check_non_helpers_usage(script) or return_code
+    if script_nbr < 5:
+        return_code = check_verifications_done_before_modifying_system(script) or return_code
 
     return return_code
 
@@ -293,7 +294,7 @@ if __name__ == '__main__':
             if filename not in scripts and filename[-4:] != ".swp":
                 scripts.append(filename)
 
-    for script in scripts:
-        return_code = check_script(app_path, script) or return_code
+    for script_nbr, script in enumerate(scripts):
+        return_code = check_script(app_path, script, script_nbr) or return_code
 
     sys.exit(return_code)
