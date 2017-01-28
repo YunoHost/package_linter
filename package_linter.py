@@ -275,14 +275,16 @@ def check_set_usage(script_name, script):
     present = False
     set_val = "set -u" if script_name == "remove" else "set -eu"
 
-    for line in script:
+    for line_nbr, line in enumerate(script):
         if set_val in line:
             present = True
             break
+        if line_nbr > 5:
+            break
     if present:
-        print_right(set_val + " is present")
+        print_right(set_val + " is present at beginning of file")
     else:
-        print_wrong(set_val + " is missing. For details, look at https://dev.yunohost.org/issues/419")
+        print_wrong(set_val + " is missing at beginning of file. For details, look at https://dev.yunohost.org/issues/419")
         return_code = 1
 
     return return_code
