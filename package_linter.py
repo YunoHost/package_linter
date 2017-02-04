@@ -65,6 +65,16 @@ def read_file(file_path):
     return file
 
 
+def check_source_management(app_path):
+    print (c.BOLD + c.HEADER + "\n>>>> SOURCES MANAGEMENT <<<<" + c.END)
+    if os.path.exists(os.path.join(app_path, "sources")):
+        print_wrong("Upstream app sources shouldn't be stored on this 'sources' folder of this git repository as a copy/paste.\n" +
+                "At installation, the package should download sources from upstream via 'wget', git submodule or git subtree.\n" +
+                "See https://dev.yunohost.org/issues/201#Conclusion-chart")
+    else:
+        print_right("Upstream app sources do not seems to be stored on the git repository as a copy/paste")
+
+
 def check_manifest(manifest):
     print (c.BOLD + c.HEADER + "\n>>>> MANIFEST <<<<" + c.END)
     """
@@ -308,6 +318,7 @@ if __name__ == '__main__':
     app_path = sys.argv[1]
     header(app_path)
     return_code = check_files_exist(app_path) or return_code
+    return_code = check_source_management(app_path) or return_code
     return_code = check_manifest(app_path + "/manifest.json") or return_code
 
     scripts = ["install", "remove", "upgrade", "backup", "restore"]
