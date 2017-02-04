@@ -14,6 +14,7 @@ git clone https://github.com/<account>/<app>_ynh
 ## Checks
 
 * Check missing files
+- Check sources mangement
 * Check manifest
  * syntax
  * missing fields
