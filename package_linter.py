@@ -69,7 +69,8 @@ def check_source_management(app_path):
     print (c.BOLD + c.HEADER + "\n>>>> SOURCES MANAGEMENT <<<<" + c.END)
     DIR = os.path.join(app_path, "sources")
     # Check if there is more than six files on 'sources' folder
-    if len([name for name in os.listdir(DIR) if os.path.isfile(os.path.join(DIR, name))]) > 5:
+    if os.path.exists(os.path.join(app_path, "sources")) and \
+     len([name for name in os.listdir(DIR) if os.path.isfile(os.path.join(DIR, name))]) > 5:
         print_wrong("Upstream app sources shouldn't be stored on this 'sources' folder of this git repository as a copy/paste.\n" +
                 "At installation, the package should download sources from upstream via 'wget', git submodule or git subtree.\n" +
                 "See https://dev.yunohost.org/issues/201#Conclusion-chart")
