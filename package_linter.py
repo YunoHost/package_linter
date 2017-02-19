@@ -95,7 +95,7 @@ def check_manifest(manifest):
             "Syntax (comma) or encoding issue with manifest.json. Can't check file.")
         return 1
 
-    fields = ("name", "id", "packaging_format", "description", "url",
+    fields = ("name", "id", "packaging_format", "description", "url", "version",
               "license", "maintainer", "requirements", "multi_instance", "services", "arguments")
 
     for field in fields:
