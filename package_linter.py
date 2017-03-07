@@ -186,6 +186,7 @@ def check_script(path, script_name, script_nbr):
     if script_nbr < 5:
         return_code = check_verifications_done_before_modifying_system(script) or return_code
         return_code = check_set_usage(script_name, script) or return_code
+        return_code = check_arg_retrieval(script) or return_code
 
     return return_code
 
@@ -300,6 +301,37 @@ def check_set_usage(script_name, script):
     else:
         print_wrong(set_val + " is missing at beginning of file. For details, look at https://dev.yunohost.org/issues/419")
         return_code = 1
+
+    return return_code
+
+
+def check_arg_retrieval(script):
+    """
+    Check arguments retrival from manifest is done with env var $YNH_APP_ARG_* and not with arg $1
+    env var was found till line ~30 on scripts. Stop file checking at L30: This could avoid wrong positives
+    Check only from '$1' to '$10' as 10 arg retrieval is already a lot.
+    """
+    return_code = 0
+    present = False
+    exitFlag = False
+
+    for line_nbr, line in enumerate(script):
+        for i in range(1, 10):
+            if "$" + str(i) in line:
+                print_wrong("At line {}: \"{}\"".format(line_nbr, line))
+                present = True
+            if line_nbr > 30:
+                exitFlag = True
+                break
+        if exitFlag == True:
+            break
+
+    if present:
+        print_wrong("Argument retrieval from manifest with $1 is deprecated. You may use $YNH_APP_ARG_*")
+        print_wrong("For more details see: https://yunohost.org/#/packaging_apps_arguments_management_en")
+        return_code = 1
+    else:
+        print_right("Argument retrieval from manifest seems to be done with environement variables")
 
     return return_code
 
