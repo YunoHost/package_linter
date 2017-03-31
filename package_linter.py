@@ -222,7 +222,7 @@ def check_verifications_done_before_modifying_system(script):
     """
     ex = 0
     for line_number, line in enumerate(script):
-        if "ynh_die" in line or "exit" in line:
+        if "ynh_die" in line or "exit " in line:
             ex = line_number
 
     cmds = ("cp", "mkdir", "rm", "chown", "chmod", "apt-get", "apt", "service",
@@ -273,7 +273,7 @@ def check_non_helpers_usage(script):
     ok = True
 
     for line_nbr, line in enumerate(script):
-        if "exit" in line:
+        if "exit " in line:
             print_wrong("Line {}: 'exit' command shouldn't be used. Use 'ynh_die' helper instead.".format(line_nbr + 1))
             ok = False
 
