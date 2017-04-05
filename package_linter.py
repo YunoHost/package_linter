@@ -181,7 +181,6 @@ def check_script(path, script_name, script_nbr):
 
     script = read_file(script_path)
 
-    return_code = check_sudo_prefix_commands(script) or return_code
     return_code = check_non_helpers_usage(script) or return_code
     if script_nbr < 5:
         return_code = check_verifications_done_before_modifying_system(script) or return_code
@@ -189,31 +188,6 @@ def check_script(path, script_name, script_nbr):
         return_code = check_arg_retrieval(script) or return_code
 
     return return_code
-
-
-def check_sudo_prefix_commands(script):
-    """
-    Check if commands are prefix with "sudo"
-    """
-    cmds = ("rm", "chown", "chmod", "apt-get", "apt",
-           "service", "yunohost", "find" "swapon", "mkswap", "useradd")  # , "dd") cp, mkdir
-    ok = True
-
-    for line_nbr, line in enumerate(script):
-        for cmd in cmds:
-            if cmd + " " in line and "sudo " + cmd + " " not in line \
-                    and "yunohost service" not in line and "-exec " + cmd not in line \
-                    and ".service" not in line and line[0] != '#':
-                print(c.FAIL + "✘ Line ", line_nbr + 1,
-                      "you should add \"sudo\" before this command line:", c.END)
-                print("  " + line.replace(cmd,
-                                       c.BOLD + c.FAIL + cmd + c.END))
-                ok = False
-    if ok:
-        print_right("All commands are prefix with \"sudo\".")
-        return 0
-
-    return 1
 
 
 def check_verifications_done_before_modifying_system(script):
