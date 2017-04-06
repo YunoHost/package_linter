@@ -185,7 +185,7 @@ def check_script(path, script_name, script_nbr):
     if script_nbr < 5:
         return_code = check_verifications_done_before_modifying_system(script) or return_code
         return_code = check_set_usage(script_name, script) or return_code
-        return_code = check_arg_retrieval(script) or return_code
+        check_arg_retrieval(script)
 
     return return_code
 
