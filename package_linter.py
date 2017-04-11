@@ -37,6 +37,7 @@ def print_wrong(str):
 def check_files_exist(app_path):
     """
     Check files exist
+    'backup' and 'restore' scripts are mandatory
     """
     return_code = 0
 
@@ -44,12 +45,13 @@ def check_files_exist(app_path):
     fnames = ("manifest.json", "scripts/install", "scripts/remove",
              "scripts/upgrade", "scripts/backup", "scripts/restore", "LICENSE", "README.md")
 
-    for fname in fnames:
+    for nbr, fname in enumerate(fnames):
         if check_file_exist(app_path + "/" + fname):
             print_right(fname)
         else:
             print_wrong(fname)
-            return_code = 1
+            if nbr != 4 and nbr != 5:
+                return_code = 1
 
     return return_code
 
