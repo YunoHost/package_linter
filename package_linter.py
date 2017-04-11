@@ -41,7 +41,7 @@ def check_files_exist(app_path):
     """
     return_code = 0
 
-    print (c.BOLD + c.HEADER + ">>>> MISSING FILES <<<<" + c.END)
+    print(c.BOLD + c.HEADER + ">>>> MISSING FILES <<<<" + c.END)
     fnames = ("manifest.json", "scripts/install", "scripts/remove",
              "scripts/upgrade", "scripts/backup", "scripts/restore", "LICENSE", "README.md")
 
@@ -68,7 +68,7 @@ def read_file(file_path):
 
 
 def check_source_management(app_path):
-    print (c.BOLD + c.HEADER + "\n>>>> SOURCES MANAGEMENT <<<<" + c.END)
+    print(c.BOLD + c.HEADER + "\n>>>> SOURCES MANAGEMENT <<<<" + c.END)
     DIR = os.path.join(app_path, "sources")
     # Check if there is more than six files on 'sources' folder
     if os.path.exists(os.path.join(app_path, "sources")) and \
@@ -81,7 +81,7 @@ def check_source_management(app_path):
 
 
 def check_manifest(manifest):
-    print (c.BOLD + c.HEADER + "\n>>>> MANIFEST <<<<" + c.END)
+    print(c.BOLD + c.HEADER + "\n>>>> MANIFEST <<<<" + c.END)
     """
     Check if there is no comma syntax issue
     """
@@ -178,7 +178,7 @@ def check_script(path, script_name, script_nbr):
     if check_file_exist(script_path) == 0:
         return
 
-    print (c.BOLD + c.HEADER + "\n>>>>",
+    print(c.BOLD + c.HEADER + "\n>>>>",
            script_name.upper(), "SCRIPT <<<<" + c.END)
 
     script = read_file(script_path)
@@ -224,6 +224,7 @@ def check_verifications_done_before_modifying_system(script):
         print_right(
             "Verifications (with 'ynh_die' or 'exit' commands) are done before any system modification.")
         return 0
+
 
 def check_non_helpers_usage(script):
     """
@@ -299,7 +300,7 @@ def check_arg_retrieval(script):
             if line_nbr > 30:
                 exitFlag = True
                 break
-        if exitFlag == True:
+        if exitFlag is True:
             break
 
     if present:
