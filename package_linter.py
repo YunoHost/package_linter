@@ -5,6 +5,12 @@ import sys
 import os
 import re
 import json
+import shlex
+import urllib.request
+import codecs
+
+reader = codecs.getreader("utf-8")
+return_code = 0
 
 
 class c:
@@ -12,6 +18,7 @@ class c:
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
     WARNING = '\033[93m'
+    MAYBE_FAIL = '\033[96m'
     FAIL = '\033[91m'
     END = '\033[0m'
     BOLD = '\033[1m'
@@ -30,8 +37,27 @@ def print_right(str):
     print(c.OKGREEN + "✔", str, c.END)
 
 
-def print_wrong(str):
-    print(c.FAIL + "✘", str, c.END)
+def print_warning(str):
+    print(c.WARNING + "!", str, c.END)
+
+
+def print_wrong(str, reliable=True):
+    if reliable:
+        global return_code
+        return_code = 1
+        print(c.FAIL + "✘", str, c.END)
+    else:
+        print(c.MAYBE_FAIL + "?", str, c.END)
+
+
+def urlopen(url):
+    try:
+        conn = urllib.request.urlopen(url)
+    except urllib.error.HTTPError as e:
+        return {'content': '', 'code': e.code}
+    except urllib.error.URLError as e:
+        print('URLError')
+    return {'content': conn.read().decode('UTF8'), 'code': 200}
 
 
 def check_files_exist(app_path):
@@ -39,21 +65,18 @@ def check_files_exist(app_path):
     Check files exist
     'backup' and 'restore' scripts are mandatory
     """
-    return_code = 0
 
     print(c.BOLD + c.HEADER + ">>>> MISSING FILES <<<<" + c.END)
     fnames = ("manifest.json", "scripts/install", "scripts/remove",
-             "scripts/upgrade", "scripts/backup", "scripts/restore", "LICENSE", "README.md")
+              "scripts/upgrade", "scripts/backup", "scripts/restore", "LICENSE",
+              "README.md")
 
     for nbr, fname in enumerate(fnames):
-        if check_file_exist(app_path + "/" + fname):
-            print_right(fname)
-        else:
-            print_wrong(fname)
+        if not check_file_exist(app_path + "/" + fname):
             if nbr != 4 and nbr != 5:
-                return_code = 1
-
-    return return_code
+                print_wrong(fname)
+            else:
+                print_warning(fname)
 
 
 def check_file_exist(file_path):
@@ -61,9 +84,11 @@ def check_file_exist(file_path):
 
 
 def read_file(file_path):
-    with open(file_path) as f:
-        # remove every comments from the file content to avoid false positives
-        file = re.sub("#.*[^\n]", "", f.read()).splitlines()
+    f = open(file_path)
+    # remove every comments and empty lines from the file content to avoid
+    # false positives
+    file = shlex.shlex(f, False)
+    #file = filter(None, re.sub("#.*[^\n]", "", f.read()).splitlines())
     return file
 
 
@@ -73,79 +98,128 @@ def check_source_management(app_path):
     # Check if there is more than six files on 'sources' folder
     if os.path.exists(os.path.join(app_path, "sources")) and \
      len([name for name in os.listdir(DIR) if os.path.isfile(os.path.join(DIR, name))]) > 5:
-        print_wrong("Upstream app sources shouldn't be stored on this 'sources' folder of this git repository as a copy/paste.\n" +
-                "At installation, the package should download sources from upstream via 'wget', git submodule or git subtree.\n" +
-                "See https://dev.yunohost.org/issues/201#Conclusion-chart")
-    else:
-        print_right("Upstream app sources do not seems to be stored on the git repository as a copy/paste")
+        print_warning("[YEP-3.3] Upstream app sources shouldn't be stored on this "
+                      "'sources' folder of this git repository as a copy/paste."
+                      "\nAt installation, the package should download sources "
+                      "from upstream via 'ynh_setup_source'.\nSee "
+                      "https://dev.yunohost.org/issues/201#Conclusion-chart")
 
+def is_license_mention_in_readme(path):
+    readme_path = os.path.join(path, 'README.md')
+    if os.path.isfile(readme_path):
+        return "LICENSE" in open(readme_path).read()
+    return False
 
-def check_manifest(manifest):
+def check_manifest(path):
+    manifest = os.path.join(path, 'manifest.json')
+    if not os.path.exists(manifest):
+        return
     print(c.BOLD + c.HEADER + "\n>>>> MANIFEST <<<<" + c.END)
     """
     Check if there is no comma syntax issue
     """
 
-    return_code = 0
-
     try:
         with open(manifest, encoding='utf-8') as data_file:
             manifest = json.loads(data_file.read())
-        print_right("Manifest syntax is good.")
     except:
-        print_wrong(
-            "Syntax (comma) or encoding issue with manifest.json. Can't check file.")
-        return 1
+        print_wrong("[YEP-2.1] Syntax (comma) or encoding issue with manifest.json. "
+                    "Can't check file.")
 
-    fields = ("name", "id", "packaging_format", "description", "url",
-              "license", "maintainer", "requirements", "multi_instance", "services", "arguments")
+    fields = ("name", "id", "packaging_format", "description", "url", "version",
+              "license", "maintainer", "requirements", "multi_instance",
+              "services", "arguments")
 
     for field in fields:
-        if field in manifest:
-            print_right("\"" + field + "\" field is present")
-        else:
-            print_wrong("\"" + field + "\" field is missing")
-            return_code = 1
+        if field not in manifest:
+            print_warning("[YEP-2.1] \"" + field + "\" field is missing")
 
     """
     Check values in keys
     """
 
-    pf = 1
-
     if "packaging_format" not in manifest:
-        print_wrong("\"packaging_format\" key is missing")
-        return_code = 1
-        pf = 0
+        print_wrong("[YEP-2.1] \"packaging_format\" key is missing")
+    elif not isinstance(manifest["packaging_format"], int):
+        print_wrong("[YEP-2.1] \"packaging_format\": value isn't an integer type")
+    elif manifest["packaging_format"] != 1:
+        print_wrong("[YEP-2.1] \"packaging_format\" field: current format value is '1'")
 
-    if pf == 1 and isinstance(manifest["packaging_format"], int) != 1:
-        print_wrong("\"packaging_format\": value isn't an integer type")
-        return_code = 1
-        pf = 0
+    # YEP 1.1 Name is app
+    if "id" in manifest:
+        if not re.match('^[a-z1-9]((_|-)?[a-z1-9])+$', manifest["id"]):
+            print_wrong("[YEP-1.1] 'id' field '%s' should respect this regex "
+                        "'^[a-z1-9]((_|-)?[a-z1-9])+$'")
 
-    if pf == 1 and manifest["packaging_format"] != 1:
-        print_wrong("\"packaging_format\" field: current format value is '1'")
-        return_code = 1
-        pf = 0
+    if "name" in manifest:
+        if len(manifest["name"]) > 22 :
+            print_warning("[YEP-1.1] The 'name' field shouldn't be too long to be"
+                          " able to be with one line in the app list. The most "
+                          "current bigger name is actually compound of 22 characters.")
 
-    if pf == 1:
-        print_right("\"packaging_format\" field is good")
+    # YEP 1.2 Put the app in a weel known repo
+    if "id" in manifest:
+        official_list_url = "https://raw.githubusercontent.com/YunoHost/apps/master/official.json"
+        official_list = json.loads(urlopen(official_list_url)['content'])
+        community_list_url = "https://raw.githubusercontent.com/YunoHost/apps/master/community.json"
+        community_list = json.loads(urlopen(community_list_url)['content'])
+        if manifest["id"] not in official_list and manifest["id"] not in community_list:
+            print_warning("[YEP-1.2] This app is not registered in official or community applications")
 
-    """
-    if "license" in manifest and manifest["license"] != "free" and manifest["license"] != "non-free":
-        print_wrong(
-            "You should specify 'free' or 'non-free' software package in the license field.")
-        return_code = 1
-    elif "license" in manifest:
-        print_right("\"licence\" key value is good")
-    """
+    # YEP 1.3 License
+    if "license" in manifest:
+        for license in manifest['license'].replace('&', ',').split(','):
+            code_license = '<code property="spdx:licenseId">' + license + '</code>'
+            link = "https://spdx.org/licenses/"
+            if license == "nonfree":
+                print_warning("[YEP-1.3] The correct value for non free license in license"
+                              " field is 'non-free' and not 'nonfree'")
+                license = "non-free"
+            if license in ["free", "non-free", "dep-non-free"]:
+                if not is_license_mention_in_readme(path):
+                    print_warning("[YEP-1.3] The use of '%s' in license field implies to "
+                                  "write something about the license in your "
+                                  "README.md" % (license))
+                if license == "non-free" or "dep-non-free":
+                    print_warning("[YEP-1.3] 'non-free' apps can't be officialised."
+                                  "The way to integrate them or not is always "
+                                  "in discussion notably about apps with non "
+                                  "free dependencies")
+            elif code_license not in urlopen(link)['content']:
+                print_warning("[YEP-1.3] The license '%s' is not registered in "
+                            "https://spdx.org/licenses/ . It can be a typo error."
+                            "If no, you should write free or non-free in place and"
+                            " gice more explanation in README.md" % (license))
 
+    # YEP 1.4 Inform if we continue to maintain the app
+    # YEP 1.5 Update regularly the app status
+    # YEP 1.6 Check regularly the evolution of the upstream
+
+    # YEP 1.7 - Add an app to the YunoHost-Apps organization
+    if "id" in manifest:
+        repo = "https://github.com/YunoHost-Apps/%s_ynh" % (manifest["id"])
+        is_not_added_to_org =  urlopen(repo)['code'] == 404
+
+        if is_not_added_to_org:
+            print_warning("[YEP-1.7] You should add your app in the "
+                          "YunoHost-Apps organisation.")
+
+    # YEP 1.8 Publish test request
+    # YEP 1.9 Document app
+    if "description" in manifest and "name" in manifest:
+        if manifest["description"] == manifest["name"]:
+            print_warning("[YEP-1.9] You should write a good description of the"
+                          "app (1 line is enough).")
+    #TODO test a specific template in README.md
+
+    # YEP 1.10 Garder un historique de version propre
+
+    # YEP 1.11 Cancelled
+
+    # YEP 2.1
     if "multi_instance" in manifest and manifest["multi_instance"] != 1 and manifest["multi_instance"] != 0:
         print_wrong(
-            "\"multi_instance\" field must be boolean type values 'true' or 'false' and not string type")
-        return_code = 1
-    elif "multi_instance" in manifest:
-        print_right("\"multi_instance\" field is good")
+            "[YEP-2.1] \"multi_instance\" field must be boolean type values 'true' or 'false' and not string type")
 
     if "services" in manifest:
         services = ("nginx", "php5-fpm", "mysql", "uwsgi", "metronome",
@@ -153,8 +227,7 @@ def check_manifest(manifest):
 
         for service in manifest["services"]:
             if service not in services:
-                print_wrong(service + " service doesn't exist")
-                return_code = 1
+                print_warning("[YEP-2.1]" + service + " service may not exist")
 
     if "install" in manifest["arguments"]:
         types = ("domain", "path", "password", "user", "admin")
@@ -163,15 +236,11 @@ def check_manifest(manifest):
             for install_arg in manifest["arguments"]["install"]:
                 if typ == install_arg["name"]:
                     if "type" not in install_arg:
-                        print("You should specify the type of the key with", end=" ")
-                        print(types[nbr - 1]) if nbr == 4 else print(typ)
-                        return_code = 1
+                        print_wrong("[YEP-2.1] You should specify the type of the key with %s" % (typ))
 
-    return return_code
 
 
 def check_script(path, script_name, script_nbr):
-    return_code = 0
 
     script_path = path + "/scripts/" + script_name
 
@@ -181,49 +250,44 @@ def check_script(path, script_name, script_nbr):
     print(c.BOLD + c.HEADER + "\n>>>>",
            script_name.upper(), "SCRIPT <<<<" + c.END)
 
-    script = read_file(script_path)
-
-    return_code = check_non_helpers_usage(script) or return_code
+    check_non_helpers_usage(read_file(script_path))
     if script_nbr < 5:
-        check_verifications_done_before_modifying_system(script)
-        return_code = check_set_usage(script_name, script) or return_code
-        check_arg_retrieval(script)
-
-    return return_code
+        check_verifications_done_before_modifying_system(read_file(script_path))
+        check_set_usage(script_name, read_file(script_path))
+        #check_arg_retrieval(script.copy())
 
 
 def check_verifications_done_before_modifying_system(script):
     """
     Check if verifications are done before modifying the system
     """
-    ex = 0
-    for line_number, line in enumerate(script):
-        if "ynh_die" in line or "exit " in line:
-            ex = line_number
-
-    cmds = ("cp", "mkdir", "rm", "chown", "chmod", "apt-get", "apt", "service",
-           "find", "sed", "mysql", "swapon", "mount", "dd", "mkswap", "useradd")  # "yunohost"
-
     ok = True
+    modify_cmd = ''
+    cmds = ("cp", "mkdir", "rm", "chown", "chmod", "apt-get", "apt", "service",
+           "find", "sed", "mysql", "swapon", "mount", "dd", "mkswap", "useradd")
+    cmds_before_exit = []
+    is_exit = False
+    for cmd in script:
+        if "ynh_die" == cmd or "exit " == cmd:
+            is_exit = True
+            break
+        cmds_before_exit.append(cmd)
 
-    for line_nbr, line in enumerate(script):
-        if line_nbr >= ex:
+    if not is_exit:
+        return
+
+    for cmd in cmds_before_exit:
+        if "ynh_die" == cmd or "exit " == cmd:
+            break
+        if not ok or cmd in cmds:
+            modify_cmd = cmd
+            ok = False
             break
 
-        for cmd in cmds:
-            if cmd in line and line[0] != '#':
-                ok = False
-
     if not ok:
-        print(c.FAIL + "✘ At line", ex + 1,
-              "'ynh_die' or 'exit' command is executed with system modification before.\n",
-        "This system modification is an issue if a verification exit the script.\n",
-        "You should move this verification before any system modification." + c.END)
-        return 1
-    else:
-        print_right(
-            "Verifications (with 'ynh_die' or 'exit' commands) are done before any system modification.")
-        return 0
+        print_wrong("[YEP-2.4] 'ynh_die' or 'exit' command is executed with system modification before (cmd '%s').\n"
+        "This system modification is an issue if a verification exit the script.\n"
+        "You should move this verification before any system modification." % (modify_cmd) , False)
 
 
 def check_non_helpers_usage(script):
@@ -232,54 +296,46 @@ def check_non_helpers_usage(script):
     - 'yunohost app setting' –> ynh_app_setting_(set,get,delete)
     - 'exit' –> 'ynh_die'
     """
-    return_code = 0
 
     ok = True
+    #TODO
+    #for line_nbr, cmd in script:
+    #    if "yunohost app setting" in cmd:
+    #        print_wrong("[YEP-2.11] Line {}: 'yunohost app setting' command is deprecated,"
+    #                    " please use helpers ynh_app_setting_(set,get,delete)."
+    #                    .format(line_nbr + 1))
+    #        ok = False
 
-    for line_nbr, line in enumerate(script):
-        if "yunohost app setting" in line:
-            print_wrong("Line {}: 'yunohost app setting' command is deprecated, please use helpers ynh_app_setting_(set,get,delete).".format(line_nbr + 1))
-            ok = False
+    if not ok:
+        print("Helpers documentation: "
+                    "https://yunohost.org/#/packaging_apps_helpers\n"
+                    "code: https://github.com/YunoHost/yunohost/…helpers")
 
-    if ok:
-        print_right("Only helpers are used")
-    else:
-        print_wrong("Helpers documentation: https://yunohost.org/#/packaging_apps_helpers\ncode: https://github.com/YunoHost/yunohost/…helpers")
-        return_code = 1
-
-    ok = True
-
-    for line_nbr, line in enumerate(script):
-        if "exit " in line:
-            print_wrong("Line {}: 'exit' command shouldn't be used. Use 'ynh_die' helper instead.".format(line_nbr + 1))
-            ok = False
-
-    if ok:
-        print_right("no 'exit' command found: 'ynh_die' helper is possibly used")
-    else:
-        return_code = 1
-
-    return return_code
+    if "exit" in script:
+        print_wrong("[YEP-2.4] 'exit' command shouldn't be used."
+                    "Use 'ynh_die' helper instead.")
 
 
 def check_set_usage(script_name, script):
-    return_code = 0
     present = False
-    set_val = "set -u" if script_name == "remove" else "set -eu"
 
-    for line_nbr, line in enumerate(script):
-        if set_val in line:
-            present = True
-            break
-        if line_nbr > 5:
-            break
-    if present:
-        print_right(set_val + " is present at beginning of file")
+    if script_name in ["backup", "remove"]:
+        present = "ynh_abort_if_errors" in script or "set -eu" in script
     else:
-        print_wrong(set_val + " is missing at beginning of file. For details, look at https://dev.yunohost.org/issues/419")
-        return_code = 1
+        present = "ynh_abort_if_errors" in script
 
-    return return_code
+    if script_name == "remove":
+        # Remove script shouldn't use set -eu or ynh_abort_if_errors
+        if present:
+            print_wrong("[YEP-2.4] set -eu or ynh_abort_if_errors is present. "
+                        "If there is a crash it could put yunohost system in "
+                        "invalidated states. For details, look at "
+                        "https://dev.yunohost.org/issues/419")
+    else:
+        if not present:
+            print_wrong("[YEP-2.4] ynh_abort_if_errors is missing. For details,"
+                        "look at https://dev.yunohost.org/issues/419")
+
 
 
 def check_arg_retrieval(script):
@@ -288,34 +344,21 @@ def check_arg_retrieval(script):
     env var was found till line ~30 on scripts. Stop file checking at L30: This could avoid wrong positives
     Check only from '$1' to '$10' as 10 arg retrieval is already a lot.
     """
-    return_code = 0
     present = False
-    exitFlag = False
 
-    for line_nbr, line in enumerate(script):
-        for i in range(1, 10):
-            if "$" + str(i) in line:
-                print_wrong("At line {}: \"{}\"".format(line_nbr, line))
-                present = True
-            if line_nbr > 30:
-                exitFlag = True
-                break
-        if exitFlag is True:
+    for cmd in script:
+        if cmd =='$' and script.get_token() in [str(x) for x in range(1, 10)]:
+            present = True
             break
 
     if present:
         print_wrong("Argument retrieval from manifest with $1 is deprecated. You may use $YNH_APP_ARG_*")
         print_wrong("For more details see: https://yunohost.org/#/packaging_apps_arguments_management_en")
-        return_code = 1
-    else:
-        print_right("Argument retrieval from manifest seems to be done with environement variables")
 
-    return return_code
 
 if __name__ == '__main__':
     os.system("clear")
 
-    return_code = 0
 
     if len(sys.argv) != 2:
         print("Give one app package path.")
@@ -329,9 +372,9 @@ if __name__ == '__main__':
 
     app_path = sys.argv[1]
     header(app_path)
-    return_code = check_files_exist(app_path) or return_code
-    return_code = check_source_management(app_path) or return_code
-    return_code = check_manifest(app_path + "/manifest.json") or return_code
+    check_files_exist(app_path)
+    check_source_management(app_path)
+    check_manifest(app_path) # + "/manifest.json")
 
     scripts = ["install", "remove", "upgrade", "backup", "restore"]
     for (dirpath, dirnames, filenames) in os.walk(os.path.join(app_path, "scripts")):
@@ -340,6 +383,6 @@ if __name__ == '__main__':
                 scripts.append(filename)
 
     for script_nbr, script in enumerate(scripts):
-        return_code = check_script(app_path, script, script_nbr) or return_code
+        check_script(app_path, script, script_nbr)
 
     sys.exit(return_code)
