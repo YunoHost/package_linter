@@ -357,9 +357,6 @@ def check_arg_retrieval(script):
 
 
 if __name__ == '__main__':
-    os.system("clear")
-
-
     if len(sys.argv) != 2:
         print("Give one app package path.")
         exit()
