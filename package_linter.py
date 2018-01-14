@@ -180,11 +180,10 @@ def check_manifest(path):
                     print_warning("[YEP-1.3] The use of '%s' in license field implies to "
                                   "write something about the license in your "
                                   "README.md" % (license))
-                if license == "non-free" or "dep-non-free":
-                    print_warning("[YEP-1.3] 'non-free' apps can't be officialised."
-                                  "The way to integrate them or not is always "
-                                  "in discussion notably about apps with non "
-                                  "free dependencies")
+                if license in ["non-free", "dep-non-free"]:
+                    print_warning("[YEP-1.3] 'non-free' apps can't be officialized."
+                                  "Their integration is still being discussed,"
+                                  "especially for apps with non-free dependencies")
             elif code_license not in urlopen(link)['content']:
                 print_warning("[YEP-1.3] The license '%s' is not registered in "
                             "https://spdx.org/licenses/ . It can be a typo error."
