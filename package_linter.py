@@ -186,9 +186,9 @@ def check_manifest(path):
                                   "especially for apps with non-free dependencies")
             elif code_license not in urlopen(link)['content']:
                 print_warning("[YEP-1.3] The license '%s' is not registered in "
-                            "https://spdx.org/licenses/ . It can be a typo error."
-                            "If no, you should write free or non-free in place and"
-                            " gice more explanation in README.md" % (license))
+                            "https://spdx.org/licenses/ . It can be a typo error. "
+                            "If not, you should replace it by 'free' or 'non-free'"
+                            "and give some explanations in the README.md." % (license))
 
     # YEP 1.4 Inform if we continue to maintain the app
     # YEP 1.5 Update regularly the app status
