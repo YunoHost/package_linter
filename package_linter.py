@@ -253,6 +253,7 @@ def check_script(path, script_name, script_nbr):
     if script_nbr < 5:
         check_verifications_done_before_modifying_system(read_file(script_path))
         check_set_usage(script_name, read_file(script_path))
+        check_helper_usage_dependencies(script_path)
         #check_arg_retrieval(script.copy())
 
 
@@ -354,6 +355,25 @@ def check_arg_retrieval(script):
         print_wrong("Argument retrieval from manifest with $1 is deprecated. You may use $YNH_APP_ARG_*")
         print_wrong("For more details see: https://yunohost.org/#/packaging_apps_arguments_management_en")
 
+def check_helper_usage_dependencies(script_name):
+    """
+    detects usage of ynh_package_* & apt-get * and suggest usage of
+    ynh_remove_app_dependencies and ynh_remove_app_dependencies
+    """
+    script = open(script_name).read()
+
+    present = False
+
+    present = "ynh_package_install" in script or "apt-get install" in script
+
+    if present:
+        print_warning("You should not use ynh_package_install or apt-get install, use ynh_install_app_dependencies instead")
+
+    present = False
+    present = "ynh_package_remove" in script or "apt-get remove" in script
+
+    if present:
+        print_warning("You should not use ynh_package_remove or apt-get remove, use ynh_remove_app_dependencies instead")
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
