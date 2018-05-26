@@ -254,6 +254,7 @@ def check_script(path, script_name, script_nbr):
         check_verifications_done_before_modifying_system(read_file(script_path))
         check_set_usage(script_name, read_file(script_path))
         check_helper_usage_dependencies(script_path)
+        check_helper_usage_unix(script_path)
         #check_arg_retrieval(script.copy())
 
 
@@ -374,6 +375,21 @@ def check_helper_usage_dependencies(script_name):
 
     if present:
         print_warning("You should not use ynh_package_remove or apt-get remove, use ynh_remove_app_dependencies instead")
+
+def check_helper_usage_unix(script_name):
+    """
+    detects usage of sudo, rm and sed
+    """
+    script = open(script_name).read()
+
+    if "rm -rf" in script:
+        print_warning("You should not use `rm -rf`, use ynh_secure_remove instead")
+
+    if "sed -i" in script:
+        print_warning("You should not have to use `sed -i`, use ynh_replace_string or one of the helper")
+
+    if "sudo " in script:
+        print_warning("You should not have to use `sudo`, the script is run as root")
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
