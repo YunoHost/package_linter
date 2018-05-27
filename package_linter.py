@@ -257,6 +257,7 @@ def check_script(path, script_name, script_nbr):
         check_set_usage(script_name, read_file(script_path))
         check_helper_usage_dependencies(script_path)
         check_helper_usage_unix(script_path)
+        check_helper_consistency(path, script_name, script_path)
         #check_arg_retrieval(script.copy())
 
 
@@ -392,6 +393,22 @@ def check_helper_usage_unix(script_name):
 
     if "sudo " in script:
         print_warning("You should not have to use `sudo`, the script is run as root")
+
+def check_helper_consistency(path, script_name, script_path):
+    """
+    check if ynh_install_app_dependencies is present in install/upgrade/restore
+    so dependencies are up to date after restoration or upgrade
+    """
+    script = open(script_path).read()
+
+    if script_name == "install" and "ynh_install_app_dependencies" in script:
+        for name in ["upgrade", "restore"]:
+            try:
+                script2 = open(path + "/scripts/" + name).read()
+                if not "ynh_install_app_dependencies" in script2:
+                    print_warning("ynh_install_app_dependencies should also be in %s script" % name)
+            except FileNotFoundError:
+                pass
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
