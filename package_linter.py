@@ -361,27 +361,23 @@ def check_arg_retrieval(script):
 
 def check_helper_usage_dependencies(script_name):
     """
-    detects usage of ynh_package_* & apt-get * and suggest usage of
-    ynh_remove_app_dependencies and ynh_remove_app_dependencies
+    Detect usage of ynh_package_* & apt-get *
+    and suggest herlpers ynh_install_app_dependencies and ynh_remove_app_dependencies
     """
     script = open(script_name).read()
 
-    present = False
+    if "ynh_package_install" in script or "apt-get install" in script:
+        print_warning("You should not use `ynh_package_install` or `apt-get install`, use `ynh_install_app_dependencies` instead")
 
-    present = "ynh_package_install" in script or "apt-get install" in script
-
-    if present:
-        print_warning("You should not use ynh_package_install or apt-get install, use ynh_install_app_dependencies instead")
-
-    present = False
-    present = "ynh_package_remove" in script or "apt-get remove" in script
-
-    if present:
-        print_warning("You should not use ynh_package_remove or apt-get remove, use ynh_remove_app_dependencies instead")
+    if "ynh_package_remove" in script or "apt-get remove" in script:
+        print_warning("You should not use `ynh_package_remove` or `apt-get removeè, use `ynh_remove_app_dependencies` instead")
 
 def check_helper_usage_unix(script_name):
     """
-    detects usage of sudo, rm and sed
+    Detect usage of unix commands with helper equivalents:
+    - sudo    → nothing
+    - rm      → ynh_secure_remove
+    - sed -i  → ynh_replace_string
     """
     script = open(script_name).read()
 
