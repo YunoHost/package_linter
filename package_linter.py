@@ -375,20 +375,20 @@ def check_helper_usage_dependencies(script_name):
 def check_helper_usage_unix(script_name):
     """
     Detect usage of unix commands with helper equivalents:
-    - sudo    → nothing
+    - sudo    → ynh_exec_as
     - rm      → ynh_secure_remove
     - sed -i  → ynh_replace_string
     """
     script = read_file(script_name)
 
     if "rm -rf" in script:
-        print_warning("You should not use `rm -rf`, use ynh_secure_remove instead")
+        print_warning("You should avoid using `rm -rf`, please use `ynh_secure_remove` instead")
 
     if "sed -i" in script:
-        print_warning("You should not have to use `sed -i`, use ynh_replace_string or one of the helper")
+        print_warning("You should avoid using `sed -i`, please use `ynh_replace_string` instead")
 
     if "sudo " in script:
-        print_warning("You should not have to use `sudo`, the script is run as root")
+        print_warning("You should not need to use `sudo`, the script is being run as root. (If you need to run a command using a specific user, use `ynh_exec_as`)")
 
 def check_helper_consistency(path, script_name, script_path):
     """
