@@ -364,7 +364,7 @@ def check_helper_usage_dependencies(script_name):
     Detect usage of ynh_package_* & apt-get *
     and suggest herlpers ynh_install_app_dependencies and ynh_remove_app_dependencies
     """
-    script = open(script_name).read()
+    script = read_file(script_name)
 
     if "ynh_package_install" in script or "apt-get install" in script:
         print_warning("You should not use `ynh_package_install` or `apt-get install`, use `ynh_install_app_dependencies` instead")
@@ -379,7 +379,7 @@ def check_helper_usage_unix(script_name):
     - rm      → ynh_secure_remove
     - sed -i  → ynh_replace_string
     """
-    script = open(script_name).read()
+    script = read_file(script_name)
 
     if "rm -rf" in script:
         print_warning("You should not use `rm -rf`, use ynh_secure_remove instead")
@@ -395,7 +395,7 @@ def check_helper_consistency(path, script_name, script_path):
     check if ynh_install_app_dependencies is present in install/upgrade/restore
     so dependencies are up to date after restoration or upgrade
     """
-    script = open(script_path).read()
+    script = read_file(script_name)
 
     if script_name == "install" and "ynh_install_app_dependencies" in script:
         for name in ["upgrade", "restore"]:
