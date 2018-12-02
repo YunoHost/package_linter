@@ -30,7 +30,7 @@ def header(app_path):
           "YUNOHOST APP PACKAGE LINTER\n", c.END,
     "App packaging documentation: https://yunohost.org/#/packaging_apps\n",
     "App package example: https://github.com/YunoHost/example_ynh\n",
-    "Official helpers: https://helpers.yunohost.org\n",
+    "Official helpers: https://yunohost.org/#/packaging_apps_helpers_en\n",
     "Experimental helpers: https://github.com/YunoHost-Apps/Experimental_helpers\n"
     "Checking " + c.BOLD + app_path + c.END + " package\n")
 
