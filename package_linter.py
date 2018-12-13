@@ -381,14 +381,14 @@ def check_helper_usage_unix(path, script_name):
     """
     script = read_file(path)
 
-    if "rm -rf" in script:
-        print_warning("You should avoid using `rm -rf`, please use `ynh_secure_remove` instead")
+    if "rm -rf" in script or "rm -Rf" in script:
+        print_wrong("[YEP-2.12] You should avoid using `rm -rf`, please use `ynh_secure_remove` instead")
 
     if "sed -i" in script:
-        print_warning("You should avoid using `sed -i`, please use `ynh_replace_string` instead")
+        print_warning("[YEP-2.12] You should avoid using `sed -i`, please use `ynh_replace_string` instead")
 
     if "sudo " in script:
-        print_warning("You should not need to use `sudo`, the script is being run as root. (If you need to run a command using a specific user, use `ynh_exec_as`)")
+        print_warning("[YEP-2.12] You should not need to use `sudo`, the script is being run as root. (If you need to run a command using a specific user, use `ynh_exec_as`)")
 
 def check_helper_consistency(path, script_name):
     """
