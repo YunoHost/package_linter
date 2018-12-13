@@ -255,9 +255,9 @@ def check_script(path, script_name, script_nbr):
     if script_nbr < 5:
         check_verifications_done_before_modifying_system(read_file(script_path))
         check_set_usage(script_name, read_file(script_path))
-        check_helper_usage_dependencies(script_path)
-        check_helper_usage_unix(script_path)
-        check_helper_consistency(path, script_name, script_path)
+        check_helper_usage_dependencies(script_path, script_name)
+        check_helper_usage_unix(script_path, script_name)
+        check_helper_consistency(script_path, script_name)
         #check_arg_retrieval(script.copy())
 
 
@@ -359,12 +359,12 @@ def check_arg_retrieval(script):
         print_wrong("Argument retrieval from manifest with $1 is deprecated. You may use $YNH_APP_ARG_*")
         print_wrong("For more details see: https://yunohost.org/#/packaging_apps_arguments_management_en")
 
-def check_helper_usage_dependencies(script_name):
+def check_helper_usage_dependencies(path, script_name):
     """
     Detect usage of ynh_package_* & apt-get *
     and suggest herlpers ynh_install_app_dependencies and ynh_remove_app_dependencies
     """
-    script = read_file(script_name)
+    script = read_file(path)
 
     if "ynh_package_install" in script or "apt-get install" in script:
         print_warning("You should not use `ynh_package_install` or `apt-get install`, use `ynh_install_app_dependencies` instead")
@@ -372,14 +372,14 @@ def check_helper_usage_dependencies(script_name):
     if "ynh_package_remove" in script or "apt-get remove" in script:
         print_warning("You should not use `ynh_package_remove` or `apt-get removeè, use `ynh_remove_app_dependencies` instead")
 
-def check_helper_usage_unix(script_name):
+def check_helper_usage_unix(path, script_name):
     """
     Detect usage of unix commands with helper equivalents:
     - sudo    → ynh_exec_as
     - rm      → ynh_secure_remove
     - sed -i  → ynh_replace_string
     """
-    script = read_file(script_name)
+    script = read_file(path)
 
     if "rm -rf" in script:
         print_warning("You should avoid using `rm -rf`, please use `ynh_secure_remove` instead")
@@ -390,17 +390,17 @@ def check_helper_usage_unix(script_name):
     if "sudo " in script:
         print_warning("You should not need to use `sudo`, the script is being run as root. (If you need to run a command using a specific user, use `ynh_exec_as`)")
 
-def check_helper_consistency(path, script_name, script_path):
+def check_helper_consistency(path, script_name):
     """
     check if ynh_install_app_dependencies is present in install/upgrade/restore
     so dependencies are up to date after restoration or upgrade
     """
-    script = read_file(script_name)
+    script = read_file(path)
 
     if script_name == "install" and "ynh_install_app_dependencies" in script:
         for name in ["upgrade", "restore"]:
             try:
-                script2 = open(path + "/scripts/" + name).read()
+                script2 = read_file(os.path.dirname(path) + "/" + name)
                 if not "ynh_install_app_dependencies" in script2:
                     print_warning("ynh_install_app_dependencies should also be in %s script" % name)
             except FileNotFoundError:
