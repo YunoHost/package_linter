@@ -251,13 +251,13 @@ def check_script(path, script_name, script_nbr):
     print(c.BOLD + c.HEADER + "\n>>>>",
            script_name.upper(), "SCRIPT <<<<" + c.END)
 
-    check_non_helpers_usage(read_file(script_path))
     if script_nbr < 5:
         check_verifications_done_before_modifying_system(read_file(script_path))
         check_set_usage(script_name, read_file(script_path))
         check_helper_usage_dependencies(script_path, script_name)
         check_helper_usage_unix(script_path, script_name)
         check_helper_consistency(script_path, script_name)
+        check_deprecated_practices(script_path, script_name)
         #check_arg_retrieval(script.copy())
 
 
@@ -292,32 +292,6 @@ def check_verifications_done_before_modifying_system(script):
         print_wrong("[YEP-2.4] 'ynh_die' or 'exit' command is executed with system modification before (cmd '%s').\n"
         "This system modification is an issue if a verification exit the script.\n"
         "You should move this verification before any system modification." % (modify_cmd) , False)
-
-
-def check_non_helpers_usage(script):
-    """
-    check if deprecated commands are used and propose helpers:
-    - 'yunohost app setting' –> ynh_app_setting_(set,get,delete)
-    - 'exit' –> 'ynh_die'
-    """
-
-    ok = True
-    #TODO
-    #for line_nbr, cmd in script:
-    #    if "yunohost app setting" in cmd:
-    #        print_wrong("[YEP-2.11] Line {}: 'yunohost app setting' command is deprecated,"
-    #                    " please use helpers ynh_app_setting_(set,get,delete)."
-    #                    .format(line_nbr + 1))
-    #        ok = False
-
-    if not ok:
-        print("Helpers documentation: "
-                    "https://yunohost.org/#/packaging_apps_helpers\n"
-                    "code: https://github.com/YunoHost/yunohost/…helpers")
-
-    if "exit" in script:
-        print_wrong("[YEP-2.4] 'exit' command shouldn't be used."
-                    "Use 'ynh_die' helper instead.")
 
 
 def check_set_usage(script_name, script):
@@ -405,6 +379,25 @@ def check_helper_consistency(path, script_name):
                     print_warning("ynh_install_app_dependencies should also be in %s script" % name)
             except FileNotFoundError:
                 pass
+
+def check_deprecated_practices(path, script_name):
+
+    script = read_file(path)
+
+    if "yunohost app setting" in script:
+        print_warning("'yunohost app setting' shouldn't be used directly. Please use 'ynh_app_setting_(set,get,delete)' instead.")
+    if "yunohost app checkurl" in script:
+        print_warning("'yunohost app checkurl' is deprecated. Please use 'ynh_webpath_register' instead.")
+    if "yunohost app checkport" in script:
+        print_warning("'yunohost app checkport' is deprecated. Please use 'ynh_find_port' instead.")
+    if "yunohost app initdb" in script:
+        print_warning("'yunohost app initdb' is deprecated. Please use 'ynh_mysql_setup_db' instead.")
+    if "exit" in script:
+        print_warning("'exit' command shouldn't be used. Please use 'ynh_die' instead.")
+
+    if os.path.exists("%s/../conf/php-fpm.ini" % os.path.dirname(path)):
+        print_warning("Using a separate php-fpm.ini file is deprecated. Please merge your php-fpm directives directly in the pool file. (c.f. https://github.com/YunoHost-Apps/nextcloud_ynh/issues/138 )")
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
