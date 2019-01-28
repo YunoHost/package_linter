@@ -260,7 +260,8 @@ def check_manifest(path):
 
         for service in manifest["services"]:
             if service not in services:
-                print_warning("[YEP-2.1]" + service + " service may not exist")
+                # FIXME : wtf is it supposed to mean ...
+                print_warning("[YEP-2.1] " + service + " service may not exist")
 
     if "install" in manifest["arguments"]:
         types = ("domain", "path", "password", "user", "admin")
@@ -309,9 +310,9 @@ def check_set_usage(script):
     present = False
 
     if script["name"] in ["backup", "remove"]:
-        present = "ynh_abort_if_errors" in script["raw"] or "set -eu" in script["raw"]
+        present = "ynh_abort_if_errors" in script["shlex"] or "set -eu" in script["raw"]
     else:
-        present = "ynh_abort_if_errors" in script["raw"]
+        present = "ynh_abort_if_errors" in script["shlex"]
 
     if script["name"] == "remove":
         # Remove script shouldn't use set -eu or ynh_abort_if_errors
@@ -423,7 +424,9 @@ def main():
         print_header(script["name"].upper() + " SCRIPT")
 
         script["raw"] = read_file_raw(script["path"])
-        script["shlex"] = read_file_shlex(script["path"])
+        # We transform the shlex thing into a list because the original
+        # object has completely fucked-up behaviors :|.
+        script["shlex"] = [ l for l in read_file_shlex(script["path"]) ]
 
         check_verifications_done_before_modifying_system(script)
         check_set_usage(script)
