@@ -397,6 +397,8 @@ def check_deprecated_practices(script):
     if "dd if=/dev/urandom" in script["raw"] or "openssl rand" in script["raw"]:
         print_warning("Instead of 'dd if=/dev/urandom' or 'openssl rand', you might want to use ynh_string_random")
 
+    if "systemctl restart nginx" in script["raw"] or "service nginx restart" in script["raw"]:
+        print_wrong("Restarting nginx is quite dangerous (especially for web installs) and should be avoided at all cost. Use 'reload' instead.")
 
 def main():
     if len(sys.argv) != 2:
