@@ -87,14 +87,15 @@ def check_file_exist(file_path):
 
 def read_file(file_path):
     f = open(file_path)
-    # remove every comments and empty lines from the file content to avoid
-    # false positives
     file = shlex.shlex(f, False)
-    #file = filter(None, re.sub("#.*[^\n]", "", f.read()).splitlines())
     return file
 
 def read_file_raw(file_path):
-    return open(file_path).read()
+    # remove every comments and empty lines from the file content to avoid
+    # false positives
+    f = open(file_path)
+    file = "\n".join(filter(None, re.sub("#.*[^\n]", "", f.read()).splitlines()))
+    return file
 
 
 def check_source_management(app_path):
