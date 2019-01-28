@@ -55,7 +55,7 @@ def print_warning(str):
     print(c.WARNING + "!", str, c.END)
 
 
-def print_wrong(str, reliable=True):
+def print_error(str, reliable=True):
     if reliable:
         global return_code
         return_code = 1
@@ -116,7 +116,7 @@ def check_files_exist(app_path):
         elif filename in non_mandatory:
             print_warning(filename)
         else:
-            print_wrong(filename)
+            print_error(filename)
 
     # Deprecated php-fpm.ini thing
     if file_exists(app_path + "/conf/php-fpm.ini"):
@@ -156,7 +156,7 @@ def check_manifest(path):
         with open(manifest, encoding='utf-8') as data_file:
             manifest = json.loads(data_file.read())
     except:
-        print_wrong("[YEP-2.1] Syntax (comma) or encoding issue with manifest.json. "
+        print_error("[YEP-2.1] Syntax (comma) or encoding issue with manifest.json. "
                     "Can't check file.")
 
     fields = ("name", "id", "packaging_format", "description", "url", "version",
@@ -172,16 +172,16 @@ def check_manifest(path):
     """
 
     if "packaging_format" not in manifest:
-        print_wrong("[YEP-2.1] \"packaging_format\" key is missing")
+        print_error("[YEP-2.1] \"packaging_format\" key is missing")
     elif not isinstance(manifest["packaging_format"], int):
-        print_wrong("[YEP-2.1] \"packaging_format\": value isn't an integer type")
+        print_error("[YEP-2.1] \"packaging_format\": value isn't an integer type")
     elif manifest["packaging_format"] != 1:
-        print_wrong("[YEP-2.1] \"packaging_format\" field: current format value is '1'")
+        print_error("[YEP-2.1] \"packaging_format\" field: current format value is '1'")
 
     # YEP 1.1 Name is app
     if "id" in manifest:
         if not re.match('^[a-z1-9]((_|-)?[a-z1-9])+$', manifest["id"]):
-            print_wrong("[YEP-1.1] 'id' field '%s' should respect this regex "
+            print_error("[YEP-1.1] 'id' field '%s' should respect this regex "
                         "'^[a-z1-9]((_|-)?[a-z1-9])+$'")
 
     if "name" in manifest:
@@ -251,7 +251,7 @@ def check_manifest(path):
 
     # YEP 2.1
     if "multi_instance" in manifest and manifest["multi_instance"] != 1 and manifest["multi_instance"] != 0:
-        print_wrong(
+        print_error(
             "[YEP-2.1] \"multi_instance\" field must be boolean type values 'true' or 'false' and not string type")
 
     if "services" in manifest:
@@ -270,7 +270,7 @@ def check_manifest(path):
             for install_arg in manifest["arguments"]["install"]:
                 if typ == install_arg["name"]:
                     if "type" not in install_arg:
-                        print_wrong("[YEP-2.1] You should specify the type of the key with %s" % (typ))
+                        print_error("[YEP-2.1] You should specify the type of the key with %s" % (typ))
 
 
 def check_verifications_done_before_modifying_system(script):
@@ -301,7 +301,7 @@ def check_verifications_done_before_modifying_system(script):
             break
 
     if not ok:
-        print_wrong("[YEP-2.4] 'ynh_die' or 'exit' command is executed with system modification before (cmd '%s').\n"
+        print_error("[YEP-2.4] 'ynh_die' or 'exit' command is executed with system modification before (cmd '%s').\n"
         "This system modification is an issue if a verification exit the script.\n"
         "You should move this verification before any system modification." % (modify_cmd), False)
 
@@ -317,13 +317,13 @@ def check_set_usage(script):
     if script["name"] == "remove":
         # Remove script shouldn't use set -eu or ynh_abort_if_errors
         if present:
-            print_wrong("[YEP-2.4] set -eu or ynh_abort_if_errors is present. "
+            print_error("[YEP-2.4] set -eu or ynh_abort_if_errors is present. "
                         "If there is a crash, it could put yunohost system in "
                         "a broken state. For details, look at "
                         "https://github.com/YunoHost/issues/issues/419")
     else:
         if not present:
-            print_wrong("[YEP-2.4] ynh_abort_if_errors is missing. For details, "
+            print_error("[YEP-2.4] ynh_abort_if_errors is missing. For details, "
                         "look at https://github.com/YunoHost/issues/issues/419")
 
 
@@ -341,8 +341,8 @@ def check_arg_retrieval(script):
             break
 
     if present:
-        print_wrong("Argument retrieval from manifest with $1 is deprecated. You may use $YNH_APP_ARG_*")
-        print_wrong("For more details see: https://yunohost.org/#/packaging_apps_arguments_management_en")
+        print_error("Argument retrieval from manifest with $1 is deprecated. You may use $YNH_APP_ARG_*")
+        print_error("For more details see: https://yunohost.org/#/packaging_apps_arguments_management_en")
 
 
 def check_helper_usage_dependencies(script):
@@ -377,7 +377,7 @@ def check_helper_consistency(script):
         try:
             script2 = read_file_raw(os.path.dirname(script["path"]) + "/remove")
             if "yunohost service remove" not in script2:
-                print_wrong("You used 'yunohost service add' in the install script, but not 'yunohost service remove' in the remove script.")
+                print_error("You used 'yunohost service add' in the install script, but not 'yunohost service remove' in the remove script.")
         except FileNotFoundError:
             pass
 
@@ -396,7 +396,7 @@ def check_deprecated_practices(script):
         print_warning("'exit' command shouldn't be used. Please use 'ynh_die' instead.")
 
     if "rm -rf" in script["raw"] or "rm -Rf" in script["raw"]:
-        print_wrong("[YEP-2.12] You should avoid using 'rm -rf', please use 'ynh_secure_remove' instead")
+        print_error("[YEP-2.12] You should avoid using 'rm -rf', please use 'ynh_secure_remove' instead")
     if "sed -i" in script["raw"]:
         print_warning("[YEP-2.12] You should avoid using 'sed -i', please use 'ynh_replace_string' instead")
     if "sudo " in script["raw"]:
@@ -406,7 +406,7 @@ def check_deprecated_practices(script):
         print_warning("Instead of 'dd if=/dev/urandom' or 'openssl rand', you might want to use ynh_string_random")
 
     if "systemctl restart nginx" in script["raw"] or "service nginx restart" in script["raw"]:
-        print_wrong("Restarting nginx is quite dangerous (especially for web installs) and should be avoided at all cost. Use 'reload' instead.")
+        print_error("Restarting nginx is quite dangerous (especially for web installs) and should be avoided at all cost. Use 'reload' instead.")
 
 def main():
     if len(sys.argv) != 2:
