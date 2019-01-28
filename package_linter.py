@@ -373,6 +373,14 @@ def check_helper_consistency(script):
             except FileNotFoundError:
                 pass
 
+    if script["name"] == "install" and "yunohost service add" in script["raw"]:
+        try:
+            script2 = read_file_raw(os.path.dirname(script["path"]) + "/remove")
+            if "yunohost service remove" not in script2:
+                print_wrong("You used 'yunohost service add' in the install script, but not 'yunohost service remove' in the remove script.")
+        except FileNotFoundError:
+            pass
+
 
 def check_deprecated_practices(script):
 
