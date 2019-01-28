@@ -398,6 +398,9 @@ def check_deprecated_practices(path, script_name):
     if "exit" in script:
         print_warning("'exit' command shouldn't be used. Please use 'ynh_die' instead.")
 
+    if "dd if=/dev/urandom" in script or "openssl rand" in script:
+        print_warning("Instead of 'dd if=/dev/urandom' or 'openssl rand', you might want to use ynh_string_random")
+
     if os.path.exists("%s/../conf/php-fpm.ini" % os.path.dirname(path)):
         print_warning("Using a separate php-fpm.ini file is deprecated. Please merge your php-fpm directives directly in the pool file. (c.f. https://github.com/YunoHost-Apps/nextcloud_ynh/issues/138 )")
 
