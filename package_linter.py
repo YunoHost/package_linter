@@ -93,6 +93,9 @@ def read_file(file_path):
     #file = filter(None, re.sub("#.*[^\n]", "", f.read()).splitlines())
     return file
 
+def read_file_raw(file_path):
+    return open(file_path).read()
+
 
 def check_source_management(app_path):
     print(c.BOLD + c.HEADER + "\n>>>> SOURCES MANAGEMENT <<<<" + c.END)
@@ -338,7 +341,7 @@ def check_helper_usage_dependencies(path, script_name):
     Detect usage of ynh_package_* & apt-get *
     and suggest herlpers ynh_install_app_dependencies and ynh_remove_app_dependencies
     """
-    script = read_file(path)
+    script = read_file_raw(path)
 
     if "ynh_package_install" in script or "apt-get install" in script:
         print_warning("You should not use `ynh_package_install` or `apt-get install`, use `ynh_install_app_dependencies` instead")
@@ -353,7 +356,7 @@ def check_helper_usage_unix(path, script_name):
     - rm      → ynh_secure_remove
     - sed -i  → ynh_replace_string
     """
-    script = read_file(path)
+    script = read_file_raw(path)
 
     if "rm -rf" in script or "rm -Rf" in script:
         print_wrong("[YEP-2.12] You should avoid using `rm -rf`, please use `ynh_secure_remove` instead")
@@ -369,12 +372,12 @@ def check_helper_consistency(path, script_name):
     check if ynh_install_app_dependencies is present in install/upgrade/restore
     so dependencies are up to date after restoration or upgrade
     """
-    script = read_file(path)
+    script = read_file_raw(path)
 
     if script_name == "install" and "ynh_install_app_dependencies" in script:
         for name in ["upgrade", "restore"]:
             try:
-                script2 = read_file(os.path.dirname(path) + "/" + name)
+                script2 = read_file_raw(os.path.dirname(path) + "/" + name)
                 if not "ynh_install_app_dependencies" in script2:
                     print_warning("ynh_install_app_dependencies should also be in %s script" % name)
             except FileNotFoundError:
@@ -382,7 +385,7 @@ def check_helper_consistency(path, script_name):
 
 def check_deprecated_practices(path, script_name):
 
-    script = read_file(path)
+    script = read_file_raw(path)
 
     if "yunohost app setting" in script:
         print_warning("'yunohost app setting' shouldn't be used directly. Please use 'ynh_app_setting_(set,get,delete)' instead.")
