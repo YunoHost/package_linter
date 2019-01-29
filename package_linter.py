@@ -238,10 +238,16 @@ def check_manifest(path):
 
     # YEP 1.8 Publish test request
     # YEP 1.9 Document app
-    if "description" in manifest and "name" in manifest:
-        if manifest["description"] == manifest["name"]:
-            print_warning("[YEP-1.9] You should write a good description of the"
-                          "app (1 line is enough).")
+    if "description" in manifest:
+        descr = manifest["description"]
+        if isinstance(descr, dict):
+            descr = descr.get("en", None)
+
+        if descr is None or descr == manifest.get("name", None):
+            print_warning("[YEP-1.9] You should write a good description of the""app, at least in english (1 line is enough).")
+
+        elif "for yunohost" in descr.lower():
+            print_warning("[YEP-1.9] The 'description' should explain what the app actually does. No need to say that it is 'for YunoHost' - this is a YunoHost app so of course we know it is for YunoHost ;-).")
 
     # TODO test a specific template in README.md
 
