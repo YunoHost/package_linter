@@ -132,8 +132,9 @@ def check_source_management(app_path):
         print_warning("[YEP-3.3] Upstream app sources shouldn't be stored on this "
                       "'sources' folder of this git repository as a copy/paste."
                       "\nAt installation, the package should download sources "
-                      "from upstream via 'ynh_setup_source'.\nSee "
-                      "https://dev.yunohost.org/issues/201#Conclusion-chart")
+                      "from upstream via 'ynh_setup_source'.\nSee the helper"
+                      "documentation. Original discussion happened here : "
+                      "https://github.com/YunoHost/issues/issues/201#issuecomment-391549262")
 
 
 def license_mentionned_in_readme(path):
