@@ -272,6 +272,9 @@ def check_manifest(path):
                     if "type" not in install_arg:
                         print_error("[YEP-2.1] You should specify the type of the key with %s" % (typ))
 
+    if "url" in manifest and manifest["url"].endswith("_ynh"):
+        print_warning("'url' is not meant to be the url of the yunohost package, but rather the website or repo of the upstream app itself...")
+
 
 def check_verifications_done_before_modifying_system(script):
     """
