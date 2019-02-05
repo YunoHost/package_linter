@@ -262,8 +262,9 @@ def check_manifest(path):
             "[YEP-2.1] \"multi_instance\" field must be boolean type values 'true' or 'false' and not string type")
 
     if "services" in manifest:
-        services = ("nginx", "php5-fpm", "mysql", "uwsgi", "metronome",
-                    "postfix", "dovecot")  # , "rspamd", "rmilter")
+        services = ("nginx", "mysql", "uwsgi", "metronome",
+                    "php5-fpm", "php7.0-fpm", "php-fpm", 
+                    "postfix", "dovecot", "rspamd")
 
         for service in manifest["services"]:
             if service not in services:
