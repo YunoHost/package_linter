@@ -13,8 +13,13 @@ reader = codecs.getreader("utf-8")
 return_code = 0
 
 
+# ############################################################################
+#   Utilities
+# ############################################################################
+
+
 class c:
-    HEADER = '\033[95m'
+    HEADER = '\033[94m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
     WARNING = '\033[93m'
@@ -25,14 +30,21 @@ class c:
     UNDERLINE = '\033[4m'
 
 
-def header(app_path):
-    print(c.UNDERLINE + c.HEADER + c.BOLD +
-          "YUNOHOST APP PACKAGE LINTER\n", c.END,
-    "App packaging documentation: https://yunohost.org/#/packaging_apps\n",
-    "App package example: https://github.com/YunoHost/example_ynh\n",
-    "Official helpers: https://yunohost.org/#/packaging_apps_helpers_en\n",
-    "Experimental helpers: https://github.com/YunoHost-Apps/Experimental_helpers\n"
-    "Checking " + c.BOLD + app_path + c.END + " package\n")
+def header(app):
+    print("""
+    [{header}{bold}YunoHost App Package Linter{end}]
+
+ App packaging documentation - https://yunohost.org/#/packaging_apps
+ App package example         - https://github.com/YunoHost/example_ynh
+ Official helpers            - https://yunohost.org/#/packaging_apps_helpers_en
+ Experimental helpers        - https://github.com/YunoHost-Apps/Experimental_helpers
+
+    Analyzing package {header}{app}{end}"""
+    .format(header=c.HEADER, bold=c.BOLD, end=c.END, app=app))
+
+
+def print_header(str):
+    print("\n [" + c.BOLD + c.HEADER + str.title() + c.END + "]\n")
 
 
 def print_right(str):
@@ -43,7 +55,7 @@ def print_warning(str):
     print(c.WARNING + "!", str, c.END)
 
 
-def print_wrong(str, reliable=True):
+def print_error(str, reliable=True):
     if reliable:
         global return_code
         return_code = 1
@@ -62,61 +74,81 @@ def urlopen(url):
     return {'content': conn.read().decode('UTF8'), 'code': 200}
 
 
-def check_files_exist(app_path):
-    """
-    Check files exist
-    'backup' and 'restore' scripts are mandatory
-    """
-
-    print(c.BOLD + c.HEADER + ">>>> MISSING FILES <<<<" + c.END)
-    fnames = ("manifest.json", "scripts/install", "scripts/remove",
-              "scripts/upgrade", "scripts/backup", "scripts/restore", "LICENSE",
-              "README.md")
-
-    for nbr, fname in enumerate(fnames):
-        if not check_file_exist(app_path + "/" + fname):
-            if nbr != 4 and nbr != 5:
-                print_wrong(fname)
-            else:
-                print_warning(fname)
+def file_exists(file_path):
+    return os.path.isfile(file_path) and os.stat(file_path).st_size > 0
 
 
-def check_file_exist(file_path):
-    return 1 if os.path.isfile(file_path) and os.stat(file_path).st_size > 0 else 0
-
-
-def read_file(file_path):
+def read_file_shlex(file_path):
     f = open(file_path)
+    return shlex.shlex(f, False)
+
+
+def read_file_raw(file_path):
     # remove every comments and empty lines from the file content to avoid
     # false positives
-    file = shlex.shlex(f, False)
-    #file = filter(None, re.sub("#.*[^\n]", "", f.read()).splitlines())
+    f = open(file_path)
+    file = "\n".join(filter(None, re.sub("#.*[^\n]", "", f.read()).splitlines()))
     return file
 
 
+# ############################################################################
+#   Actual high-level checks
+# ############################################################################
+
+
+def check_files_exist(app_path):
+    """
+    Check files exist
+    'backup' and 'restore' scripts are not mandatory
+    """
+
+    print_header("MISSING FILES")
+    filenames = ("manifest.json",
+                 "scripts/install", "scripts/remove",
+                 "scripts/upgrade",
+                 "scripts/backup", "scripts/restore",
+                 "LICENSE", "README.md")
+    non_mandatory = ("script/backup", "script/restore")
+
+    for filename in filenames:
+        if file_exists(app_path + "/" + filename):
+            continue
+        elif filename in non_mandatory:
+            print_warning(filename)
+        else:
+            print_error(filename)
+
+    # Deprecated php-fpm.ini thing
+    if file_exists(app_path + "/conf/php-fpm.ini"):
+        print_warning("Using a separate php-fpm.ini file is deprecated. Please merge your php-fpm directives directly in the pool file. (c.f. https://github.com/YunoHost-Apps/nextcloud_ynh/issues/138 )")
+
+
 def check_source_management(app_path):
-    print(c.BOLD + c.HEADER + "\n>>>> SOURCES MANAGEMENT <<<<" + c.END)
+    print_header("SOURCES MANAGEMENT")
     DIR = os.path.join(app_path, "sources")
     # Check if there is more than six files on 'sources' folder
-    if os.path.exists(os.path.join(app_path, "sources")) and \
-     len([name for name in os.listdir(DIR) if os.path.isfile(os.path.join(DIR, name))]) > 5:
+    if os.path.exists(os.path.join(app_path, "sources")) \
+       and len([name for name in os.listdir(DIR) if os.path.isfile(os.path.join(DIR, name))]) > 5:
         print_warning("[YEP-3.3] Upstream app sources shouldn't be stored on this "
                       "'sources' folder of this git repository as a copy/paste."
                       "\nAt installation, the package should download sources "
-                      "from upstream via 'ynh_setup_source'.\nSee "
-                      "https://dev.yunohost.org/issues/201#Conclusion-chart")
+                      "from upstream via 'ynh_setup_source'.\nSee the helper"
+                      "documentation. Original discussion happened here : "
+                      "https://github.com/YunoHost/issues/issues/201#issuecomment-391549262")
 
-def is_license_mention_in_readme(path):
+
+def license_mentionned_in_readme(path):
     readme_path = os.path.join(path, 'README.md')
     if os.path.isfile(readme_path):
         return "LICENSE" in open(readme_path).read()
     return False
 
+
 def check_manifest(path):
     manifest = os.path.join(path, 'manifest.json')
     if not os.path.exists(manifest):
         return
-    print(c.BOLD + c.HEADER + "\n>>>> MANIFEST <<<<" + c.END)
+    print_header("MANIFEST")
     """
     Check if there is no comma syntax issue
     """
@@ -125,7 +157,7 @@ def check_manifest(path):
         with open(manifest, encoding='utf-8') as data_file:
             manifest = json.loads(data_file.read())
     except:
-        print_wrong("[YEP-2.1] Syntax (comma) or encoding issue with manifest.json. "
+        print_error("[YEP-2.1] Syntax (comma) or encoding issue with manifest.json. "
                     "Can't check file.")
 
     fields = ("name", "id", "packaging_format", "description", "url", "version",
@@ -141,20 +173,20 @@ def check_manifest(path):
     """
 
     if "packaging_format" not in manifest:
-        print_wrong("[YEP-2.1] \"packaging_format\" key is missing")
+        print_error("[YEP-2.1] \"packaging_format\" key is missing")
     elif not isinstance(manifest["packaging_format"], int):
-        print_wrong("[YEP-2.1] \"packaging_format\": value isn't an integer type")
+        print_error("[YEP-2.1] \"packaging_format\": value isn't an integer type")
     elif manifest["packaging_format"] != 1:
-        print_wrong("[YEP-2.1] \"packaging_format\" field: current format value is '1'")
+        print_error("[YEP-2.1] \"packaging_format\" field: current format value is '1'")
 
     # YEP 1.1 Name is app
     if "id" in manifest:
         if not re.match('^[a-z1-9]((_|-)?[a-z1-9])+$', manifest["id"]):
-            print_wrong("[YEP-1.1] 'id' field '%s' should respect this regex "
+            print_error("[YEP-1.1] 'id' field '%s' should respect this regex "
                         "'^[a-z1-9]((_|-)?[a-z1-9])+$'")
 
     if "name" in manifest:
-        if len(manifest["name"]) > 22 :
+        if len(manifest["name"]) > 22:
             print_warning("[YEP-1.1] The 'name' field shouldn't be too long to be"
                           " able to be with one line in the app list. The most "
                           "current bigger name is actually compound of 22 characters.")
@@ -178,7 +210,7 @@ def check_manifest(path):
                               " field is 'non-free' and not 'nonfree'")
                 license = "non-free"
             if license in ["free", "non-free", "dep-non-free"]:
-                if not is_license_mention_in_readme(path):
+                if not license_mentionned_in_readme(path):
                     print_warning("[YEP-1.3] The use of '%s' in license field implies to "
                                   "write something about the license in your "
                                   "README.md" % (license))
@@ -207,11 +239,18 @@ def check_manifest(path):
 
     # YEP 1.8 Publish test request
     # YEP 1.9 Document app
-    if "description" in manifest and "name" in manifest:
-        if manifest["description"] == manifest["name"]:
-            print_warning("[YEP-1.9] You should write a good description of the"
-                          "app (1 line is enough).")
-    #TODO test a specific template in README.md
+    if "description" in manifest:
+        descr = manifest["description"]
+        if isinstance(descr, dict):
+            descr = descr.get("en", None)
+
+        if descr is None or descr == manifest.get("name", None):
+            print_warning("[YEP-1.9] You should write a good description of the app, at least in english (1 line is enough).")
+
+        elif "for yunohost" in descr.lower():
+            print_warning("[YEP-1.9] The 'description' should explain what the app actually does. No need to say that it is 'for YunoHost' - this is a YunoHost app so of course we know it is for YunoHost ;-).")
+
+    # TODO test a specific template in README.md
 
     # YEP 1.10 Garder un historique de version propre
 
@@ -219,16 +258,18 @@ def check_manifest(path):
 
     # YEP 2.1
     if "multi_instance" in manifest and manifest["multi_instance"] != 1 and manifest["multi_instance"] != 0:
-        print_wrong(
+        print_error(
             "[YEP-2.1] \"multi_instance\" field must be boolean type values 'true' or 'false' and not string type")
 
     if "services" in manifest:
-        services = ("nginx", "php5-fpm", "mysql", "uwsgi", "metronome",
-                    "postfix", "dovecot")  # , "rspamd", "rmilter")
+        services = ("nginx", "mysql", "uwsgi", "metronome",
+                    "php5-fpm", "php7.0-fpm", "php-fpm", 
+                    "postfix", "dovecot", "rspamd")
 
         for service in manifest["services"]:
             if service not in services:
-                print_warning("[YEP-2.1]" + service + " service may not exist")
+                # FIXME : wtf is it supposed to mean ...
+                print_warning("[YEP-2.1] " + service + " service may not exist")
 
     if "install" in manifest["arguments"]:
 
@@ -247,25 +288,8 @@ def check_manifest(path):
                         print_warning("Argument %s : you might want to simply use a boolean-type argument. No need to specify the choices list yourself." % argument["name"])
 
 
-
-def check_script(path, script_name, script_nbr):
-
-    script_path = path + "/scripts/" + script_name
-
-    if check_file_exist(script_path) == 0:
-        return
-
-    print(c.BOLD + c.HEADER + "\n>>>>",
-           script_name.upper(), "SCRIPT <<<<" + c.END)
-
-    check_non_helpers_usage(read_file(script_path))
-    if script_nbr < 5:
-        check_verifications_done_before_modifying_system(read_file(script_path))
-        check_set_usage(script_name, read_file(script_path))
-        check_helper_usage_dependencies(script_path, script_name)
-        check_helper_usage_unix(script_path, script_name)
-        check_helper_consistency(script_path, script_name)
-        #check_arg_retrieval(script.copy())
+    if "url" in manifest and manifest["url"].endswith("_ynh"):
+        print_warning("'url' is not meant to be the url of the yunohost package, but rather the website or repo of the upstream app itself...")
 
 
 def check_verifications_done_before_modifying_system(script):
@@ -277,18 +301,18 @@ def check_verifications_done_before_modifying_system(script):
     cmds = ("cp", "mkdir", "rm", "chown", "chmod", "apt-get", "apt", "service",
            "find", "sed", "mysql", "swapon", "mount", "dd", "mkswap", "useradd")
     cmds_before_exit = []
-    is_exit = False
-    for cmd in script:
-        if "ynh_die" == cmd or "exit " == cmd:
-            is_exit = True
+    has_exit = False
+    for cmd in script["shlex"]:
+        if cmd in ["ynh_die", "exit"]:
+            has_exit = True
             break
         cmds_before_exit.append(cmd)
 
-    if not is_exit:
+    if not has_exit:
         return
 
     for cmd in cmds_before_exit:
-        if "ynh_die" == cmd or "exit " == cmd:
+        if cmd in ["ynh_die", "exit"]:
             break
         if not ok or cmd in cmds:
             modify_cmd = cmd
@@ -296,57 +320,30 @@ def check_verifications_done_before_modifying_system(script):
             break
 
     if not ok:
-        print_wrong("[YEP-2.4] 'ynh_die' or 'exit' command is executed with system modification before (cmd '%s').\n"
+        print_error("[YEP-2.4] 'ynh_die' or 'exit' command is executed with system modification before (cmd '%s').\n"
         "This system modification is an issue if a verification exit the script.\n"
-        "You should move this verification before any system modification." % (modify_cmd) , False)
+        "You should move this verification before any system modification." % (modify_cmd), False)
 
 
-def check_non_helpers_usage(script):
-    """
-    check if deprecated commands are used and propose helpers:
-    - 'yunohost app setting' –> ynh_app_setting_(set,get,delete)
-    - 'exit' –> 'ynh_die'
-    """
-
-    ok = True
-    #TODO
-    #for line_nbr, cmd in script:
-    #    if "yunohost app setting" in cmd:
-    #        print_wrong("[YEP-2.11] Line {}: 'yunohost app setting' command is deprecated,"
-    #                    " please use helpers ynh_app_setting_(set,get,delete)."
-    #                    .format(line_nbr + 1))
-    #        ok = False
-
-    if not ok:
-        print("Helpers documentation: "
-                    "https://yunohost.org/#/packaging_apps_helpers\n"
-                    "code: https://github.com/YunoHost/yunohost/…helpers")
-
-    if "exit" in script:
-        print_wrong("[YEP-2.4] 'exit' command shouldn't be used."
-                    "Use 'ynh_die' helper instead.")
-
-
-def check_set_usage(script_name, script):
+def check_set_usage(script):
     present = False
 
-    if script_name in ["backup", "remove"]:
-        present = "ynh_abort_if_errors" in script or "set -eu" in script
+    if script["name"] in ["backup", "remove"]:
+        present = "ynh_abort_if_errors" in script["shlex"] or "set -eu" in script["raw"]
     else:
-        present = "ynh_abort_if_errors" in script
+        present = "ynh_abort_if_errors" in script["shlex"]
 
-    if script_name == "remove":
+    if script["name"] == "remove":
         # Remove script shouldn't use set -eu or ynh_abort_if_errors
         if present:
-            print_wrong("[YEP-2.4] set -eu or ynh_abort_if_errors is present. "
-                        "If there is a crash it could put yunohost system in "
-                        "invalidated states. For details, look at "
-                        "https://dev.yunohost.org/issues/419")
+            print_error("[YEP-2.4] set -eu or ynh_abort_if_errors is present. "
+                        "If there is a crash, it could put yunohost system in "
+                        "a broken state. For details, look at "
+                        "https://github.com/YunoHost/issues/issues/419")
     else:
         if not present:
-            print_wrong("[YEP-2.4] ynh_abort_if_errors is missing. For details,"
-                        "look at https://dev.yunohost.org/issues/419")
-
+            print_error("[YEP-2.4] ynh_abort_if_errors is missing. For details, "
+                        "look at https://github.com/YunoHost/issues/issues/419")
 
 
 def check_arg_retrieval(script):
@@ -358,85 +355,117 @@ def check_arg_retrieval(script):
     present = False
 
     for cmd in script:
-        if cmd =='$' and script.get_token() in [str(x) for x in range(1, 10)]:
+        if cmd == '$' and script.get_token() in [str(x) for x in range(1, 10)]:
             present = True
             break
 
     if present:
-        print_wrong("Argument retrieval from manifest with $1 is deprecated. You may use $YNH_APP_ARG_*")
-        print_wrong("For more details see: https://yunohost.org/#/packaging_apps_arguments_management_en")
+        print_error("Argument retrieval from manifest with $1 is deprecated. You may use $YNH_APP_ARG_*")
+        print_error("For more details see: https://yunohost.org/#/packaging_apps_arguments_management_en")
 
-def check_helper_usage_dependencies(path, script_name):
+
+def check_helper_usage_dependencies(script):
     """
     Detect usage of ynh_package_* & apt-get *
     and suggest herlpers ynh_install_app_dependencies and ynh_remove_app_dependencies
     """
-    script = read_file(path)
 
-    if "ynh_package_install" in script or "apt-get install" in script:
+    if "ynh_package_install" in script["shlex"] or "apt-get install" in script["raw"]:
         print_warning("You should not use `ynh_package_install` or `apt-get install`, use `ynh_install_app_dependencies` instead")
 
-    if "ynh_package_remove" in script or "apt-get remove" in script:
+    if "ynh_package_remove" in script["shlex"] or "apt-get remove" in script["raw"]:
         print_warning("You should not use `ynh_package_remove` or `apt-get removeè, use `ynh_remove_app_dependencies` instead")
 
-def check_helper_usage_unix(path, script_name):
-    """
-    Detect usage of unix commands with helper equivalents:
-    - sudo    → ynh_exec_as
-    - rm      → ynh_secure_remove
-    - sed -i  → ynh_replace_string
-    """
-    script = read_file(path)
 
-    if "rm -rf" in script or "rm -Rf" in script:
-        print_wrong("[YEP-2.12] You should avoid using `rm -rf`, please use `ynh_secure_remove` instead")
-
-    if "sed -i" in script:
-        print_warning("[YEP-2.12] You should avoid using `sed -i`, please use `ynh_replace_string` instead")
-
-    if "sudo " in script:
-        print_warning("[YEP-2.12] You should not need to use `sudo`, the script is being run as root. (If you need to run a command using a specific user, use `ynh_exec_as`)")
-
-def check_helper_consistency(path, script_name):
+def check_helper_consistency(script):
     """
     check if ynh_install_app_dependencies is present in install/upgrade/restore
     so dependencies are up to date after restoration or upgrade
     """
-    script = read_file(path)
 
-    if script_name == "install" and "ynh_install_app_dependencies" in script:
+    if script["name"] == "install" and "ynh_install_app_dependencies" in script["shlex"]:
         for name in ["upgrade", "restore"]:
             try:
-                script2 = read_file(os.path.dirname(path) + "/" + name)
-                if not "ynh_install_app_dependencies" in script2:
+                script2 = read_file_raw(os.path.dirname(script["path"] + "/" + name))
+                if "ynh_install_app_dependencies" not in script2:
                     print_warning("ynh_install_app_dependencies should also be in %s script" % name)
             except FileNotFoundError:
                 pass
 
-if __name__ == '__main__':
+    if script["name"] == "install" and "yunohost service add" in script["raw"]:
+        try:
+            script2 = read_file_raw(os.path.dirname(script["path"]) + "/remove")
+            if "yunohost service remove" not in script2:
+                print_error("You used 'yunohost service add' in the install script, but not 'yunohost service remove' in the remove script.")
+        except FileNotFoundError:
+            pass
+
+
+def check_deprecated_practices(script):
+
+    if "yunohost app setting" in script["raw"]:
+        print_warning("'yunohost app setting' shouldn't be used directly. Please use 'ynh_app_setting_(set,get,delete)' instead.")
+    if "yunohost app checkurl" in script["raw"]:
+        print_warning("'yunohost app checkurl' is deprecated. Please use 'ynh_webpath_register' instead.")
+    if "yunohost app checkport" in script["raw"]:
+        print_warning("'yunohost app checkport' is deprecated. Please use 'ynh_find_port' instead.")
+    if "yunohost app initdb" in script["raw"]:
+        print_warning("'yunohost app initdb' is deprecated. Please use 'ynh_mysql_setup_db' instead.")
+    if "exit" in script["shlex"]:
+        print_warning("'exit' command shouldn't be used. Please use 'ynh_die' instead.")
+
+    if "rm -rf" in script["raw"] or "rm -Rf" in script["raw"]:
+        print_error("[YEP-2.12] You should avoid using 'rm -rf', please use 'ynh_secure_remove' instead")
+    if "sed -i" in script["raw"]:
+        print_warning("[YEP-2.12] You should avoid using 'sed -i', please use 'ynh_replace_string' instead")
+    if "sudo " in script["raw"]:
+        print_warning("[YEP-2.12] You should not need to use 'sudo', the script is being run as root. (If you need to run a command using a specific user, use 'ynh_exec_as')")
+
+    if "dd if=/dev/urandom" in script["raw"] or "openssl rand" in script["raw"]:
+        print_warning("Instead of 'dd if=/dev/urandom' or 'openssl rand', you might want to use ynh_string_random")
+
+    if "systemctl restart nginx" in script["raw"] or "service nginx restart" in script["raw"]:
+        print_error("Restarting nginx is quite dangerous (especially for web installs) and should be avoided at all cost. Use 'reload' instead.")
+
+def main():
     if len(sys.argv) != 2:
         print("Give one app package path.")
         exit()
 
-    # "or" trick to always be 1 if 1 is present:
-    # 1 or 0 = 1
-    # 1 or 1 = 1
-    # 0 or 1 = 1
-    # 0 or 0 = 0
-
     app_path = sys.argv[1]
     header(app_path)
+
+    # Global checks
     check_files_exist(app_path)
     check_source_management(app_path)
-    check_manifest(app_path) # + "/manifest.json")
+    check_manifest(app_path)
 
+    # Scripts checks
     scripts = ["install", "remove", "upgrade", "backup", "restore"]
-    for (dirpath, dirnames, filenames) in os.walk(os.path.join(app_path, "scripts")):
-        for filename in filenames:
-            if filename not in scripts and filename[-4:] != ".swp":
-                scripts.append(filename)
+    for script_name in scripts:
 
-    for script_nbr, script in enumerate(scripts):
-        check_script(app_path, script, script_nbr)
+        script = {"name": script_name,
+                  "path": app_path + "/scripts/" + script_name}
+
+        if not file_exists(script["path"]):
+            continue
+
+        print_header(script["name"].upper() + " SCRIPT")
+
+        script["raw"] = read_file_raw(script["path"])
+        # We transform the shlex thing into a list because the original
+        # object has completely fucked-up behaviors :|.
+        script["shlex"] = [ l for l in read_file_shlex(script["path"]) ]
+
+        check_verifications_done_before_modifying_system(script)
+        check_set_usage(script)
+        check_helper_usage_dependencies(script)
+        check_helper_consistency(script)
+        check_deprecated_practices(script)
+        # check_arg_retrieval(script)
 
     sys.exit(return_code)
+
+
+if __name__ == '__main__':
+    main()
