@@ -263,7 +263,7 @@ def check_manifest(path):
 
     if "services" in manifest:
         services = ("nginx", "mysql", "uwsgi", "metronome",
-                    "php5-fpm", "php7.0-fpm", "php-fpm", 
+                    "php5-fpm", "php7.0-fpm", "php-fpm",
                     "postfix", "dovecot", "rspamd")
 
         for service in manifest["services"]:
@@ -374,7 +374,7 @@ def check_helper_usage_dependencies(script):
         print_warning("You should not use `ynh_package_install` or `apt-get install`, use `ynh_install_app_dependencies` instead")
 
     if "ynh_package_remove" in script["shlex"] or "apt-get remove" in script["raw"]:
-        print_warning("You should not use `ynh_package_remove` or `apt-get removeè, use `ynh_remove_app_dependencies` instead")
+        print_warning("You should not use `ynh_package_remove` or `apt-get remove`, use `ynh_remove_app_dependencies` instead")
 
 
 def check_helper_consistency(script):
