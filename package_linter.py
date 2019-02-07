@@ -272,13 +272,21 @@ def check_manifest(path):
                 print_warning("[YEP-2.1] " + service + " service may not exist")
 
     if "install" in manifest["arguments"]:
-        types = ("domain", "path", "password", "user", "admin")
 
-        for nbr, typ in enumerate(types):
-            for install_arg in manifest["arguments"]["install"]:
-                if typ == install_arg["name"]:
-                    if "type" not in install_arg:
-                        print_error("[YEP-2.1] You should specify the type of the key with %s" % (typ))
+        recognized_types = ("domain", "path", "boolean", "app", "password", "user", "string")
+
+        for argument in manifest["arguments"]["install"]:
+            if not "type" in argument.keys():
+                print_error("[YEP-2.1] You should specify the type of the argument '%s'. You can use : %s." % (argument["name"], ', '.join(recognized_types)))
+            elif argument["type"] not in recognized_types:
+                print_warning("[YEP-2.1] The type '%s' for argument '%s' is not recognized... it probably doesn't behave as you expect ? Choose among those instead : %s" % (argument["type"], argument["name"], ', '.join(recognized_types)))
+
+            if "choices" in argument.keys():
+                choices = [ c.lower() for c in argument["choices"] ]
+                if len(choices) == 2:
+                    if ("true" in choices and "false" in choices) or ("yes" in choices and "no" in choices):
+                        print_warning("Argument %s : you might want to simply use a boolean-type argument. No need to specify the choices list yourself." % argument["name"])
+
 
     if "url" in manifest and manifest["url"].endswith("_ynh"):
         print_warning("'url' is not meant to be the url of the yunohost package, but rather the website or repo of the upstream app itself...")
