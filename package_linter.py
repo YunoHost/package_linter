@@ -277,7 +277,7 @@ def check_manifest(path):
 
         for argument in manifest["arguments"]["install"]:
             if not "type" in argument.keys():
-                print_error("[YEP-2.1] You should specify the type of the argument '%s'. You can use : %s." % (argument["name"], ', '.join(recognized_types)))
+                print_warning("[YEP-2.1] You should specify the type of the argument '%s'. You can use : %s." % (argument["name"], ', '.join(recognized_types)))
             elif argument["type"] not in recognized_types:
                 print_warning("[YEP-2.1] The type '%s' for argument '%s' is not recognized... it probably doesn't behave as you expect ? Choose among those instead : %s" % (argument["type"], argument["name"], ', '.join(recognized_types)))
 
