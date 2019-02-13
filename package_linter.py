@@ -432,6 +432,9 @@ def check_deprecated_practices(script):
     if "systemctl restart nginx" in script["raw"] or "service nginx restart" in script["raw"]:
         print_error("Restarting nginx is quite dangerous (especially for web installs) and should be avoided at all cost. Use 'reload' instead.")
 
+    if script["name"] == "install" and "ynh_print_info" not in script["shlex"] and "ynh_script_progression" not in script["shlex"]:
+        print_warning("Please add a few messages for the user, to explain what is going on (in friendly, not-too-technical terms) during the installation. You can use 'ynh_print_info' or 'ynh_script_progression' for this.")
+
 def main():
     if len(sys.argv) != 2:
         print("Give one app package path.")
