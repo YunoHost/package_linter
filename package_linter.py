@@ -123,6 +123,8 @@ def check_files_exist(app_path):
         print_warning("Using a separate php-fpm.ini file is deprecated. Please merge your php-fpm directives directly in the pool file. (c.f. https://github.com/YunoHost-Apps/nextcloud_ynh/issues/138 )")
 
     for filename in os.listdir(app_path + "/conf"):
+        if not os.path.isfile(filename):
+            continue
         content = read_file_raw(app_path + "/conf/" + filename)
         if "location" in content and "add_header" in content:
             print_warning("Do not use 'add_header' in the nginx conf. Use 'more_set_headers' instead. (See https://www.peterbe.com/plog/be-very-careful-with-your-add_header-in-nginx and https://github.com/openresty/headers-more-nginx-module#more_set_headers )")
