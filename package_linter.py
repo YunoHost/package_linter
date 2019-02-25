@@ -12,7 +12,6 @@ import subprocess
 
 reader = codecs.getreader("utf-8")
 return_code = 0
-pkg_name = "shellcheck"
 
 
 # ############################################################################
