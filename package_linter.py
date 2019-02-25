@@ -440,25 +440,17 @@ def check_deprecated_practices(script):
     if script["name"] == "install" and "ynh_print_info" not in script["shlex"] and "ynh_script_progression" not in script["shlex"]:
         print_warning("Please add a few messages for the user, to explain what is going on (in friendly, not-too-technical terms) during the installation. You can use 'ynh_print_info' or 'ynh_script_progression' for this.")
 
-def install_shellcheck():
-    print("Check if "+ pkg_name +" is installed... ", end=" ")
-    cache = apt.cache.Cache()
-    cache.update()
-    cache.open()
-
-    pkg = cache[pkg_name]
-    if pkg.is_installed:
-        print ("OK")
-    else:
-        pkg.mark_install()
-        try:
-            cache.commit()
-            print ("OK")
-        except Exception:
-            print ("Package installation failed " + str(arg),file=sys.stderr)
-
 def check_shellcheck(script_name):
-    subprocess.run(["shellcheck","-x",script_name])
+    try: 
+        subprocess.run(["shellcheck","-x",script_name])
+    except FileNotFoundError as err:
+        print_warning("Binary shellcheck not found in $PATH, try to install it")
+        print_warning("Cannot parse the script with shellcheck")
+    except OSError as err:
+        print("OS error: {0}".format(err))
+    except:
+        print("Unexpected error:", sys.exc_info()[0])
+        raise
 
 def main():
     if len(sys.argv) != 2:
@@ -466,7 +458,6 @@ def main():
         exit()
 
     app_path = sys.argv[1]
-    install_shellcheck()
     header(app_path)
 
     # Global checks
