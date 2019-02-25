@@ -457,8 +457,8 @@ def install_shellcheck():
         except Exception:
             print ("Package installation failed " + str(arg),file=sys.stderr)
 
-def check_shellcheck(script_path):
-    subprocess.run(["shellcheck",script_path])
+def check_shellcheck(script_name):
+    subprocess.run(["shellcheck","-x",script_name])
 
 def main():
     if len(sys.argv) != 2:
@@ -497,7 +497,11 @@ def main():
         check_helper_consistency(script)
         check_deprecated_practices(script)
         # check_arg_retrieval(script)
-        check_shellcheck(script["path"])
+        #change directory to accept relative path (example : source _common.sh
+        current_dir=os.getcwd()
+        os.chdir(app_path + "/scripts/")
+        check_shellcheck(script_name)
+        os.chdir(current_dir)
 
     sys.exit(return_code)
 
