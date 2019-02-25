@@ -8,9 +8,12 @@ import json
 import shlex
 import urllib.request
 import codecs
+import apt
+import subprocess
 
 reader = codecs.getreader("utf-8")
 return_code = 0
+pkg_name = "shellcheck"
 
 
 # ############################################################################
@@ -437,12 +440,33 @@ def check_deprecated_practices(script):
     if script["name"] == "install" and "ynh_print_info" not in script["shlex"] and "ynh_script_progression" not in script["shlex"]:
         print_warning("Please add a few messages for the user, to explain what is going on (in friendly, not-too-technical terms) during the installation. You can use 'ynh_print_info' or 'ynh_script_progression' for this.")
 
+def install_shellcheck():
+    print("Check if "+ pkg_name +" is installed... ", end=" ")
+    cache = apt.cache.Cache()
+    cache.update()
+    cache.open()
+
+    pkg = cache[pkg_name]
+    if pkg.is_installed:
+        print ("OK")
+    else:
+        pkg.mark_install()
+        try:
+            cache.commit()
+            print ("OK")
+        except Exception:
+            print ("Package installation failed " + str(arg),file=sys.stderr)
+
+def check_shellcheck(script_path):
+    subprocess.run(["shellcheck",script_path])
+
 def main():
     if len(sys.argv) != 2:
         print("Give one app package path.")
         exit()
 
     app_path = sys.argv[1]
+    install_shellcheck()
     header(app_path)
 
     # Global checks
@@ -473,6 +497,7 @@ def main():
         check_helper_consistency(script)
         check_deprecated_practices(script)
         # check_arg_retrieval(script)
+        check_shellcheck(script["path"])
 
     sys.exit(return_code)
 
