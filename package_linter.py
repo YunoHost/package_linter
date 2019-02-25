@@ -8,7 +8,6 @@ import json
 import shlex
 import urllib.request
 import codecs
-import apt
 import subprocess
 
 reader = codecs.getreader("utf-8")
