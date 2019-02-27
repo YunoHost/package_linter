@@ -315,15 +315,16 @@ class App():
             print_error(
                 "[YEP-2.1] \"multi_instance\" field must be boolean type values 'true' or 'false' and not string type")
 
-        if "services" in manifest:
-            services = ("nginx", "mysql", "uwsgi", "metronome",
-                        "php5-fpm", "php7.0-fpm", "php-fpm",
-                        "postfix", "dovecot", "rspamd")
+        if "services" in manifest and self.scripts["install"].exists:
+
+            known_services = ("nginx", "mysql", "uwsgi", "metronome",
+                              "php5-fpm", "php7.0-fpm", "php-fpm",
+                              "postfix", "dovecot", "rspamd")
 
             for service in manifest["services"]:
-                if service not in services:
-                    # FIXME : wtf is it supposed to mean ...
-                    print_warning("[YEP-2.1] " + service + " service may not exist")
+                if service not in known_services:
+                    if not self.scripts["install"].contains("yunohost service add %s" % service):
+                        print_error("[YEP-2.1?] " + service + " service not installed by the install file but present in the manifest")
 
         if "install" in manifest["arguments"]:
 
@@ -379,6 +380,7 @@ class Script():
         lines = '\n'.join(lines).replace("\\\n", "").split("\n")
 
         for line in lines:
+
             try:
                 line = shlex.split(line, True)
                 yield line
@@ -392,7 +394,7 @@ class Script():
         For instance, "app setting" is contained in "yunohost app setting $app ..."
         """
         return any(command in line
-                   for line in [ ' '.join(line) for line in self.lines])
+                   for line in [' '.join(line) for line in self.lines])
 
     def analyze(self):
 
