@@ -93,212 +93,223 @@ class App():
         self.scripts = { f: Script(self.path, f) for f in scripts }
 
 
-def misc_file_checks(app_path):
+    def analyze(self):
 
-    print_header("MISC FILE CHECKS")
+        self.misc_file_checks()
+        self.check_source_management()
+        self.check_manifest()
 
-    #
-    # Check for recommended and mandatory files
-    #
-
-    filenames = ("manifest.json", "LICENSE", "README.md",
-                 "scripts/install", "scripts/remove",
-                 "scripts/upgrade",
-                 "scripts/backup", "scripts/restore")
-    non_mandatory = ("script/backup", "script/restore")
-
-    for filename in filenames:
-        if file_exists(app_path + "/" + filename):
-            continue
-        elif filename in non_mandatory:
-            print_warning("Consider adding a file %s" % filename)
-        else:
-            print_error("File %s is mandatory" % filename)
-
-    #
-    # Deprecated php-fpm.ini thing
-    #
-
-    if file_exists(app_path + "/conf/php-fpm.ini"):
-        print_warning("Using a separate php-fpm.ini file is deprecated. Please merge your php-fpm directives directly in the pool file. (c.f. https://github.com/YunoHost-Apps/nextcloud_ynh/issues/138 )")
-
-    #
-    # Deprecated usage of 'add_header' in nginx conf
-    #
-
-    for filename in os.listdir(app_path + "/conf"):
-        if not os.path.isfile(filename):
-            continue
-        content = open(app_path + "/conf/" + filename).read()
-        if "location" in content and "add_header" in content:
-            print_warning("Do not use 'add_header' in the nginx conf. Use 'more_set_headers' instead. (See https://www.peterbe.com/plog/be-very-careful-with-your-add_header-in-nginx and https://github.com/openresty/headers-more-nginx-module#more_set_headers )")
+        for script in self.scripts.values():
+            if script.exists:
+                script.analyze()
 
 
-def check_source_management(app_path):
-    print_header("SOURCES MANAGEMENT")
-    DIR = os.path.join(app_path, "sources")
-    # Check if there is more than six files on 'sources' folder
-    if os.path.exists(os.path.join(app_path, "sources")) \
-       and len([name for name in os.listdir(DIR) if os.path.isfile(os.path.join(DIR, name))]) > 5:
-        print_warning("[YEP-3.3] Upstream app sources shouldn't be stored on this "
-                      "'sources' folder of this git repository as a copy/paste."
-                      "\nAt installation, the package should download sources "
-                      "from upstream via 'ynh_setup_source'.\nSee the helper"
-                      "documentation. Original discussion happened here : "
-                      "https://github.com/YunoHost/issues/issues/201#issuecomment-391549262")
+    def misc_file_checks(self):
+
+        print_header("MISC FILE CHECKS")
+
+        #
+        # Check for recommended and mandatory files
+        #
+
+        filenames = ("manifest.json", "LICENSE", "README.md",
+                     "scripts/install", "scripts/remove",
+                     "scripts/upgrade",
+                     "scripts/backup", "scripts/restore")
+        non_mandatory = ("script/backup", "script/restore")
+
+        for filename in filenames:
+            if file_exists(self.path + "/" + filename):
+                continue
+            elif filename in non_mandatory:
+                print_warning("Consider adding a file %s" % filename)
+            else:
+                print_error("File %s is mandatory" % filename)
+
+        #
+        # Deprecated php-fpm.ini thing
+        #
+
+        if file_exists(self.path + "/conf/php-fpm.ini"):
+            print_warning("Using a separate php-fpm.ini file is deprecated. Please merge your php-fpm directives directly in the pool file. (c.f. https://github.com/YunoHost-Apps/nextcloud_ynh/issues/138 )")
+
+        #
+        # Deprecated usage of 'add_header' in nginx conf
+        #
+
+        for filename in os.listdir(self.path + "/conf"):
+            if not os.path.isfile(filename):
+                continue
+            content = open(self.path + "/conf/" + filename).read()
+            if "location" in content and "add_header" in content:
+                print_warning("Do not use 'add_header' in the nginx conf. Use 'more_set_headers' instead. (See https://www.peterbe.com/plog/be-very-careful-with-your-add_header-in-nginx and https://github.com/openresty/headers-more-nginx-module#more_set_headers )")
 
 
-def check_manifest(path):
-    manifest = os.path.join(path, 'manifest.json')
-    if not os.path.exists(manifest):
-        return
-    print_header("MANIFEST")
-    """
-    Check if there is no comma syntax issue
-    """
+    def check_source_management(self):
+        print_header("SOURCES MANAGEMENT")
+        DIR = os.path.join(self.path, "sources")
+        # Check if there is more than six files on 'sources' folder
+        if os.path.exists(os.path.join(self.path, "sources")) \
+           and len([name for name in os.listdir(DIR) if os.path.isfile(os.path.join(DIR, name))]) > 5:
+            print_warning("[YEP-3.3] Upstream app sources shouldn't be stored on this "
+                          "'sources' folder of this git repository as a copy/paste."
+                          "\nAt installation, the package should download sources "
+                          "from upstream via 'ynh_setup_source'.\nSee the helper"
+                          "documentation. Original discussion happened here : "
+                          "https://github.com/YunoHost/issues/issues/201#issuecomment-391549262")
 
-    try:
-        with open(manifest, encoding='utf-8') as data_file:
-            manifest = json.loads(data_file.read())
-    except:
-        print_error("[YEP-2.1] Syntax (comma) or encoding issue with manifest.json. "
-                    "Can't check file.")
 
-    fields = ("name", "id", "packaging_format", "description", "url", "version",
-              "license", "maintainer", "requirements", "multi_instance",
-              "services", "arguments")
+    def check_manifest(self):
+        manifest = os.path.join(self.path, 'manifest.json')
+        if not os.path.exists(manifest):
+            return
+        print_header("MANIFEST")
+        """
+        Check if there is no comma syntax issue
+        """
 
-    for field in fields:
-        if field not in manifest:
-            print_warning("[YEP-2.1] \"" + field + "\" field is missing")
+        try:
+            with open(manifest, encoding='utf-8') as data_file:
+                manifest = json.loads(data_file.read())
+        except:
+            print_error("[YEP-2.1] Syntax (comma) or encoding issue with manifest.json. "
+                        "Can't check file.")
 
-    """
-    Check values in keys
-    """
+        fields = ("name", "id", "packaging_format", "description", "url", "version",
+                  "license", "maintainer", "requirements", "multi_instance",
+                  "services", "arguments")
 
-    if "packaging_format" not in manifest:
-        print_error("[YEP-2.1] \"packaging_format\" key is missing")
-    elif not isinstance(manifest["packaging_format"], int):
-        print_error("[YEP-2.1] \"packaging_format\": value isn't an integer type")
-    elif manifest["packaging_format"] != 1:
-        print_error("[YEP-2.1] \"packaging_format\" field: current format value is '1'")
+        for field in fields:
+            if field not in manifest:
+                print_warning("[YEP-2.1] \"" + field + "\" field is missing")
 
-    # YEP 1.1 Name is app
-    if "id" in manifest:
-        if not re.match('^[a-z1-9]((_|-)?[a-z1-9])+$', manifest["id"]):
-            print_error("[YEP-1.1] 'id' field '%s' should respect this regex "
-                        "'^[a-z1-9]((_|-)?[a-z1-9])+$'")
+        """
+        Check values in keys
+        """
 
-    if "name" in manifest:
-        if len(manifest["name"]) > 22:
-            print_warning("[YEP-1.1] The 'name' field shouldn't be too long to be"
-                          " able to be with one line in the app list. The most "
-                          "current bigger name is actually compound of 22 characters.")
+        if "packaging_format" not in manifest:
+            print_error("[YEP-2.1] \"packaging_format\" key is missing")
+        elif not isinstance(manifest["packaging_format"], int):
+            print_error("[YEP-2.1] \"packaging_format\": value isn't an integer type")
+        elif manifest["packaging_format"] != 1:
+            print_error("[YEP-2.1] \"packaging_format\" field: current format value is '1'")
 
-    # YEP 1.2 Put the app in a weel known repo
-    if "id" in manifest:
-        official_list_url = "https://raw.githubusercontent.com/YunoHost/apps/master/official.json"
-        official_list = json.loads(urlopen(official_list_url)['content'])
-        community_list_url = "https://raw.githubusercontent.com/YunoHost/apps/master/community.json"
-        community_list = json.loads(urlopen(community_list_url)['content'])
-        if manifest["id"] not in official_list and manifest["id"] not in community_list:
-            print_warning("[YEP-1.2] This app is not registered in official or community applications")
+        # YEP 1.1 Name is app
+        if "id" in manifest:
+            if not re.match('^[a-z1-9]((_|-)?[a-z1-9])+$', manifest["id"]):
+                print_error("[YEP-1.1] 'id' field '%s' should respect this regex "
+                            "'^[a-z1-9]((_|-)?[a-z1-9])+$'")
 
-    # YEP 1.3 License
-    def license_mentionned_in_readme(path):
-        readme_path = os.path.join(path, 'README.md')
-        if os.path.isfile(readme_path):
-            return "LICENSE" in open(readme_path).read()
-        return False
+        if "name" in manifest:
+            if len(manifest["name"]) > 22:
+                print_warning("[YEP-1.1] The 'name' field shouldn't be too long to be"
+                              " able to be with one line in the app list. The most "
+                              "current bigger name is actually compound of 22 characters.")
 
-    if "license" in manifest:
-        for license in manifest['license'].replace('&', ',').split(','):
-            code_license = '<code property="spdx:licenseId">' + license + '</code>'
-            link = "https://spdx.org/licenses/"
-            if license == "nonfree":
-                print_warning("[YEP-1.3] The correct value for non free license in license"
-                              " field is 'non-free' and not 'nonfree'")
-                license = "non-free"
-            if license in ["free", "non-free", "dep-non-free"]:
-                if not license_mentionned_in_readme(path):
-                    print_warning("[YEP-1.3] The use of '%s' in license field implies to "
-                                  "write something about the license in your "
-                                  "README.md" % (license))
-                if license in ["non-free", "dep-non-free"]:
-                    print_warning("[YEP-1.3] 'non-free' apps can't be officialized."
-                                  "Their integration is still being discussed,"
-                                  "especially for apps with non-free dependencies")
-            elif code_license not in urlopen(link)['content']:
-                print_warning("[YEP-1.3] The license '%s' is not registered in "
-                            "https://spdx.org/licenses/ . It can be a typo error. "
-                            "If not, you should replace it by 'free' or 'non-free'"
-                            "and give some explanations in the README.md." % (license))
+        # YEP 1.2 Put the app in a weel known repo
+        if "id" in manifest:
+            official_list_url = "https://raw.githubusercontent.com/YunoHost/apps/master/official.json"
+            official_list = json.loads(urlopen(official_list_url)['content'])
+            community_list_url = "https://raw.githubusercontent.com/YunoHost/apps/master/community.json"
+            community_list = json.loads(urlopen(community_list_url)['content'])
+            if manifest["id"] not in official_list and manifest["id"] not in community_list:
+                print_warning("[YEP-1.2] This app is not registered in official or community applications")
 
-    # YEP 1.4 Inform if we continue to maintain the app
-    # YEP 1.5 Update regularly the app status
-    # YEP 1.6 Check regularly the evolution of the upstream
+        # YEP 1.3 License
+        def license_mentionned_in_readme():
+            readme_path = os.path.join(path, 'README.md')
+            if os.path.isfile(readme_path):
+                return "LICENSE" in open(readme_path).read()
+            return False
 
-    # YEP 1.7 - Add an app to the YunoHost-Apps organization
-    if "id" in manifest:
-        repo = "https://github.com/YunoHost-Apps/%s_ynh" % (manifest["id"])
-        is_not_added_to_org =  urlopen(repo)['code'] == 404
+        if "license" in manifest:
+            for license in manifest['license'].replace('&', ',').split(','):
+                code_license = '<code property="spdx:licenseId">' + license + '</code>'
+                link = "https://spdx.org/licenses/"
+                if license == "nonfree":
+                    print_warning("[YEP-1.3] The correct value for non free license in license"
+                                  " field is 'non-free' and not 'nonfree'")
+                    license = "non-free"
+                if license in ["free", "non-free", "dep-non-free"]:
+                    if not license_mentionned_in_readme(self.path):
+                        print_warning("[YEP-1.3] The use of '%s' in license field implies to "
+                                      "write something about the license in your "
+                                      "README.md" % (license))
+                    if license in ["non-free", "dep-non-free"]:
+                        print_warning("[YEP-1.3] 'non-free' apps can't be officialized."
+                                      "Their integration is still being discussed,"
+                                      "especially for apps with non-free dependencies")
+                elif code_license not in urlopen(link)['content']:
+                    print_warning("[YEP-1.3] The license '%s' is not registered in "
+                                "https://spdx.org/licenses/ . It can be a typo error. "
+                                "If not, you should replace it by 'free' or 'non-free'"
+                                "and give some explanations in the README.md." % (license))
 
-        if is_not_added_to_org:
-            print_warning("[YEP-1.7] You should add your app in the "
-                          "YunoHost-Apps organisation.")
+        # YEP 1.4 Inform if we continue to maintain the app
+        # YEP 1.5 Update regularly the app status
+        # YEP 1.6 Check regularly the evolution of the upstream
 
-    # YEP 1.8 Publish test request
-    # YEP 1.9 Document app
-    if "description" in manifest:
-        descr = manifest["description"]
-        if isinstance(descr, dict):
-            descr = descr.get("en", None)
+        # YEP 1.7 - Add an app to the YunoHost-Apps organization
+        if "id" in manifest:
+            repo = "https://github.com/YunoHost-Apps/%s_ynh" % (manifest["id"])
+            is_not_added_to_org =  urlopen(repo)['code'] == 404
 
-        if descr is None or descr == manifest.get("name", None):
-            print_warning("[YEP-1.9] You should write a good description of the app, at least in english (1 line is enough).")
+            if is_not_added_to_org:
+                print_warning("[YEP-1.7] You should add your app in the "
+                              "YunoHost-Apps organisation.")
 
-        elif "for yunohost" in descr.lower():
-            print_warning("[YEP-1.9] The 'description' should explain what the app actually does. No need to say that it is 'for YunoHost' - this is a YunoHost app so of course we know it is for YunoHost ;-).")
+        # YEP 1.8 Publish test request
+        # YEP 1.9 Document app
+        if "description" in manifest:
+            descr = manifest["description"]
+            if isinstance(descr, dict):
+                descr = descr.get("en", None)
 
-    # TODO test a specific template in README.md
+            if descr is None or descr == manifest.get("name", None):
+                print_warning("[YEP-1.9] You should write a good description of the app, at least in english (1 line is enough).")
 
-    # YEP 1.10 Garder un historique de version propre
+            elif "for yunohost" in descr.lower():
+                print_warning("[YEP-1.9] The 'description' should explain what the app actually does. No need to say that it is 'for YunoHost' - this is a YunoHost app so of course we know it is for YunoHost ;-).")
 
-    # YEP 1.11 Cancelled
+        # TODO test a specific template in README.md
 
-    # YEP 2.1
-    if "multi_instance" in manifest and manifest["multi_instance"] != 1 and manifest["multi_instance"] != 0:
-        print_error(
-            "[YEP-2.1] \"multi_instance\" field must be boolean type values 'true' or 'false' and not string type")
+        # YEP 1.10 Garder un historique de version propre
 
-    if "services" in manifest:
-        services = ("nginx", "mysql", "uwsgi", "metronome",
-                    "php5-fpm", "php7.0-fpm", "php-fpm",
-                    "postfix", "dovecot", "rspamd")
+        # YEP 1.11 Cancelled
 
-        for service in manifest["services"]:
-            if service not in services:
-                # FIXME : wtf is it supposed to mean ...
-                print_warning("[YEP-2.1] " + service + " service may not exist")
+        # YEP 2.1
+        if "multi_instance" in manifest and manifest["multi_instance"] != 1 and manifest["multi_instance"] != 0:
+            print_error(
+                "[YEP-2.1] \"multi_instance\" field must be boolean type values 'true' or 'false' and not string type")
 
-    if "install" in manifest["arguments"]:
+        if "services" in manifest:
+            services = ("nginx", "mysql", "uwsgi", "metronome",
+                        "php5-fpm", "php7.0-fpm", "php-fpm",
+                        "postfix", "dovecot", "rspamd")
 
-        recognized_types = ("domain", "path", "boolean", "app", "password", "user", "string")
+            for service in manifest["services"]:
+                if service not in services:
+                    # FIXME : wtf is it supposed to mean ...
+                    print_warning("[YEP-2.1] " + service + " service may not exist")
 
-        for argument in manifest["arguments"]["install"]:
-            if "type" not in argument.keys():
-                print_warning("[YEP-2.1] You should specify the type of the argument '%s'. You can use : %s." % (argument["name"], ', '.join(recognized_types)))
-            elif argument["type"] not in recognized_types:
-                print_warning("[YEP-2.1] The type '%s' for argument '%s' is not recognized... it probably doesn't behave as you expect ? Choose among those instead : %s" % (argument["type"], argument["name"], ', '.join(recognized_types)))
+        if "install" in manifest["arguments"]:
 
-            if "choices" in argument.keys():
-                choices = [c.lower() for c in argument["choices"]]
-                if len(choices) == 2:
-                    if ("true" in choices and "false" in choices) or ("yes" in choices and "no" in choices):
-                        print_warning("Argument %s : you might want to simply use a boolean-type argument. No need to specify the choices list yourself." % argument["name"])
+            recognized_types = ("domain", "path", "boolean", "app", "password", "user", "string")
 
-    if "url" in manifest and manifest["url"].endswith("_ynh"):
-        print_warning("'url' is not meant to be the url of the yunohost package, but rather the website or repo of the upstream app itself...")
+            for argument in manifest["arguments"]["install"]:
+                if "type" not in argument.keys():
+                    print_warning("[YEP-2.1] You should specify the type of the argument '%s'. You can use : %s." % (argument["name"], ', '.join(recognized_types)))
+                elif argument["type"] not in recognized_types:
+                    print_warning("[YEP-2.1] The type '%s' for argument '%s' is not recognized... it probably doesn't behave as you expect ? Choose among those instead : %s" % (argument["type"], argument["name"], ', '.join(recognized_types)))
+
+                if "choices" in argument.keys():
+                    choices = [c.lower() for c in argument["choices"]]
+                    if len(choices) == 2:
+                        if ("true" in choices and "false" in choices) or ("yes" in choices and "no" in choices):
+                            print_warning("Argument %s : you might want to simply use a boolean-type argument. No need to specify the choices list yourself." % argument["name"])
+
+        if "url" in manifest and manifest["url"].endswith("_ynh"):
+            print_warning("'url' is not meant to be the url of the yunohost package, but rather the website or repo of the upstream app itself...")
 
 
 def check_verifications_done_before_modifying_system(script):
@@ -469,18 +480,7 @@ def main():
 
     app_path = sys.argv[1]
     header(app_path)
-
-    # Global checks
-    app = App(app_path)
-    misc_file_checks(app_path)
-    check_source_management(app_path)
-    check_manifest(app_path)
-
-    # Scripts checks
-    for script in app.scripts.values():
-        if script.exists:
-            script.analyze()
-
+    App(app_path).analyze()
     sys.exit(return_code)
 
 
