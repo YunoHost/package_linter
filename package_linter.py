@@ -90,19 +90,18 @@ class App():
         self.path = path
 
         scripts = ["install", "remove", "upgrade", "backup", "restore"]
-        self.scripts = { f: Script(self.path, f) for f in scripts }
-
+        self.scripts = {f: Script(self.path, f) for f in scripts}
 
     def analyze(self):
 
         self.misc_file_checks()
+        self.check_helper_consistency()
         self.check_source_management()
         self.check_manifest()
 
         for script in self.scripts.values():
             if script.exists:
                 script.analyze()
-
 
     def misc_file_checks(self):
 
@@ -152,6 +151,25 @@ class App():
                     "and https://github.com/openresty/headers-more-nginx-module#more_set_headers )"
                 )
 
+    def check_helper_consistency(self):
+        """
+        check if ynh_install_app_dependencies is present in install/upgrade/restore
+        so dependencies are up to date after restoration or upgrade
+        """
+
+        install_script = self.scripts["install"]
+        if install_script.exists:
+            if install_script.contains("ynh_install_app_dependencies"):
+                for name in ["upgrade", "restore"]:
+                    if self.scripts[name].exists and not self.scripts[name].contains("ynh_install_app_dependencies"):
+                        print_warning("ynh_install_app_dependencies should also be in %s script" % name)
+
+            if install_script.contains("yunohost service add"):
+                if self.scripts["remove"].exists and not self.scripts["remove"].contains("yunohost service remove"):
+                    print_error(
+                        "You used 'yunohost service add' in the install script, "
+                        "but not 'yunohost service remove' in the remove script."
+                    )
 
     def check_source_management(self):
         print_header("SOURCES MANAGEMENT")
@@ -166,7 +184,6 @@ class App():
                 "Original discussion happened here : "
                 "https://github.com/YunoHost/issues/issues/201#issuecomment-391549262"
             )
-
 
     def check_manifest(self):
         manifest = os.path.join(self.path, 'manifest.json')
@@ -224,7 +241,7 @@ class App():
                 print_warning("[YEP-1.2] This app is not registered in official or community applications")
 
         # YEP 1.3 License
-        def license_mentionned_in_readme():
+        def license_mentionned_in_readme(path):
             readme_path = os.path.join(path, 'README.md')
             if os.path.isfile(readme_path):
                 return "LICENSE" in open(readme_path).read()
@@ -368,7 +385,6 @@ class Script():
             except Exception as e:
                 print_warning("%s : Could not parse this line (%s) : %s" % (self.path, e, line))
 
-
     def contains(self, command):
         """
         Iterate on lines to check if command is contained in line
@@ -378,17 +394,14 @@ class Script():
         return any(command in line
                    for line in [ ' '.join(line) for line in self.lines])
 
-
     def analyze(self):
 
         print_header(self.name.upper() + " SCRIPT")
 
-        check_verifications_done_before_modifying_system(self)
-        check_set_usage(self)
-        check_helper_usage_dependencies(self)
-        check_helper_consistency(self)
-        check_deprecated_practices(self)
-
+        self.check_verifications_done_before_modifying_system()
+        self.check_set_usage()
+        self.check_helper_usage_dependencies()
+        self.check_deprecated_practices()
 
     def check_verifications_done_before_modifying_system(self):
         """
@@ -421,7 +434,6 @@ class Script():
                 )
                 return
 
-
     def check_set_usage(self):
         present = False
 
@@ -445,7 +457,6 @@ class Script():
                 "look at https://github.com/YunoHost/issues/issues/419"
             )
 
-
     def check_helper_usage_dependencies(self):
         """
         Detect usage of ynh_package_* & apt-get *
@@ -463,29 +474,6 @@ class Script():
                 "You should not use `ynh_package_remove` or `apt-get remove`, "
                 "use `ynh_remove_app_dependencies` instead"
             )
-
-
-    def check_helper_consistency(self):
-        """
-        check if ynh_install_app_dependencies is present in install/upgrade/restore
-        so dependencies are up to date after restoration or upgrade
-        """
-
-        if self.name == "install" and self.contains("ynh_install_app_dependencies"):
-
-            for name in ["upgrade", "restore"]:
-                script2 = Script(name, os.path.dirname(self.path))
-                if script2.exists and not script2.contains("ynh_install_app_dependencies"):
-                    print_warning("ynh_install_app_dependencies should also be in %s script" % name)
-
-        if self.name == "install" and script.contains("yunohost service add"):
-            srcipt2 = Script("remove", os.path.dirname(self.path))
-            if script2.exists and not script2.contains("yunohost service remove"):
-                    print_error(
-                        "You used 'yunohost service add' in the install script, "
-                        "but not 'yunohost service remove' in the remove script."
-                    )
-
 
     def check_deprecated_practices(self):
 
@@ -528,6 +516,7 @@ class Script():
                 "(in friendly, not-too-technical terms) during the installation. "
                 "You can use 'ynh_print_info' or 'ynh_script_progression' for this."
             )
+
 
 def main():
     if len(sys.argv) != 2:
