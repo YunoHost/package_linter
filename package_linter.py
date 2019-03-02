@@ -457,10 +457,10 @@ class Script():
         check_helper_usage_dependencies(self)
         check_helper_consistency(self)
         check_deprecated_practices(self)
-        
+
         current_dir=os.getcwd()
-        os.chdir(app_path + "/scripts/")
-        check_shellcheck(script_name)
+        os.chdir(os.path.dirname(self.path))
+        check_shellcheck(self.name)
         os.chdir(current_dir)
 
 
