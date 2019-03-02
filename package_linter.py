@@ -82,6 +82,16 @@ def file_exists(file_path):
 #   Actual high-level checks
 # ############################################################################
 
+class App():
+
+    def __init__(self, path):
+
+        print_header("LOADING APP")
+        self.path = path
+
+        scripts = ["install", "remove", "upgrade", "backup", "restore"]
+        self.scripts = { f: Script(self.path, f) for f in scripts }
+
 
 def check_files_exist(app_path):
     """
@@ -90,11 +100,10 @@ def check_files_exist(app_path):
     """
 
     print_header("MISSING FILES")
-    filenames = ("manifest.json",
+    filenames = ("manifest.json", "LICENSE", "README.md",
                  "scripts/install", "scripts/remove",
                  "scripts/upgrade",
-                 "scripts/backup", "scripts/restore",
-                 "LICENSE", "README.md")
+                 "scripts/backup", "scripts/restore")
     non_mandatory = ("script/backup", "script/restore")
 
     for filename in filenames:
@@ -404,6 +413,7 @@ class Script():
         self.exists = file_exists(self.path)
         if not self.exists:
             return
+        self.lines = list(self.read_file())
 
     def read_file(self):
         with open(self.path) as f:
@@ -421,7 +431,8 @@ class Script():
                 line = shlex.split(line, True)
                 yield line
             except Exception as e:
-                print_warning("Could not parse this line (%s) : %s" % (e, line))
+                print_warning("%s : Could not parse this line (%s) : %s" % (self.path, e, line))
+
 
     def contains(self, command):
         """
@@ -436,7 +447,6 @@ class Script():
     def analyze(self):
 
         print_header(self.name.upper() + " SCRIPT")
-        self.lines = list(self.read_file())
 
         check_verifications_done_before_modifying_system(self)
         check_set_usage(self)
@@ -454,15 +464,13 @@ def main():
     header(app_path)
 
     # Global checks
+    app = App(app_path)
     check_files_exist(app_path)
     check_source_management(app_path)
     check_manifest(app_path)
 
     # Scripts checks
-    scripts = ["install", "remove", "upgrade", "backup", "restore"]
-    for script_name in scripts:
-
-        script = Script(app_path, script_name)
+    for script in app.scripts.values():
         if script.exists:
             script.analyze()
 
