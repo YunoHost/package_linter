@@ -131,7 +131,11 @@ class App():
         #
 
         if file_exists(self.path + "/conf/php-fpm.ini"):
-            print_warning("Using a separate php-fpm.ini file is deprecated. Please merge your php-fpm directives directly in the pool file. (c.f. https://github.com/YunoHost-Apps/nextcloud_ynh/issues/138 )")
+            print_warning(
+                "Using a separate php-fpm.ini file is deprecated. "
+                "Please merge your php-fpm directives directly in the pool file. "
+                "(c.f. https://github.com/YunoHost-Apps/nextcloud_ynh/issues/138 )"
+            )
 
         #
         # Deprecated usage of 'add_header' in nginx conf
@@ -142,7 +146,11 @@ class App():
                 continue
             content = open(self.path + "/conf/" + filename).read()
             if "location" in content and "add_header" in content:
-                print_warning("Do not use 'add_header' in the nginx conf. Use 'more_set_headers' instead. (See https://www.peterbe.com/plog/be-very-careful-with-your-add_header-in-nginx and https://github.com/openresty/headers-more-nginx-module#more_set_headers )")
+                print_warning(
+                    "Do not use 'add_header' in the nginx conf. Use 'more_set_headers' instead. "
+                    "(See https://www.peterbe.com/plog/be-very-careful-with-your-add_header-in-nginx "
+                    "and https://github.com/openresty/headers-more-nginx-module#more_set_headers )"
+                )
 
 
     def check_source_management(self):
@@ -151,12 +159,13 @@ class App():
         # Check if there is more than six files on 'sources' folder
         if os.path.exists(os.path.join(self.path, "sources")) \
            and len([name for name in os.listdir(DIR) if os.path.isfile(os.path.join(DIR, name))]) > 5:
-            print_warning("[YEP-3.3] Upstream app sources shouldn't be stored on this "
-                          "'sources' folder of this git repository as a copy/paste."
-                          "\nAt installation, the package should download sources "
-                          "from upstream via 'ynh_setup_source'.\nSee the helper"
-                          "documentation. Original discussion happened here : "
-                          "https://github.com/YunoHost/issues/issues/201#issuecomment-391549262")
+            print_warning(
+                "[YEP-3.3] Upstream app sources shouldn't be stored in this 'sources' folder of this git repository as a copy/paste\n"
+                "During installation, the package should download sources from upstream via 'ynh_setup_source'.\n"
+                "See the helper documentation. "
+                "Original discussion happened here : "
+                "https://github.com/YunoHost/issues/issues/201#issuecomment-391549262"
+            )
 
 
     def check_manifest(self):
@@ -172,8 +181,7 @@ class App():
             with open(manifest, encoding='utf-8') as data_file:
                 manifest = json.loads(data_file.read())
         except:
-            print_error("[YEP-2.1] Syntax (comma) or encoding issue with manifest.json. "
-                        "Can't check file.")
+            print_error("[YEP-2.1] Syntax (comma) or encoding issue with manifest.json. Can't check file.")
 
         fields = ("name", "id", "packaging_format", "description", "url", "version",
                   "license", "maintainer", "requirements", "multi_instance",
@@ -197,14 +205,14 @@ class App():
         # YEP 1.1 Name is app
         if "id" in manifest:
             if not re.match('^[a-z1-9]((_|-)?[a-z1-9])+$', manifest["id"]):
-                print_error("[YEP-1.1] 'id' field '%s' should respect this regex "
-                            "'^[a-z1-9]((_|-)?[a-z1-9])+$'")
+                print_error("[YEP-1.1] 'id' field '%s' should respect this regex '^[a-z1-9]((_|-)?[a-z1-9])+$'")
 
         if "name" in manifest:
             if len(manifest["name"]) > 22:
-                print_warning("[YEP-1.1] The 'name' field shouldn't be too long to be"
-                              " able to be with one line in the app list. The most "
-                              "current bigger name is actually compound of 22 characters.")
+                print_warning(
+                    "[YEP-1.1] The 'name' field shouldn't be too long to be able to be with one line in the app list. "
+                    "The most current bigger name is actually compound of 22 characters."
+                )
 
         # YEP 1.2 Put the app in a weel known repo
         if "id" in manifest:
@@ -227,23 +235,25 @@ class App():
                 code_license = '<code property="spdx:licenseId">' + license + '</code>'
                 link = "https://spdx.org/licenses/"
                 if license == "nonfree":
-                    print_warning("[YEP-1.3] The correct value for non free license in license"
-                                  " field is 'non-free' and not 'nonfree'")
+                    print_warning("[YEP-1.3] The correct value for non free license in license field is 'non-free' and not 'nonfree'")
                     license = "non-free"
                 if license in ["free", "non-free", "dep-non-free"]:
                     if not license_mentionned_in_readme(self.path):
-                        print_warning("[YEP-1.3] The use of '%s' in license field implies to "
-                                      "write something about the license in your "
-                                      "README.md" % (license))
+                        print_warning(
+                            "[YEP-1.3] The use of '%s' in license field implies "
+                            " to write something about the license in your README.md" % (license)
+                        )
                     if license in ["non-free", "dep-non-free"]:
-                        print_warning("[YEP-1.3] 'non-free' apps can't be officialized."
-                                      "Their integration is still being discussed,"
-                                      "especially for apps with non-free dependencies")
+                        print_warning(
+                            "[YEP-1.3] 'non-free' apps can't be officialized. "
+                            " Their integration is still being discussed, especially for apps with non-free dependencies"
+                        )
                 elif code_license not in urlopen(link)['content']:
-                    print_warning("[YEP-1.3] The license '%s' is not registered in "
-                                "https://spdx.org/licenses/ . It can be a typo error. "
-                                "If not, you should replace it by 'free' or 'non-free'"
-                                "and give some explanations in the README.md." % (license))
+                    print_warning(
+                        "[YEP-1.3] The license '%s' is not registered in https://spdx.org/licenses/ . "
+                        "It can be a typo error. If not, you should replace it by 'free' "
+                        "or 'non-free' and give some explanations in the README.md." % (license)
+                    )
 
         # YEP 1.4 Inform if we continue to maintain the app
         # YEP 1.5 Update regularly the app status
@@ -255,8 +265,7 @@ class App():
             is_not_added_to_org =  urlopen(repo)['code'] == 404
 
             if is_not_added_to_org:
-                print_warning("[YEP-1.7] You should add your app in the "
-                              "YunoHost-Apps organisation.")
+                print_warning("[YEP-1.7] You should add your app in the YunoHost-Apps organisation.")
 
         # YEP 1.8 Publish test request
         # YEP 1.9 Document app
@@ -266,10 +275,17 @@ class App():
                 descr = descr.get("en", None)
 
             if descr is None or descr == manifest.get("name", None):
-                print_warning("[YEP-1.9] You should write a good description of the app, at least in english (1 line is enough).")
+                print_warning(
+                    "[YEP-1.9] You should write a good description of the app, "
+                    "at least in english (1 line is enough)."
+                )
 
             elif "for yunohost" in descr.lower():
-                print_warning("[YEP-1.9] The 'description' should explain what the app actually does. No need to say that it is 'for YunoHost' - this is a YunoHost app so of course we know it is for YunoHost ;-).")
+                print_warning(
+                    "[YEP-1.9] The 'description' should explain what the app actually does. "
+                    "No need to say that it is 'for YunoHost' - this is a YunoHost app "
+                    "so of course we know it is for YunoHost ;-)."
+                )
 
         # TODO test a specific template in README.md
 
@@ -298,18 +314,30 @@ class App():
 
             for argument in manifest["arguments"]["install"]:
                 if "type" not in argument.keys():
-                    print_warning("[YEP-2.1] You should specify the type of the argument '%s'. You can use : %s." % (argument["name"], ', '.join(recognized_types)))
+                    print_warning(
+                        "[YEP-2.1] You should specify the type of the argument '%s'. "
+                        "You can use : %s." % (argument["name"], ', '.join(recognized_types))
+                    )
                 elif argument["type"] not in recognized_types:
-                    print_warning("[YEP-2.1] The type '%s' for argument '%s' is not recognized... it probably doesn't behave as you expect ? Choose among those instead : %s" % (argument["type"], argument["name"], ', '.join(recognized_types)))
+                    print_warning(
+                        "[YEP-2.1] The type '%s' for argument '%s' is not recognized... "
+                        "it probably doesn't behave as you expect ? Choose among those instead : %s" % (argument["type"], argument["name"], ', '.join(recognized_types))
+                    )
 
                 if "choices" in argument.keys():
                     choices = [c.lower() for c in argument["choices"]]
                     if len(choices) == 2:
                         if ("true" in choices and "false" in choices) or ("yes" in choices and "no" in choices):
-                            print_warning("Argument %s : you might want to simply use a boolean-type argument. No need to specify the choices list yourself." % argument["name"])
+                            print_warning(
+                                "Argument %s : you might want to simply use a boolean-type argument. "
+                                "No need to specify the choices list yourself." % argument["name"]
+                            )
 
         if "url" in manifest and manifest["url"].endswith("_ynh"):
-            print_warning("'url' is not meant to be the url of the yunohost package, but rather the website or repo of the upstream app itself...")
+            print_warning(
+                "'url' is not meant to be the url of the yunohost package, "
+                "but rather the website or repo of the upstream app itself..."
+            )
 
 
 def check_verifications_done_before_modifying_system(script):
@@ -336,9 +364,11 @@ def check_verifications_done_before_modifying_system(script):
 
     for modifying_cmd in modifying_cmds:
         if any(modifying_cmd in cmd for cmd in cmds_before_exit):
-            print_error("[YEP-2.4] 'ynh_die' or 'exit' command is executed with system modification before (cmd '%s').\n"
-                        "This system modification is an issue if a verification exit the script.\n"
-                        "You should move this verification before any system modification." % modifying_cmd, False)
+            print_error(
+                "[YEP-2.4] 'ynh_die' or 'exit' command is executed with system modification before (cmd '%s').\n"
+                "This system modification is an issue if a verification exit the script.\n"
+                "You should move this verification before any system modification." % modifying_cmd, False
+            )
             return
 
 
@@ -353,13 +383,17 @@ def check_set_usage(script):
     if script.name == "remove":
         # Remove script shouldn't use set -eu or ynh_abort_if_errors
         if present:
-            print_error("[YEP-2.4] set -eu or ynh_abort_if_errors is present. "
-                        "If there is a crash, it could put yunohost system in "
-                        "a broken state. For details, look at "
-                        "https://github.com/YunoHost/issues/issues/419")
+            print_error(
+                "[YEP-2.4] set -eu or ynh_abort_if_errors is present. "
+                "If there is a crash, it could put yunohost system in "
+                "a broken state. For details, look at "
+                "https://github.com/YunoHost/issues/issues/419"
+            )
     elif not present:
-        print_error("[YEP-2.4] ynh_abort_if_errors is missing. For details, "
-                    "look at https://github.com/YunoHost/issues/issues/419")
+        print_error(
+            "[YEP-2.4] ynh_abort_if_errors is missing. For details, "
+            "look at https://github.com/YunoHost/issues/issues/419"
+        )
 
 
 def check_helper_usage_dependencies(script):
@@ -369,10 +403,16 @@ def check_helper_usage_dependencies(script):
     """
 
     if script.contains("ynh_package_install") or script.contains("apt-get install"):
-        print_warning("You should not use `ynh_package_install` or `apt-get install`, use `ynh_install_app_dependencies` instead")
+        print_warning(
+            "You should not use `ynh_package_install` or `apt-get install`, "
+            "use `ynh_install_app_dependencies` instead"
+        )
 
     if script.contains("ynh_package_remove") or script.contains("apt-get remove"):
-        print_warning("You should not use `ynh_package_remove` or `apt-get remove`, use `ynh_remove_app_dependencies` instead")
+        print_warning(
+            "You should not use `ynh_package_remove` or `apt-get remove`, "
+            "use `ynh_remove_app_dependencies` instead"
+        )
 
 
 def check_helper_consistency(script):
@@ -391,7 +431,10 @@ def check_helper_consistency(script):
     if script.name == "install" and script.contains("yunohost service add"):
         script2 = Script("remove", os.path.dirname(script.path))
         if script2.exists and not script2.contains("yunohost service remove"):
-                print_error("You used 'yunohost service add' in the install script, but not 'yunohost service remove' in the remove script.")
+                print_error(
+                    "You used 'yunohost service add' in the install script, "
+                    "but not 'yunohost service remove' in the remove script."
+                )
 
 
 def check_deprecated_practices(script):
@@ -412,16 +455,29 @@ def check_deprecated_practices(script):
     if script.contains("sed -i"):
         print_warning("[YEP-2.12] You should avoid using 'sed -i', please use 'ynh_replace_string' instead")
     if script.contains("sudo"):
-        print_warning("[YEP-2.12] You should not need to use 'sudo', the script is being run as root. (If you need to run a command using a specific user, use 'ynh_exec_as')")
+        print_warning(
+            "[YEP-2.12] You should not need to use 'sudo', the script is being run as root. "
+            "(If you need to run a command using a specific user, use 'ynh_exec_as')"
+        )
 
     if script.contains("dd if=/dev/urandom") or script.contains("openssl rand"):
-        print_warning("Instead of 'dd if=/dev/urandom' or 'openssl rand', you might want to use ynh_string_random")
+        print_warning(
+            "Instead of 'dd if=/dev/urandom' or 'openssl rand', "
+            "you might want to use ynh_string_random"
+        )
 
     if script.contains("systemctl restart nginx") or script.contains("service nginx restart"):
-        print_error("Restarting nginx is quite dangerous (especially for web installs) and should be avoided at all cost. Use 'reload' instead.")
+        print_error(
+            "Restarting nginx is quite dangerous (especially for web installs) "
+            "and should be avoided at all cost. Use 'reload' instead."
+        )
 
     if script.name == "install" and not script.contains("ynh_print_info") and not script.contains("ynh_script_progression"):
-        print_warning("Please add a few messages for the user, to explain what is going on (in friendly, not-too-technical terms) during the installation. You can use 'ynh_print_info' or 'ynh_script_progression' for this.")
+        print_warning(
+            "Please add a few messages for the user, to explain what is going on "
+            "(in friendly, not-too-technical terms) during the installation. "
+            "You can use 'ynh_print_info' or 'ynh_script_progression' for this."
+        )
 
 class Script():
 
