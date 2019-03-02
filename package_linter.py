@@ -93,13 +93,14 @@ class App():
         self.scripts = { f: Script(self.path, f) for f in scripts }
 
 
-def check_files_exist(app_path):
-    """
-    Check files exist
-    'backup' and 'restore' scripts are not mandatory
-    """
+def misc_file_checks(app_path):
 
-    print_header("MISSING FILES")
+    print_header("MISC FILE CHECKS")
+
+    #
+    # Check for recommended and mandatory files
+    #
+
     filenames = ("manifest.json", "LICENSE", "README.md",
                  "scripts/install", "scripts/remove",
                  "scripts/upgrade",
@@ -110,13 +111,20 @@ def check_files_exist(app_path):
         if file_exists(app_path + "/" + filename):
             continue
         elif filename in non_mandatory:
-            print_warning(filename)
+            print_warning("Consider adding a file %s" % filename)
         else:
-            print_error(filename)
+            print_error("File %s is mandatory" % filename)
 
+    #
     # Deprecated php-fpm.ini thing
+    #
+
     if file_exists(app_path + "/conf/php-fpm.ini"):
         print_warning("Using a separate php-fpm.ini file is deprecated. Please merge your php-fpm directives directly in the pool file. (c.f. https://github.com/YunoHost-Apps/nextcloud_ynh/issues/138 )")
+
+    #
+    # Deprecated usage of 'add_header' in nginx conf
+    #
 
     for filename in os.listdir(app_path + "/conf"):
         if not os.path.isfile(filename):
@@ -465,7 +473,7 @@ def main():
 
     # Global checks
     app = App(app_path)
-    check_files_exist(app_path)
+    misc_file_checks(app_path)
     check_source_management(app_path)
     check_manifest(app_path)
 
