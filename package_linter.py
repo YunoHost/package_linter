@@ -148,13 +148,6 @@ def check_source_management(app_path):
                       "https://github.com/YunoHost/issues/issues/201#issuecomment-391549262")
 
 
-def license_mentionned_in_readme(path):
-    readme_path = os.path.join(path, 'README.md')
-    if os.path.isfile(readme_path):
-        return "LICENSE" in open(readme_path).read()
-    return False
-
-
 def check_manifest(path):
     manifest = os.path.join(path, 'manifest.json')
     if not os.path.exists(manifest):
@@ -212,6 +205,12 @@ def check_manifest(path):
             print_warning("[YEP-1.2] This app is not registered in official or community applications")
 
     # YEP 1.3 License
+    def license_mentionned_in_readme(path):
+        readme_path = os.path.join(path, 'README.md')
+        if os.path.isfile(readme_path):
+            return "LICENSE" in open(readme_path).read()
+        return False
+
     if "license" in manifest:
         for license in manifest['license'].replace('&', ',').split(','):
             code_license = '<code property="spdx:licenseId">' + license + '</code>'
