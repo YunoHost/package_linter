@@ -399,8 +399,8 @@ def check_deprecated_practices(script):
 
 
 def check_shellcheck(script_name):
-    try: 
-        subprocess.run(["shellcheck","-e","SC1091","-x",script_name])
+    try:
+        subprocess.run(["shellcheck","-e","SC1091","-e","SC2086", "-x",script_name])
     except FileNotFoundError as err:
         print_warning("Binary shellcheck not found in $PATH, try to install it")
         print_warning("Cannot parse the script with shellcheck")
