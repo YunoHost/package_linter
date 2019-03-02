@@ -340,145 +340,6 @@ class App():
             )
 
 
-def check_verifications_done_before_modifying_system(script):
-    """
-    Check if verifications are done before modifying the system
-    """
-
-    if not script.contains("ynh_die") and not script.contains("exit"):
-        return
-
-    # FIXME : this really looks like a very small subset of command that
-    # can be used ... also packagers are not supposed to use apt or service
-    # anymore ...
-    modifying_cmds = ("cp", "mkdir", "rm", "chown", "chmod", "apt-get", "apt",
-                      "service", "find", "sed", "mysql", "swapon", "mount",
-                      "dd", "mkswap", "useradd")
-    cmds_before_exit = []
-    for cmd in script.lines:
-        cmd = " ".join(cmd)
-
-        if "ynh_die" in cmd or "exit" in cmd:
-            break
-        cmds_before_exit.append(cmd)
-
-    for modifying_cmd in modifying_cmds:
-        if any(modifying_cmd in cmd for cmd in cmds_before_exit):
-            print_error(
-                "[YEP-2.4] 'ynh_die' or 'exit' command is executed with system modification before (cmd '%s').\n"
-                "This system modification is an issue if a verification exit the script.\n"
-                "You should move this verification before any system modification." % modifying_cmd, False
-            )
-            return
-
-
-def check_set_usage(script):
-    present = False
-
-    if script.name in ["backup", "remove"]:
-        present = script.contains("ynh_abort_if_errors") or script.contains("set -eu")
-    else:
-        present = script.contains("ynh_abort_if_errors")
-
-    if script.name == "remove":
-        # Remove script shouldn't use set -eu or ynh_abort_if_errors
-        if present:
-            print_error(
-                "[YEP-2.4] set -eu or ynh_abort_if_errors is present. "
-                "If there is a crash, it could put yunohost system in "
-                "a broken state. For details, look at "
-                "https://github.com/YunoHost/issues/issues/419"
-            )
-    elif not present:
-        print_error(
-            "[YEP-2.4] ynh_abort_if_errors is missing. For details, "
-            "look at https://github.com/YunoHost/issues/issues/419"
-        )
-
-
-def check_helper_usage_dependencies(script):
-    """
-    Detect usage of ynh_package_* & apt-get *
-    and suggest herlpers ynh_install_app_dependencies and ynh_remove_app_dependencies
-    """
-
-    if script.contains("ynh_package_install") or script.contains("apt-get install"):
-        print_warning(
-            "You should not use `ynh_package_install` or `apt-get install`, "
-            "use `ynh_install_app_dependencies` instead"
-        )
-
-    if script.contains("ynh_package_remove") or script.contains("apt-get remove"):
-        print_warning(
-            "You should not use `ynh_package_remove` or `apt-get remove`, "
-            "use `ynh_remove_app_dependencies` instead"
-        )
-
-
-def check_helper_consistency(script):
-    """
-    check if ynh_install_app_dependencies is present in install/upgrade/restore
-    so dependencies are up to date after restoration or upgrade
-    """
-
-    if script.name == "install" and script.contains("ynh_install_app_dependencies"):
-
-        for name in ["upgrade", "restore"]:
-            script2 = Script(name, os.path.dirname(script.path))
-            if script2.exists and not script2.contains("ynh_install_app_dependencies"):
-                print_warning("ynh_install_app_dependencies should also be in %s script" % name)
-
-    if script.name == "install" and script.contains("yunohost service add"):
-        script2 = Script("remove", os.path.dirname(script.path))
-        if script2.exists and not script2.contains("yunohost service remove"):
-                print_error(
-                    "You used 'yunohost service add' in the install script, "
-                    "but not 'yunohost service remove' in the remove script."
-                )
-
-
-def check_deprecated_practices(script):
-
-    if script.contains("yunohost app setting"):
-        print_warning("'yunohost app setting' shouldn't be used directly. Please use 'ynh_app_setting_(set,get,delete)' instead.")
-    if script.contains("yunohost app checkurl"):
-        print_warning("'yunohost app checkurl' is deprecated. Please use 'ynh_webpath_register' instead.")
-    if script.contains("yunohost app checkport"):
-        print_warning("'yunohost app checkport' is deprecated. Please use 'ynh_find_port' instead.")
-    if script.contains("yunohost app initdb"):
-        print_warning("'yunohost app initdb' is deprecated. Please use 'ynh_mysql_setup_db' instead.")
-    if script.contains("exit"):
-        print_warning("'exit' command shouldn't be used. Please use 'ynh_die' instead.")
-
-    if script.contains("rm -rf"):
-        print_error("[YEP-2.12] You should avoid using 'rm -rf', please use 'ynh_secure_remove' instead")
-    if script.contains("sed -i"):
-        print_warning("[YEP-2.12] You should avoid using 'sed -i', please use 'ynh_replace_string' instead")
-    if script.contains("sudo"):
-        print_warning(
-            "[YEP-2.12] You should not need to use 'sudo', the script is being run as root. "
-            "(If you need to run a command using a specific user, use 'ynh_exec_as')"
-        )
-
-    if script.contains("dd if=/dev/urandom") or script.contains("openssl rand"):
-        print_warning(
-            "Instead of 'dd if=/dev/urandom' or 'openssl rand', "
-            "you might want to use ynh_string_random"
-        )
-
-    if script.contains("systemctl restart nginx") or script.contains("service nginx restart"):
-        print_error(
-            "Restarting nginx is quite dangerous (especially for web installs) "
-            "and should be avoided at all cost. Use 'reload' instead."
-        )
-
-    if script.name == "install" and not script.contains("ynh_print_info") and not script.contains("ynh_script_progression"):
-        print_warning(
-            "Please add a few messages for the user, to explain what is going on "
-            "(in friendly, not-too-technical terms) during the installation. "
-            "You can use 'ynh_print_info' or 'ynh_script_progression' for this."
-        )
-
 class Script():
 
     def __init__(self, app_path, name):
@@ -528,6 +389,145 @@ class Script():
         check_helper_consistency(self)
         check_deprecated_practices(self)
 
+
+    def check_verifications_done_before_modifying_system(self):
+        """
+        Check if verifications are done before modifying the system
+        """
+
+        if not self.contains("ynh_die") and not self.contains("exit"):
+            return
+
+        # FIXME : this really looks like a very small subset of command that
+        # can be used ... also packagers are not supposed to use apt or service
+        # anymore ...
+        modifying_cmds = ("cp", "mkdir", "rm", "chown", "chmod", "apt-get", "apt",
+                          "service", "find", "sed", "mysql", "swapon", "mount",
+                          "dd", "mkswap", "useradd")
+        cmds_before_exit = []
+        for cmd in self.lines:
+            cmd = " ".join(cmd)
+
+            if "ynh_die" in cmd or "exit" in cmd:
+                break
+            cmds_before_exit.append(cmd)
+
+        for modifying_cmd in modifying_cmds:
+            if any(modifying_cmd in cmd for cmd in cmds_before_exit):
+                print_error(
+                    "[YEP-2.4] 'ynh_die' or 'exit' command is executed with system modification before (cmd '%s').\n"
+                    "This system modification is an issue if a verification exit the script.\n"
+                    "You should move this verification before any system modification." % modifying_cmd, False
+                )
+                return
+
+
+    def check_set_usage(self):
+        present = False
+
+        if self.name in ["backup", "remove"]:
+            present = self.contains("ynh_abort_if_errors") or self.contains("set -eu")
+        else:
+            present = self.contains("ynh_abort_if_errors")
+
+        if self.name == "remove":
+            # Remove script shouldn't use set -eu or ynh_abort_if_errors
+            if present:
+                print_error(
+                    "[YEP-2.4] set -eu or ynh_abort_if_errors is present. "
+                    "If there is a crash, it could put yunohost system in "
+                    "a broken state. For details, look at "
+                    "https://github.com/YunoHost/issues/issues/419"
+                )
+        elif not present:
+            print_error(
+                "[YEP-2.4] ynh_abort_if_errors is missing. For details, "
+                "look at https://github.com/YunoHost/issues/issues/419"
+            )
+
+
+    def check_helper_usage_dependencies(self):
+        """
+        Detect usage of ynh_package_* & apt-get *
+        and suggest herlpers ynh_install_app_dependencies and ynh_remove_app_dependencies
+        """
+
+        if self.contains("ynh_package_install") or self.contains("apt-get install"):
+            print_warning(
+                "You should not use `ynh_package_install` or `apt-get install`, "
+                "use `ynh_install_app_dependencies` instead"
+            )
+
+        if self.contains("ynh_package_remove") or self.contains("apt-get remove"):
+            print_warning(
+                "You should not use `ynh_package_remove` or `apt-get remove`, "
+                "use `ynh_remove_app_dependencies` instead"
+            )
+
+
+    def check_helper_consistency(self):
+        """
+        check if ynh_install_app_dependencies is present in install/upgrade/restore
+        so dependencies are up to date after restoration or upgrade
+        """
+
+        if self.name == "install" and self.contains("ynh_install_app_dependencies"):
+
+            for name in ["upgrade", "restore"]:
+                script2 = Script(name, os.path.dirname(self.path))
+                if script2.exists and not script2.contains("ynh_install_app_dependencies"):
+                    print_warning("ynh_install_app_dependencies should also be in %s script" % name)
+
+        if self.name == "install" and script.contains("yunohost service add"):
+            srcipt2 = Script("remove", os.path.dirname(self.path))
+            if script2.exists and not script2.contains("yunohost service remove"):
+                    print_error(
+                        "You used 'yunohost service add' in the install script, "
+                        "but not 'yunohost service remove' in the remove script."
+                    )
+
+
+    def check_deprecated_practices(self):
+
+        if self.contains("yunohost app setting"):
+            print_warning("'yunohost app setting' shouldn't be used directly. Please use 'ynh_app_setting_(set,get,delete)' instead.")
+        if self.contains("yunohost app checkurl"):
+            print_warning("'yunohost app checkurl' is deprecated. Please use 'ynh_webpath_register' instead.")
+        if self.contains("yunohost app checkport"):
+            print_warning("'yunohost app checkport' is deprecated. Please use 'ynh_find_port' instead.")
+        if self.contains("yunohost app initdb"):
+            print_warning("'yunohost app initdb' is deprecated. Please use 'ynh_mysql_setup_db' instead.")
+        if self.contains("exit"):
+            print_warning("'exit' command shouldn't be used. Please use 'ynh_die' instead.")
+
+        if self.contains("rm -rf"):
+            print_error("[YEP-2.12] You should avoid using 'rm -rf', please use 'ynh_secure_remove' instead")
+        if self.contains("sed -i"):
+            print_warning("[YEP-2.12] You should avoid using 'sed -i', please use 'ynh_replace_string' instead")
+        if self.contains("sudo"):
+            print_warning(
+                "[YEP-2.12] You should not need to use 'sudo', the script is being run as root. "
+                "(If you need to run a command using a specific user, use 'ynh_exec_as')"
+            )
+
+        if self.contains("dd if=/dev/urandom") or self.contains("openssl rand"):
+            print_warning(
+                "Instead of 'dd if=/dev/urandom' or 'openssl rand', "
+                "you might want to use ynh_string_random"
+            )
+
+        if self.contains("systemctl restart nginx") or self.contains("service nginx restart"):
+            print_error(
+                "Restarting nginx is quite dangerous (especially for web installs) "
+                "and should be avoided at all cost. Use 'reload' instead."
+            )
+
+        if self.name == "install" and not self.contains("ynh_print_info") and not self.contains("ynh_script_progression"):
+            print_warning(
+                "Please add a few messages for the user, to explain what is going on "
+                "(in friendly, not-too-technical terms) during the installation. "
+                "You can use 'ynh_print_info' or 'ynh_script_progression' for this."
+            )
 
 def main():
     if len(sys.argv) != 2:
