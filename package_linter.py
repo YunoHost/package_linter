@@ -141,7 +141,7 @@ class App():
         #
 
         for filename in os.listdir(self.path + "/conf"):
-            if not os.path.isfile(filename):
+            if not os.path.isfile(self.path + "/conf/" + filename):
                 continue
             content = open(self.path + "/conf/" + filename).read()
             if "location" in content and "add_header" in content:
