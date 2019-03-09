@@ -519,24 +519,10 @@ class Script():
             )
 
     def check_source_common(self):
-        #test for standard execution
-        if script["name"] in ["install","upgrade","remove"]:
-            count_common=len(re.findall("^source _common.sh|^source ./_common.sh",script["raw"],flags=re.MULTILINE))
-            if count_common == 0:
-                print_warning("Calling _common.sh seams not present in this script, please add \"source _common.sh\"")
-            elif count_common > 1:
-                print_warning("Duplicates calls to _common.sh, please clean your code")
 
-        #test for "save" files
-        else:
-            count_common=len(re.findall("^source _common.sh|^source ./_common.sh",script["raw"],flags=re.MULTILINE))
-            count_common_save=len(re.findall("^source ../settings/scripts/_common.sh",script["raw"],flags=re.MULTILINE))
-            if count_common > 0 and count_common_save == 0:
-                print_error("You must call _common.sh with \"source ../settings/scripts/_common.sh\" in this script to respect context execution")
-            elif count_common == 0 and count_common_save == 0:
-                print_warning("Calling _common.sh seams not present in this script, please add \"source ../settings/scripts/_common.sh\" in this script to respect context execution")
-            elif count_common_save > 1:
-                print_warning("Duplicates calls to _common.sh, please clean your code")
+        if self.name in ["backup", "restore"]:
+            if self.contains("source _common.sh") or self.contains("source ./_common.sh"):
+                print_error("In the context of backup and restore script, you should load _common.sh with \"source ../settings/scripts/_common.sh\"")
 
 
 def main():
