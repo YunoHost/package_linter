@@ -144,7 +144,7 @@ class App():
         #
 
         for filename in os.listdir(self.path + "/conf"):
-            if not os.path.isfile(self.path + "/conf/" + filename):
+            if not os.path.isfile(self.path + "/conf/" + filename) or "nginx" not in filename:
                 continue
             content = open(self.path + "/conf/" + filename).read()
             if "location" in content and "add_header" in content:
