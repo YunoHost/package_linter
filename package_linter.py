@@ -17,6 +17,16 @@ return_code = 0
 #   Utilities
 # ############################################################################
 
+# Taken from https://stackoverflow.com/a/49518779
+def check_for_duplicate_keys(ordered_pairs):
+    dict_out = {}
+    for key, val in ordered_pairs:
+        if key in dict_out:
+            print_warning("Duplicated key '%s' in %s" % (key, ordered_pairs))
+        else:
+            dict_out[key] = val
+    return dict_out
+
 
 class c:
     HEADER = '\033[94m'
@@ -199,7 +209,7 @@ class App():
 
         try:
             with open(manifest, encoding='utf-8') as data_file:
-                manifest = json.loads(data_file.read())
+                manifest = json.loads(data_file.read(), object_pairs_hook=check_for_duplicate_keys)
         except:
             print_error("[YEP-2.1] Syntax (comma) or encoding issue with manifest.json. Can't check file.")
 
@@ -294,7 +304,7 @@ class App():
             if isinstance(descr, dict):
                 descr = descr.get("en", None)
 
-            if descr is None or descr == manifest.get("name", None):
+            if descr is None or descr == "" or descr == manifest.get("name", None):
                 print_warning(
                     "[YEP-1.9] You should write a good description of the app, "
                     "at least in english (1 line is enough)."
