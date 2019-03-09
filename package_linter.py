@@ -99,7 +99,10 @@ class App():
         self.check_source_management()
         self.check_manifest()
 
-        for script in self.scripts.values():
+        # Copypasta of lines from __init__ instead of using
+        # self.script.values() because dict are unordered until python 3.7
+        scripts = ["install", "remove", "upgrade", "backup", "restore"]
+        for script in [self.scripts[s] for s in scripts]:
             if script.exists:
                 script.analyze()
 
