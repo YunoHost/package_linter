@@ -520,6 +520,13 @@ class Script():
                 "You can use 'ynh_print_info' or 'ynh_script_progression' for this."
             )
 
+        if self.name == "install" and self.contains("/etc/apt/sources.list"):
+            print_warning(
+                "[YEP-3.7] Adding custom apt repositories (or messing with apt's "
+                "sources.lists) is discouraged and should be avoided. "
+                "Please consider alternatives like downloading a .deb if possible."
+            )
+
 
 def main():
     if len(sys.argv) != 2:
