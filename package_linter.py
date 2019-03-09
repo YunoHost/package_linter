@@ -169,7 +169,7 @@ class App():
             lines_iter = lines.__iter__()
             for line in lines_iter:
                 if line.startswith("location"):
-                    location_line = line
+                    location_line = line.split()
                     break
             # Look at the next lines for an 'alias' directive
             if location_line is not None:
@@ -181,7 +181,7 @@ class App():
                     if line.startswith("alias"):
                         # We should definitely check for path traversal issue
                         # Does the location target ends with / ?
-                        target = location_line.split()[-2]
+                        target = location_line[-2] if location_line[-1] == "{" else location_line[-1]
                         if not target.endswith("/"):
                             path_traversal_vulnerable = True
                         break
