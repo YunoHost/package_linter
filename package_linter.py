@@ -380,6 +380,18 @@ class App():
                 "but rather the website or repo of the upstream app itself..."
             )
 
+        yunohost_version_req = manifest.get("requirements", {}).get("yunohost", None)
+        if yunohost_version_req:
+            major_version = yunohost_version_req.split()[-1]
+            if major_version.startswith("2"):
+                print_warning(
+                    "YunoHost version requirement is still 2.x ... Good job if "
+                    "it does still work on Jessie !... But are you really sure "
+                    "about that ;) ? be careful that many new helpers you might "
+                    "already be playing with are only available on 3.x..."
+                )
+
+
 
 class Script():
 
