@@ -354,6 +354,16 @@ class App():
                                 "No need to specify the choices list yourself." % argument["name"]
                             )
 
+                if argument["name"] == "is_public" and "help" not in argument.keys():
+                    print_warning(
+                        "Consider adding an 'help' key for argument 'is_public' "
+                        "to explain to the user what it means for *this* app "
+                        "to be public or private :\n"
+                        '    "help": {\n'
+                        '       "en": "Some explanation"\n'
+                        '    }')
+
+
         if "url" in manifest and manifest["url"].endswith("_ynh"):
             print_warning(
                 "'url' is not meant to be the url of the yunohost package, "
