@@ -405,6 +405,7 @@ class Script():
         self.check_set_usage()
         self.check_helper_usage_dependencies()
         self.check_deprecated_practices()
+        self.check_source_common()
 
     def check_verifications_done_before_modifying_system(self):
         """
@@ -520,6 +521,12 @@ class Script():
                 "You can use 'ynh_print_info' or 'ynh_script_progression' for this."
             )
 
+    def check_source_common(self):
+
+        if self.name in ["backup", "restore"]:
+            if self.contains("source _common.sh") or self.contains("source ./_common.sh"):
+                print_error("In the context of backup and restore script, you should load _common.sh with \"source ../settings/scripts/_common.sh\"")
+
 
 def main():
     if len(sys.argv) != 2:
@@ -529,6 +536,7 @@ def main():
     app_path = sys.argv[1]
     header(app_path)
     App(app_path).analyze()
+
     sys.exit(return_code)
 
 
