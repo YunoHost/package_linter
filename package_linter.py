@@ -17,6 +17,16 @@ return_code = 0
 #   Utilities
 # ############################################################################
 
+# Taken from https://stackoverflow.com/a/49518779
+def check_for_duplicate_keys(ordered_pairs):
+    dict_out = {}
+    for key, val in ordered_pairs:
+        if key in dict_out:
+            print_warning("Duplicated key '%s' in %s" % (key, ordered_pairs))
+        else:
+            dict_out[key] = val
+    return dict_out
+
 
 class c:
     HEADER = '\033[94m'
@@ -140,18 +150,60 @@ class App():
             )
 
         #
-        # Deprecated usage of 'add_header' in nginx conf
+        # Analyze nginx conf
+        # - Deprecated usage of 'add_header' in nginx conf
+        # - Spot path traversal issue vulnerability
         #
 
         for filename in os.listdir(self.path + "/conf"):
-            if not os.path.isfile(self.path + "/conf/" + filename):
+            # Ignore subdirs or filename not containing nginx in the name
+            if not os.path.isfile(self.path + "/conf/" + filename) or "nginx" not in filename:
                 continue
+
+            #
+            # 'add_header' usage
+            #
             content = open(self.path + "/conf/" + filename).read()
             if "location" in content and "add_header" in content:
                 print_warning(
                     "Do not use 'add_header' in the nginx conf. Use 'more_set_headers' instead. "
                     "(See https://www.peterbe.com/plog/be-very-careful-with-your-add_header-in-nginx "
                     "and https://github.com/openresty/headers-more-nginx-module#more_set_headers )"
+                )
+
+            #
+            # Path traversal issues
+            #
+            lines = open(self.path + "/conf/" + filename).readlines()
+            lines = [line.strip() for line in lines if not line.strip().startswith("#")]
+            # Let's find the first location line
+            location_line = None
+            path_traversal_vulnerable = False
+            lines_iter = lines.__iter__()
+            for line in lines_iter:
+                if line.startswith("location"):
+                    location_line = line.split()
+                    break
+            # Look at the next lines for an 'alias' directive
+            if location_line is not None:
+                for line in lines_iter:
+                    if line.startswith("location"):
+                        # Entering a new location block ... abort here
+                        # and assume there's no alias block later...
+                        break
+                    if line.startswith("alias"):
+                        # We should definitely check for path traversal issue
+                        # Does the location target ends with / ?
+                        target = location_line[-2] if location_line[-1] == "{" else location_line[-1]
+                        if not target.endswith("/"):
+                            path_traversal_vulnerable = True
+                        break
+            if path_traversal_vulnerable:
+                print_warning(
+                    "The nginx configuration appears vulnerable to path traversal as explained in "
+                    "https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
+                    "To fix it, look at the first lines of the nginx conf of the example app : "
+                    "https://github.com/YunoHost/example_ynh/blob/master/conf/nginx.conf"
                 )
 
     def check_helper_consistency(self):
@@ -199,7 +251,7 @@ class App():
 
         try:
             with open(manifest, encoding='utf-8') as data_file:
-                manifest = json.loads(data_file.read())
+                manifest = json.loads(data_file.read(), object_pairs_hook=check_for_duplicate_keys)
         except:
             print_error("[YEP-2.1] Syntax (comma) or encoding issue with manifest.json. Can't check file.")
 
@@ -294,7 +346,7 @@ class App():
             if isinstance(descr, dict):
                 descr = descr.get("en", None)
 
-            if descr is None or descr == manifest.get("name", None):
+            if descr is None or descr == "" or descr == manifest.get("name", None):
                 print_warning(
                     "[YEP-1.9] You should write a good description of the app, "
                     "at least in english (1 line is enough)."
@@ -318,15 +370,16 @@ class App():
             print_error(
                 "[YEP-2.1] \"multi_instance\" field must be boolean type values 'true' or 'false' and not string type")
 
-        if "services" in manifest:
-            services = ("nginx", "mysql", "uwsgi", "metronome",
-                        "php5-fpm", "php7.0-fpm", "php-fpm",
-                        "postfix", "dovecot", "rspamd")
+        if "services" in manifest and self.scripts["install"].exists:
+
+            known_services = ("nginx", "mysql", "uwsgi", "metronome",
+                              "php5-fpm", "php7.0-fpm", "php-fpm",
+                              "postfix", "dovecot", "rspamd")
 
             for service in manifest["services"]:
-                if service not in services:
-                    # FIXME : wtf is it supposed to mean ...
-                    print_warning("[YEP-2.1] " + service + " service may not exist")
+                if service not in known_services:
+                    if not self.scripts["install"].contains("yunohost service add %s" % service):
+                        print_error("[YEP-2.1?] " + service + " service not installed by the install file but present in the manifest")
 
         if "install" in manifest["arguments"]:
 
@@ -353,11 +406,33 @@ class App():
                                 "No need to specify the choices list yourself." % argument["name"]
                             )
 
+                if argument["name"] == "is_public" and "help" not in argument.keys():
+                    print_warning(
+                        "Consider adding an 'help' key for argument 'is_public' "
+                        "to explain to the user what it means for *this* app "
+                        "to be public or private :\n"
+                        '    "help": {\n'
+                        '       "en": "Some explanation"\n'
+                        '    }')
+
+
         if "url" in manifest and manifest["url"].endswith("_ynh"):
             print_warning(
                 "'url' is not meant to be the url of the yunohost package, "
                 "but rather the website or repo of the upstream app itself..."
             )
+
+        yunohost_version_req = manifest.get("requirements", {}).get("yunohost", None)
+        if yunohost_version_req:
+            major_version = yunohost_version_req.split()[-1]
+            if major_version.startswith("2"):
+                print_warning(
+                    "YunoHost version requirement is still 2.x ... Good job if "
+                    "it does still work on Jessie !... But are you really sure "
+                    "about that ;) ? be careful that many new helpers you might "
+                    "already be playing with are only available on 3.x..."
+                )
+
 
 
 class Script():
@@ -382,6 +457,7 @@ class Script():
         lines = '\n'.join(lines).replace("\\\n", "").split("\n")
 
         for line in lines:
+
             try:
                 line = shlex.split(line, True)
                 yield line
@@ -395,7 +471,7 @@ class Script():
         For instance, "app setting" is contained in "yunohost app setting $app ..."
         """
         return any(command in line
-                   for line in [ ' '.join(line) for line in self.lines])
+                   for line in [' '.join(line) for line in self.lines])
 
     def analyze(self):
 
@@ -405,6 +481,7 @@ class Script():
         self.check_set_usage()
         self.check_helper_usage_dependencies()
         self.check_deprecated_practices()
+        self.check_source_common()
 
     def check_verifications_done_before_modifying_system(self):
         """
@@ -527,6 +604,12 @@ class Script():
                 "Please consider alternatives like downloading a .deb if possible."
             )
 
+    def check_source_common(self):
+
+        if self.name in ["backup", "restore"]:
+            if self.contains("source _common.sh") or self.contains("source ./_common.sh"):
+                print_error("In the context of backup and restore script, you should load _common.sh with \"source ../settings/scripts/_common.sh\"")
+
 
 def main():
     if len(sys.argv) != 2:
@@ -536,6 +619,7 @@ def main():
     app_path = sys.argv[1]
     header(app_path)
     App(app_path).analyze()
+
     sys.exit(return_code)
 
 
