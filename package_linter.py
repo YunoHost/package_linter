@@ -608,7 +608,7 @@ class Script():
 
         if self.name in ["backup", "restore"]:
             if self.contains("source _common.sh") or self.contains("source ./_common.sh"):
-                print_error("In the context of backup and restore script, you should load _common.sh with \"source ../settings/scripts/_common.sh\"")
+                print_warning("In the context of backup and restore script, you should load _common.sh with \"source ../settings/scripts/_common.sh\"")
 
 
 def main():
