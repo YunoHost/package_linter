@@ -196,7 +196,7 @@ class App():
                 for line in locationblock[1]:
                     instruction = line[0]
                     if instruction == "alias":
-                        yield location
+                        yield (location, line)
                     elif isinstance(instruction, list) and instruction and instruction[0] == "location":
                         yield from find_location_with_alias(instruction)
                     else:
@@ -205,17 +205,18 @@ class App():
             def find_path_traversal_issue(nginxconf):
 
                 for block in nginxconf:
-                    for location in find_location_with_alias(block):
-                        if not location.endswith("/"):
+                    for location, alias in find_location_with_alias(block):
+                        alias_path = alias[-1]
+                        if not location.endswith("/") and alias_path.endswith("/"):
                             yield location
 
             for location in find_path_traversal_issue(nginxconf):
                 print_warning(
                     "The nginx configuration (especially location %s) "
                     "appears vulnerable to path traversal issues as explained in\n"
-                    "https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
+                    "  https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
                     "To fix it, look at the first lines of the nginx conf of the example app : \n"
-                    "https://github.com/YunoHost/example_ynh/blob/master/conf/nginx.conf" % location
+                    "  https://github.com/YunoHost/example_ynh/blob/master/conf/nginx.conf" % location
                 )
 
     def check_helper_consistency(self):
