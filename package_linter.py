@@ -174,36 +174,38 @@ class App():
             #
             # Path traversal issues
             #
-            lines = open(self.path + "/conf/" + filename).readlines()
-            lines = [line.strip() for line in lines if not line.strip().startswith("#")]
-            # Let's find the first location line
-            location_line = None
-            path_traversal_vulnerable = False
-            lines_iter = lines.__iter__()
-            for line in lines_iter:
-                if line.startswith("location"):
-                    location_line = line.split()
-                    break
-            # Look at the next lines for an 'alias' directive
-            if location_line is not None:
-                for line in lines_iter:
-                    if line.startswith("location"):
-                        # Entering a new location block ... abort here
-                        # and assume there's no alias block later...
-                        break
-                    if line.startswith("alias"):
-                        # We should definitely check for path traversal issue
-                        # Does the location target ends with / ?
-                        target = location_line[-2] if location_line[-1] == "{" else location_line[-1]
-                        if not target.endswith("/"):
-                            path_traversal_vulnerable = True
-                        break
-            if path_traversal_vulnerable:
+            from lib.nginxparser import nginxparser
+            nginxconf = nginxparser.load(open(self.path + "/conf/" + filename))
+
+            def find_location_with_alias(locationblock):
+
+                if locationblock[0][0] != "location":
+                    return
+
+                location = locationblock[0][-1]
+                for line in locationblock[1]:
+                    instruction = line[0]
+                    if instruction == "alias":
+                        yield location
+                    elif isinstance(instruction, list) and instruction and instruction[0] == "location":
+                        yield from find_location_with_alias(instruction)
+                    else:
+                        continue
+
+            def find_path_traversal_issue(nginxconf):
+
+                for block in nginxconf:
+                    for location in find_location_with_alias(block):
+                        if not location.endswith("/"):
+                            yield location
+
+            for location in find_path_traversal_issue(nginxconf):
                 print_warning(
-                    "The nginx configuration appears vulnerable to path traversal as explained in "
+                    "The nginx configuration (especially location %s) "
+                    "appears vulnerable to path traversal issues as explained in\n"
                     "https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
-                    "To fix it, look at the first lines of the nginx conf of the example app : "
-                    "https://github.com/YunoHost/example_ynh/blob/master/conf/nginx.conf"
+                    "To fix it, look at the first lines of the nginx conf of the example app : \n"
+                    "https://github.com/YunoHost/example_ynh/blob/master/conf/nginx.conf" % location
                 )
 
     def check_helper_consistency(self):
