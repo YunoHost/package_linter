@@ -197,7 +197,18 @@ class App():
                 for block in nginxconf:
                     for location, alias in find_location_with_alias(block):
                         alias_path = alias[-1]
-                        if not location.endswith("/") and alias_path.endswith("/"):
+                        # For path traversal issues to occur, both of those are needed :
+                        # - location /foo {          (*without* a / after foo)
+                        # -    alias /var/www/foo/   (*with* a / after foo)
+                        #
+                        # Note that we also consider a positive the case where
+                        # the alias folder (e.g. /var/www/foo/) does not ends
+                        # with / if __FINALPATH__ ain't used ...  that probably
+                        # means that the app is not using the standard nginx
+                        # helper, and therefore it is likely to be replaced by
+                        # something ending with / ...
+                        if not location.endswith("/") \
+                           and (alias_path.endswith("/") or "__FINALPATH__" not in alias_path):
                             yield location
 
             for location in find_path_traversal_issue(nginxconf):
@@ -205,7 +216,7 @@ class App():
                     "The nginx configuration (especially location %s) "
                     "appears vulnerable to path traversal issues as explained in\n"
                     "  https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
-                    "To fix it, look at the first lines of the nginx conf of the example app : \n"
+                    "  To fix it, look at the first lines of the nginx conf of the example app : \n"
                     "  https://github.com/YunoHost/example_ynh/blob/master/conf/nginx.conf" % location
                 )
 
