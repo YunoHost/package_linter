@@ -211,7 +211,7 @@ class App():
                             yield location
 
             for location in find_path_traversal_issue(nginxconf):
-                print_warning(
+                print_error(
                     "The nginx configuration (especially location %s) "
                     "appears vulnerable to path traversal issues as explained in\n"
                     "  https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
