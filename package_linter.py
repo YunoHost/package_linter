@@ -386,6 +386,9 @@ class App():
             recognized_types = ("domain", "path", "boolean", "app", "password", "user", "string")
 
             for argument in manifest["arguments"]["install"]:
+                if "optional" in argument.keys():
+                    if not isinstance(argument["optional"], bool):
+                        print_warning("The key 'optional' value for setting %s should be a boolean (true or false)" % argument["name"])
                 if "type" not in argument.keys():
                     print_warning(
                         "[YEP-2.1] You should specify the type of the argument '%s'. "
