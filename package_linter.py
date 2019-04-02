@@ -575,7 +575,7 @@ class Script():
             print_error("[YEP-2.12] You should avoid using 'rm -rf', please use 'ynh_secure_remove' instead")
         if self.contains("sed -i"):
             print_warning("[YEP-2.12] You should avoid using 'sed -i', please use 'ynh_replace_string' instead")
-        if self.contains("sudo"):
+        if self.contains("sudo "):
             print_warning(
                 "[YEP-2.12] You should not need to use 'sudo', the script is being run as root. "
                 "(If you need to run a command using a specific user, use 'ynh_exec_as')"
