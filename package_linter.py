@@ -57,21 +57,18 @@ def print_header(str):
     print("\n [" + c.BOLD + c.HEADER + str.title() + c.END + "]\n")
 
 
-def print_right(str):
-    print(c.OKGREEN + "✔", str, c.END)
+def print_warning_not_reliable(str):
+    print(c.MAYBE_FAIL + "?", str, c.END)
 
 
 def print_warning(str):
     print(c.WARNING + "!", str, c.END)
 
 
-def print_error(str, reliable=True):
-    if reliable:
-        global return_code
-        return_code = 1
-        print(c.FAIL + "✘", str, c.END)
-    else:
-        print(c.MAYBE_FAIL + "?", str, c.END)
+def print_error(str):
+    global return_code
+    return_code = 1
+    print(c.FAIL + "✘", str, c.END)
 
 
 def urlopen(url):
@@ -459,13 +456,18 @@ class Script():
         # Merge lines when ending with \
         lines = '\n'.join(lines).replace("\\\n", "").split("\n")
 
+        some_parsing_failed = False
+
         for line in lines:
 
             try:
                 line = shlex.split(line, True)
                 yield line
             except Exception as e:
-                print_warning("%s : Could not parse this line (%s) : %s" % (self.path, e, line))
+                if not some_parsing_failed:
+                    print("Some lines could not be parsed in script %s. (That's probably not really critical)" % self.name)
+                    some_parsing_failed = True
+                print_warning_not_reliable("%s : %s" % (e, line))
 
     def contains(self, command):
         """
@@ -510,10 +512,10 @@ class Script():
 
         for modifying_cmd in modifying_cmds:
             if any(modifying_cmd in cmd for cmd in cmds_before_exit):
-                print_error(
+                print_warning_not_reliable(
                     "[YEP-2.4] 'ynh_die' or 'exit' command is executed with system modification before (cmd '%s').\n"
                     "This system modification is an issue if a verification exit the script.\n"
-                    "You should move this verification before any system modification." % modifying_cmd, False
+                    "You should move this verification before any system modification." % modifying_cmd
                 )
                 return
 
