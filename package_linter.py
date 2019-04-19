@@ -439,6 +439,7 @@ class Script():
 
     def __init__(self, app_path, name):
         self.name = name
+        self.app_path = app_path
         self.path = app_path + "/scripts/" + name
         self.exists = file_exists(self.path)
         if not self.exists:
@@ -602,12 +603,15 @@ class Script():
                 "You can use 'ynh_print_info' or 'ynh_script_progression' for this."
             )
 
-        if self.name == "install" and self.contains("/etc/apt/sources.list"):
-            print_warning(
-                "[YEP-3.7] Adding custom apt repositories (or messing with apt's "
-                "sources.lists) is discouraged and should be avoided. "
-                "Please consider alternatives like downloading a .deb if possible."
-            )
+        if self.name == "install":
+            if self.contains("/etc/apt/sources.list") \
+            or (os.path.exists(self.app_path + "/scripts/_common.sh") and "/etc/apt/sources.list" in open(self.app_path+"/scripts/_common.sh").read()):
+                print_warning(
+                    "[YEP-3.7] Manually messing with apt's sources.lists is strongly discouraged "
+                    "and should be avoided. Please consider alternatives like using a .deb directly "
+                    "or using experimental helpers (c.f. "
+                    "https://github.com/YunoHost-Apps/Experimental_helpers/tree/master/ynh_add_secure_repos )"
+                )
 
     def check_source_common(self):
 
