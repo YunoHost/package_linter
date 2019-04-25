@@ -349,6 +349,11 @@ class App():
                     "at least in english (1 line is enough)."
                 )
 
+            if len(descr) > 150:
+                print_warning(
+                    "[YEP-1.9] Please use a shorter description (or the rendering on the webadmin / app list will be messy ...). Just describe in consise terms what the app is / does."
+                )
+
             elif "for yunohost" in descr.lower():
                 print_warning(
                     "[YEP-1.9] The 'description' should explain what the app actually does. "
