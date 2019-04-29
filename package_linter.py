@@ -577,6 +577,8 @@ class Script():
             print_warning("'yunohost app initdb' is deprecated. Please use 'ynh_mysql_setup_db' instead.")
         if self.contains("exit"):
             print_warning("'exit' command shouldn't be used. Please use 'ynh_die' instead.")
+        if self.contains("yunohost app ssowatconf"):
+            print_warning("You probably don't need to run 'yunohost app ssowatconf' in the app script. It's supposed to be ran automatically after the script.")
 
         if self.contains("rm -rf"):
             print_error("[YEP-2.12] You should avoid using 'rm -rf', please use 'ynh_secure_remove' instead")
