@@ -332,8 +332,10 @@ class App():
         if "id" in manifest:
             repo = "https://github.com/YunoHost-Apps/%s_ynh" % (manifest["id"])
             is_not_added_to_org =  urlopen(repo)['code'] == 404
+            brique = "https://github.com/labriqueinternet/%s_ynh" % (manifest["id"])
+            is_not_added_to_brique =  urlopen(brique)['code'] == 404
 
-            if is_not_added_to_org:
+            if is_not_added_to_org and is_not_added_to_brique:
                 print_warning("[YEP-1.7] You should add your app in the YunoHost-Apps organisation.")
 
         # YEP 1.8 Publish test request
