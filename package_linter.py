@@ -612,12 +612,12 @@ class Script():
 
         if self.name == "install":
             if self.contains("/etc/apt/sources.list") \
-            or (os.path.exists(self.app_path + "/scripts/_common.sh") and "/etc/apt/sources.list" in open(self.app_path+"/scripts/_common.sh").read()):
+            or (os.path.exists(self.app_path + "/scripts/_common.sh") and "/etc/apt/sources.list" in open(self.app_path+"/scripts/_common.sh").read() and "ynh_add_repo" not in open(self.app_path+"/scripts/_common.sh").read()):
                 print_error(
                     "[YEP-3.7] Manually messing with apt's sources.lists is strongly discouraged "
                     "and should be avoided. Please consider alternatives like using a .deb directly "
                     "or using experimental helpers (c.f. "
-                    "https://github.com/YunoHost-Apps/Experimental_helpers/tree/master/ynh_add_secure_repos )"
+                    "https://github.com/YunoHost-Apps/Experimental_helpers/tree/master/ynh_add_extra_apt_repos )"
                 )
 
     def check_source_common(self):
