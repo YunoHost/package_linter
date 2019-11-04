@@ -285,12 +285,10 @@ class App():
 
         # YEP 1.2 Put the app in a weel known repo
         if "id" in manifest:
-            official_list_url = "https://raw.githubusercontent.com/YunoHost/apps/master/official.json"
-            official_list = json.loads(urlopen(official_list_url)['content'])
-            community_list_url = "https://raw.githubusercontent.com/YunoHost/apps/master/community.json"
-            community_list = json.loads(urlopen(community_list_url)['content'])
-            if manifest["id"] not in official_list and manifest["id"] not in community_list:
-                print_warning("[YEP-1.2] This app is not registered in official or community applications")
+            app_list_url = "https://raw.githubusercontent.com/YunoHost/apps/master/apps.json"
+            app_list = json.loads(urlopen(app_list_url)['content'])
+            if manifest["id"] not in app_list:
+                print_warning("[YEP-1.2] This app is not registered in official applications")
 
         # YEP 1.3 License
         def license_mentionned_in_readme(path):
