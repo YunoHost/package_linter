@@ -288,7 +288,7 @@ class App():
             app_list_url = "https://raw.githubusercontent.com/YunoHost/apps/master/apps.json"
             app_list = json.loads(urlopen(app_list_url)['content'])
             if manifest["id"] not in app_list:
-                print_warning("[YEP-1.2] This app is not registered in official applications")
+                print_warning("[YEP-1.2] This app is not registered in our applications list")
 
         # YEP 1.3 License
         def license_mentionned_in_readme(path):
