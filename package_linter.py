@@ -7,6 +7,7 @@ import re
 import json
 import shlex
 import urllib.request
+import requests
 import codecs
 
 reader = codecs.getreader("utf-8")
@@ -67,7 +68,14 @@ def print_warning(str):
 
 def print_error(str):
     global return_code
-    return_code = 1
+    if return_code == 0:
+        return_code = 1
+    print(c.FAIL + "✘", str, c.END)
+
+
+def print_error_broken(str):
+    global return_code
+    return_code = 2
     print(c.FAIL + "✘", str, c.END)
 
 
@@ -105,6 +113,7 @@ class App():
         self.check_helper_consistency()
         self.check_source_management()
         self.check_manifest()
+        self.check_issues()
 
         # Copypasta of lines from __init__ instead of using
         # self.script.values() because dict are unordered until python 3.7
@@ -437,6 +446,46 @@ class App():
                     "about that ;) ? be careful that many new helpers you might "
                     "already be playing with are only available on 3.x..."
                 )
+
+    def check_issues(self):
+
+        manifest = os.path.join(self.path, 'manifest.json')
+        with open(manifest, encoding='utf-8') as data_file:
+            manifest = json.loads(data_file.read(), object_pairs_hook=check_for_duplicate_keys)
+
+        app_id = manifest["id"]
+        catalog = requests.get("https://raw.githubusercontent.com/YunoHost/apps/master/apps.json").json()
+        if app_id not in catalog:
+            print_error("Your app does not appears to be listed in YunoHost's app catalog.")
+            return
+        elif catalog[app_id]["state"] != "working":
+            print_warning("Your app is not flagged as 'working' in Yunohost's app catalog.")
+
+        repo_url = catalog[app_id]["url"]
+        if "github.com" not in repo_url:
+            print_warning("Can't check if there are any blocking issues pending, can only do this for apps hosted on github for now.")
+            return
+
+        uri = 'repos/{}/issues'.format(repo_url.replace("https://github.com/", ""))
+
+        r = requests.get('https://api.github.com/{}'.format(uri)).json()
+        if "message" in r and r["message"] == "Not Found":
+            print('https://api.github.com/{}'.format(uri))
+            print(r["message"])
+            return
+
+        issues = [ i["title"] for i in r if not "pull_request" in i ]
+
+        blocking_issues = [ i for i in issues if i.upper().startswith("[LOW QUALITY]") or i.upper().startswith("[BROKEN]") or i.startswith("E") ]
+        if blocking_issues:
+            print_error("There are important pending issues on the git repo to be solved :\n  - "+"\n  - ".join(blocking_issues))
+        else:
+            return
+
+        if [ i for i in issues if i.startswith("[BROKEN]") ]:
+            print_error_broken("The app will be considered BROKEN (level 0) as long as it's not solved.")
+        else:
+            print_error("The app will be considered low quality as long as it's not solved.")
 
 
 
