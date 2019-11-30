@@ -476,7 +476,7 @@ class App():
 
         issues = [ i["title"] for i in r if not "pull_request" in i ]
 
-        blocking_issues = [ i for i in issues if i.upper().startswith("[LOW QUALITY]") or i.upper().startswith("[BROKEN]") or i.startswith("E") ]
+        blocking_issues = [ i for i in issues if i.upper().startswith("[LOW QUALITY]") or i.upper().startswith("[BROKEN]") ]
         if blocking_issues:
             print_error("There are important pending issues on the git repo to be solved :\n  - "+"\n  - ".join(blocking_issues))
         else:
