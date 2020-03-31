@@ -184,6 +184,9 @@ def header(app):
  Official helpers            - https://yunohost.org/#/packaging_apps_helpers_en
  Experimental helpers        - https://github.com/YunoHost-Apps/Experimental_helpers
 
+ If you believe this linter returns false negative (warnings / errors which shouldn't happen),
+ please report them on https://github.com/YunoHost/package_linter/issues
+
     Analyzing package {header}{app}{end}"""
     .format(header=c.HEADER, bold=c.BOLD, end=c.END, app=app))
 
