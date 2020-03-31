@@ -594,13 +594,13 @@ class Script():
     def check_deprecated_practices(self):
 
         if self.contains("yunohost app setting"):
-            print_warning("'yunohost app setting' shouldn't be used directly. Please use 'ynh_app_setting_(set,get,delete)' instead.")
+            print_error("Do not use 'yunohost app setting' directly. Please use 'ynh_app_setting_(set,get,delete)' instead.")
         if self.contains("yunohost app checkurl"):
-            print_warning("'yunohost app checkurl' is deprecated. Please use 'ynh_webpath_register' instead.")
+            print_error("'yunohost app checkurl' is obsolete!!! Please use 'ynh_webpath_register' instead.")
         if self.contains("yunohost app checkport"):
-            print_warning("'yunohost app checkport' is deprecated. Please use 'ynh_find_port' instead.")
+            print_error("'yunohost app checkport' is obsolete!!! Please use 'ynh_find_port' instead.")
         if self.contains("yunohost app initdb"):
-            print_warning("'yunohost app initdb' is deprecated. Please use 'ynh_mysql_setup_db' instead.")
+            print_error("'yunohost app initdb' is obsolete!!! Please use 'ynh_mysql_setup_db' instead.")
         if self.contains("exit"):
             print_warning("'exit' command shouldn't be used. Please use 'ynh_die' instead.")
 
