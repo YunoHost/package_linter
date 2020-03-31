@@ -143,7 +143,7 @@ class App():
             elif filename in non_mandatory:
                 print_warning("Consider adding a file %s" % filename)
             else:
-                print_error("File %s is mandatory" % filename)
+                print_error("Providing a %s is mandatory" % filename)
 
         #
         # Deprecated php-fpm.ini thing
