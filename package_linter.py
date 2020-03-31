@@ -12,6 +12,141 @@ import subprocess
 
 reader = codecs.getreader("utf-8")
 
+# ############################################################################
+#  Helper list
+# ############################################################################
+
+# Generated March 31st using:
+# cat /path/to/yunohost/data/helpers.d/* | grep  "^ynh_" | tr -d '(){ ' > helperlist
+# for HELPER in $(cat helperlist); do REQUIRE=$(grep -whB1 "^$HELPER" /path/to/yunohost/data/helpers.d/* | grep Requires | grep -o -E "[0-9].[0-9].[0-9]"); echo "'$HELPER': '$REQUIRE'",; done
+
+official_helpers = {
+    'ynh_wait_dpkg_free': '3.3.1',
+    'ynh_package_is_installed': '2.2.4',
+    'ynh_package_version': '2.2.4',
+    'ynh_apt': '2.4.0',
+    'ynh_package_update': '2.2.4',
+    'ynh_package_install': '2.2.4',
+    'ynh_package_remove': '2.2.4',
+    'ynh_package_autoremove': '2.2.4',
+    'ynh_package_autopurge': '2.7.2',
+    'ynh_package_install_from_equivs': '2.2.4',
+    'ynh_install_app_dependencies': '2.6.4',
+    'ynh_remove_app_dependencies': '2.6.4',
+    'ynh_backup': '2.4.0',
+    'ynh_restore': '2.6.4',
+    'ynh_restore_file': '2.6.4',
+    'ynh_bind_or_cp': '',
+    'ynh_store_file_checksum': '2.6.4',
+    'ynh_backup_if_checksum_is_different': '2.6.4',
+    'ynh_delete_file_checksum': '3.3.1',
+    'ynh_backup_before_upgrade': '2.7.2',
+    'ynh_restore_upgradebackup': '2.7.2',
+    'ynh_add_fail2ban_config': '3.5.0',
+    'ynh_remove_fail2ban_config': '3.5.0',
+    'ynh_handle_getopts_args': '3.2.2',
+    'ynh_die': '2.4.0',
+    'ynh_print_info': '3.2.0',
+    'ynh_no_log': '2.6.4',
+    'ynh_print_log': '3.2.0',
+    'ynh_print_warn': '3.2.0',
+    'ynh_print_err': '3.2.0',
+    'ynh_exec_err': '3.2.0',
+    'ynh_exec_warn': '3.2.0',
+    'ynh_exec_warn_less': '3.2.0',
+    'ynh_exec_quiet': '3.2.0',
+    'ynh_exec_fully_quiet': '3.2.0',
+    'ynh_print_OFF': '3.2.0',
+    'ynh_print_ON': '3.2.0',
+    'ynh_script_progression': '3.5.0',
+    'ynh_return': '3.6.0',
+    'ynh_debug': '3.5.0',
+    'ynh_debug_exec': '3.5.0',
+    'ynh_use_logrotate': '2.6.4',
+    'ynh_remove_logrotate': '2.6.4',
+    'ynh_mysql_connect_as': '2.2.4',
+    'ynh_mysql_execute_as_root': '2.2.4',
+    'ynh_mysql_execute_file_as_root': '2.2.4',
+    'ynh_mysql_create_db': '2.2.4',
+    'ynh_mysql_drop_db': '2.2.4',
+    'ynh_mysql_dump_db': '2.2.4',
+    'ynh_mysql_create_user': '2.2.4',
+    'ynh_mysql_user_exists': '2.2.4',
+    'ynh_mysql_drop_user': '2.2.4',
+    'ynh_mysql_setup_db': '2.6.4',
+    'ynh_mysql_remove_db': '2.6.4',
+    'ynh_find_port': '2.6.4',
+    'ynh_port_available': '',
+    'ynh_validate_ip': '2.2.4',
+    'ynh_validate_ip4': '2.2.4',
+    'ynh_validate_ip6': '2.2.4',
+    'ynh_add_nginx_config': '2.7.2',
+    'ynh_remove_nginx_config': '2.7.2',
+    'ynh_install_n': '2.7.1',
+    'ynh_use_nodejs': '2.7.1',
+    'ynh_install_nodejs': '2.7.1',
+    'ynh_remove_nodejs': '2.7.1',
+    'ynh_cron_upgrade_node': '2.7.1',
+    'ynh_add_fpm_config': '2.7.2',
+    'ynh_remove_fpm_config': '2.7.2',
+    'ynh_psql_connect_as': '3.5.0',
+    'ynh_psql_execute_as_root': '3.5.0',
+    'ynh_psql_execute_file_as_root': '3.5.0',
+    'ynh_psql_create_db': '3.5.0',
+    'ynh_psql_drop_db': '3.5.0',
+    'ynh_psql_dump_db': '3.5.0',
+    'ynh_psql_create_user': '3.5.0',
+    'ynh_psql_user_exists': '',
+    'ynh_psql_database_exists': '',
+    'ynh_psql_drop_user': '3.5.0',
+    'ynh_psql_setup_db': '',
+    'ynh_psql_remove_db': '',
+    'ynh_psql_test_if_first_run': '',
+    'ynh_app_setting_get': '2.2.4',
+    'ynh_app_setting_set': '2.2.4',
+    'ynh_app_setting_delete': '2.2.4',
+    'ynh_add_skipped_uris': '3.6.0',
+    'ynh_add_unprotected_uris': '3.6.0',
+    'ynh_add_protected_uris': '3.6.0',
+    'ynh_app_setting': '',
+    'ynh_webpath_available': '2.6.4',
+    'ynh_webpath_register': '2.6.4',
+    'ynh_permission_create': '3.7.0',
+    'ynh_permission_delete': '3.7.0',
+    'ynh_permission_exists': '3.7.0',
+    'ynh_permission_url': '3.7.0',
+    'ynh_permission_update': '3.7.0',
+    'ynh_string_random': '2.2.4',
+    'ynh_replace_string': '2.6.4',
+    'ynh_replace_special_string': '2.7.7',
+    'ynh_sanitize_dbid': '2.2.4',
+    'ynh_normalize_url_path': '2.6.4',
+    'ynh_add_systemd_config': '2.7.2',
+    'ynh_remove_systemd_config': '2.7.2',
+    'ynh_systemd_action': '',
+    'ynh_clean_check_starting': '',
+    'ynh_user_exists': '2.2.4',
+    'ynh_user_get_info': '2.2.4',
+    'ynh_user_list': '2.4.0',
+    'ynh_system_user_exists': '2.2.4',
+    'ynh_system_group_exists': '',
+    'ynh_system_user_create': '2.6.4',
+    'ynh_system_user_delete': '2.6.4',
+    'ynh_exit_properly': '',
+    'ynh_abort_if_errors': '2.6.4',
+    'ynh_setup_source': '2.6.4',
+    'ynh_local_curl': '2.6.4',
+    'ynh_render_template': '',
+    'ynh_get_debian_release': '2.7.1',
+    'ynh_mkdir_tmp': '',
+    'ynh_secure_remove': '2.6.4',
+    'ynh_get_plain_key': '2.2.4',
+    'ynh_read_manifest': '3.5.0',
+    'ynh_app_upstream_version': '3.5.0',
+    'ynh_app_package_version': '3.5.0',
+    'ynh_check_app_version_changed': '3.5.0',
+}
+
 
 # ############################################################################
 #   Utilities
@@ -119,13 +254,56 @@ class App():
 
     def analyze(self):
 
-        self.misc_file_checks()
-        self.check_helper_consistency()
-        self.check_source_management()
         self.check_manifest()
+        self.misc_file_checks()
+        self.check_helpers_usage()
+        self.check_source_management()
 
         for script in [self.scripts[s] for s in scriptnames if self.scripts[s].exists]:
             script.analyze()
+
+    def check_helpers_usage(self):
+
+        print_header("HELPERS USAGE")
+
+        # Check for custom helpers definition that are now official...
+        cmd = "grep -IhEro 'ynh_\w+ *\( *\)' '%s/scripts' | tr -d '() '" % self.path
+        custom_helpers = subprocess.check_output(cmd, shell=True).decode('utf-8').strip().split("\n")
+        custom_helpers = [c.split("__")[0] for c in custom_helpers]
+
+        for custom_helper in custom_helpers:
+            if custom_helper in official_helpers.keys():
+                print_warning("%s is now an official helper since version '%s'" % (custom_helper, official_helpers[custom_helper] or '?'))
+
+        # Check for helpers usage that do not match version required in manifest...
+        if self.yunohost_version_req:
+            cmd = "grep -IhEro 'ynh_\w+' %s/scripts" % self.path
+            helpers_used = subprocess.check_output(cmd, shell=True).decode('utf-8').strip().split("\n")
+            helpers_used = sorted(set(helpers_used))
+
+            manifest_req = [int(i) for i in self.yunohost_version_req.strip(">= ").split('.')] + [0,0,0]
+            def validate_version_requirement(helper_req):
+                if helper_req == '':
+                    return True
+                helper_req = [int(i) for i in helper_req.split('.')]
+                for i in range(0,len(helper_req)):
+                    if helper_req[i] == manifest_req[i]:
+                        continue
+                    return helper_req[i] <= manifest_req[i]
+                return True
+
+            for helper in [h for h in helpers_used if h in official_helpers.keys()]:
+                if helper in custom_helpers:
+                    continue
+                helper_req = official_helpers[helper]
+                if not validate_version_requirement(helper_req):
+                    major_diff = manifest_req[0] > int(helper_req[0])
+                    message = "Using official helper %s implies requiring at least version %s, but manifest only requires %s" % (helper, helper_req, self.yunohost_version_req)
+                    if major_diff:
+                        print_error(message)
+                    else:
+                        print_warning(message)
+
 
     def misc_file_checks(self):
 
@@ -478,17 +656,7 @@ class App():
                 "but rather the website or repo of the upstream app itself..."
             )
 
-        yunohost_version_req = manifest.get("requirements", {}).get("yunohost", None)
-        if yunohost_version_req:
-            major_version = yunohost_version_req.split()[-1]
-            if major_version.startswith("2"):
-                print_warning(
-                    "YunoHost version requirement is still 2.x ... Good job if "
-                    "it does still work on Jessie !... But are you really sure "
-                    "about that ;) ? be careful that many new helpers you might "
-                    "already be playing with are only available on 3.x..."
-                )
-
+        self.yunohost_version_req = manifest.get("requirements", {}).get("yunohost", None)
 
 
 class Script():
