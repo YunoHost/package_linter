@@ -421,7 +421,7 @@ class App():
                             )
 
                 if argument["name"] == "is_public" and "help" not in argument.keys():
-                    print_warning(
+                    print_warning_not_reliable(
                         "Consider adding an 'help' key for argument 'is_public' "
                         "to explain to the user what it means for *this* app "
                         "to be public or private :\n"
