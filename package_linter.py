@@ -240,7 +240,11 @@ class App():
 
             if do_path_traversal_check:
                 from lib.nginxparser import nginxparser
-                nginxconf = nginxparser.load(open(self.path + "/conf/" + filename))
+                try:
+                    nginxconf = nginxparser.load(open(self.path + "/conf/" + filename))
+                except Exception as e:
+                    print_warning_not_reliable("Could not parse nginx conf ... : " + str(e))
+                    nginxconf = []
 
                 for location in find_path_traversal_issue(nginxconf):
                     print_error(
