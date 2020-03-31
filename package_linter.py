@@ -509,42 +509,10 @@ class Script():
 
         print_header(self.name.upper() + " SCRIPT")
 
-        self.check_verifications_done_before_modifying_system()
         self.check_set_usage()
         self.check_helper_usage_dependencies()
         self.check_deprecated_practices()
         self.check_source_common()
-
-    def check_verifications_done_before_modifying_system(self):
-        """
-        Check if verifications are done before modifying the system
-        """
-
-        if not self.contains("ynh_die") and not self.contains("exit"):
-            return
-
-        # FIXME : this really looks like a very small subset of command that
-        # can be used ... also packagers are not supposed to use apt or service
-        # anymore ...
-        modifying_cmds = ("cp", "mkdir", "rm", "chown", "chmod", "apt-get", "apt",
-                          "service", "find", "sed", "mysql", "swapon", "mount",
-                          "dd", "mkswap", "useradd")
-        cmds_before_exit = []
-        for cmd in self.lines:
-            cmd = " ".join(cmd)
-
-            if "ynh_die" in cmd or "exit" in cmd:
-                break
-            cmds_before_exit.append(cmd)
-
-        for modifying_cmd in modifying_cmds:
-            if any(modifying_cmd + " " in cmd for cmd in cmds_before_exit):
-                print_warning_not_reliable(
-                    "[YEP-2.4] 'ynh_die' or 'exit' command is executed with system modification before (cmd '%s').\n"
-                    "This system modification is an issue if a verification exit the script.\n"
-                    "You should move this verification before any system modification." % modifying_cmd
-                )
-                return
 
     def check_set_usage(self):
 
