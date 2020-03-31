@@ -344,7 +344,7 @@ class App():
         # - Spot path traversal issue vulnerability
         #
 
-        for filename in os.listdir(self.path + "/conf"):
+        for filename in os.listdir(self.path + "/conf") if os.path.exists(self.path + "/conf") else []:
             # Ignore subdirs or filename not containing nginx in the name
             if not os.path.isfile(self.path + "/conf/" + filename) or "nginx" not in filename:
                 continue
