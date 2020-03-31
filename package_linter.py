@@ -535,7 +535,7 @@ class Script():
             cmds_before_exit.append(cmd)
 
         for modifying_cmd in modifying_cmds:
-            if any(modifying_cmd in cmd for cmd in cmds_before_exit):
+            if any(modifying_cmd + " " in cmd for cmd in cmds_before_exit):
                 print_warning_not_reliable(
                     "[YEP-2.4] 'ynh_die' or 'exit' command is executed with system modification before (cmd '%s').\n"
                     "This system modification is an issue if a verification exit the script.\n"
