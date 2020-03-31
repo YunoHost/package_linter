@@ -576,6 +576,9 @@ class Script():
         if self.contains("exit"):
             print_warning("'exit' command shouldn't be used. Please use 'ynh_die' instead.")
 
+        if self.contains("yunohost service regen-conf"):
+            print_warning("'yunohost tools regen-conf' has been replaced by 'yunohost tools regen-conf'.")
+
         # Dirty hack to check only the 10 last lines for ssowatconf
         # (the "bad" practice being using this at the very end of the script, but some apps legitimately need this in the middle of the script)
         oldlines = list(self.lines)
