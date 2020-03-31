@@ -106,15 +106,15 @@ def spdx_licenses():
 #   Actual high-level checks
 # ############################################################################
 
+scriptnames = ["_common.sh", "install", "remove", "upgrade", "backup", "restore"]
+
 class App():
 
     def __init__(self, path):
 
         print_header("LOADING APP")
         self.path = path
-
-        scripts = ["install", "remove", "upgrade", "backup", "restore"]
-        self.scripts = {f: Script(self.path, f) for f in scripts}
+        self.scripts = {f: Script(self.path, f) for f in scriptnames}
 
     def analyze(self):
 
@@ -123,12 +123,8 @@ class App():
         self.check_source_management()
         self.check_manifest()
 
-        # Copypasta of lines from __init__ instead of using
-        # self.script.values() because dict are unordered until python 3.7
-        scripts = ["install", "remove", "upgrade", "backup", "restore"]
-        for script in [self.scripts[s] for s in scripts]:
-            if script.exists:
-                script.analyze()
+        for script in [self.scripts[s] for s in scriptnames if self.scripts[s].exists]:
+            script.analyze()
 
     def misc_file_checks(self):
 
@@ -551,6 +547,10 @@ class Script():
                 return
 
     def check_set_usage(self):
+
+        if self.name == "_common.sh":
+            return
+
         present = False
 
         if self.name in ["backup", "remove"]:
@@ -578,6 +578,10 @@ class Script():
         Detect usage of ynh_package_* & apt-get *
         and suggest herlpers ynh_install_app_dependencies and ynh_remove_app_dependencies
         """
+
+        # Skip this in common.sh, sometimes custom not-yet-official helpers need this
+        if self.name == "_common.sh":
+            return
 
         if self.contains("ynh_package_install") or self.contains("apt-get install"):
             print_warning(
