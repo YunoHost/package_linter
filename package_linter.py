@@ -84,6 +84,16 @@ def urlopen(url):
 def file_exists(file_path):
     return os.path.isfile(file_path) and os.stat(file_path).st_size > 0
 
+def spdx_licenses():
+    cachefile = ".spdx_licenses"
+    if os.path.exists(cachefile):
+        return open(cachefile).read()
+
+    link = "https://spdx.org/licenses/"
+    content = urlopen(link)['content']
+    open(cachefile, "w").write(content)
+    return content
+
 
 # ############################################################################
 #   Actual high-level checks
@@ -300,7 +310,6 @@ class App():
         if "license" in manifest:
             for license in manifest['license'].replace('&', ',').split(','):
                 code_license = '<code property="spdx:licenseId">' + license + '</code>'
-                link = "https://spdx.org/licenses/"
                 if license == "nonfree":
                     print_warning("[YEP-1.3] The correct value for non free license in license field is 'non-free' and not 'nonfree'")
                     license = "non-free"
@@ -315,7 +324,7 @@ class App():
                             "[YEP-1.3] 'non-free' apps can't be officialized. "
                             " Their integration is still being discussed, especially for apps with non-free dependencies"
                         )
-                elif code_license not in urlopen(link)['content']:
+                elif code_license not in spdx_licenses():
                     print_warning(
                         "[YEP-1.3] The license '%s' is not registered in https://spdx.org/licenses/ . "
                         "It can be a typo error. If not, you should replace it by 'free' "
