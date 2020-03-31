@@ -8,6 +8,7 @@ import json
 import shlex
 import urllib.request
 import codecs
+import subprocess
 
 reader = codecs.getreader("utf-8")
 
@@ -184,9 +185,6 @@ class App():
             #
             # Path traversal issues
             #
-            from lib.nginxparser import nginxparser
-            nginxconf = nginxparser.load(open(self.path + "/conf/" + filename))
-
             def find_location_with_alias(locationblock):
 
                 if locationblock[0][0] != "location":
@@ -221,14 +219,37 @@ class App():
                            and (alias_path.endswith("/") or "__FINALPATH__" not in alias_path):
                             yield location
 
-            for location in find_path_traversal_issue(nginxconf):
-                print_error(
-                    "The nginx configuration (especially location %s) "
-                    "appears vulnerable to path traversal issues as explained in\n"
-                    "  https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
-                    "  To fix it, look at the first lines of the nginx conf of the example app : \n"
-                    "  https://github.com/YunoHost/example_ynh/blob/master/conf/nginx.conf" % location
-                )
+            do_path_traversal_check = False
+            try:
+                import pyparsing, six
+                do_path_traversal_check = True
+            except:
+                # If inside a venv, try to magically install pyparsing
+                if 'VIRTUAL_ENV' in os.environ:
+                    try:
+                        print("(Trying to auto install pyparsing...)")
+                        subprocess.check_output("pip3 install pyparsing six", shell=True)
+                        import pyparsing
+                        print("Ok!")
+                        do_path_traversal_check = True
+                    except Exception as e:
+                        print("Failed :[ : %s" % str(e))
+
+            if not do_path_traversal_check:
+                print("N.B.: The package linter need you to run 'pip3 install pyparsing six' if you want it to be able to check for path traversal issue in nginx confs")
+
+            if do_path_traversal_check:
+                from lib.nginxparser import nginxparser
+                nginxconf = nginxparser.load(open(self.path + "/conf/" + filename))
+
+                for location in find_path_traversal_issue(nginxconf):
+                    print_error(
+                        "The nginx configuration (especially location %s) "
+                        "appears vulnerable to path traversal issues as explained in\n"
+                        "  https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
+                        "  To fix it, look at the first lines of the nginx conf of the example app : \n"
+                        "  https://github.com/YunoHost/example_ynh/blob/master/conf/nginx.conf" % location
+                    )
 
     def check_helper_consistency(self):
         """
