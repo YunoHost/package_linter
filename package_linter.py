@@ -493,6 +493,15 @@ class Script():
         return any(command in line
                    for line in [' '.join(line) for line in self.lines])
 
+    def containsregex(self, regex):
+        """
+        Iterate on lines to check if command is contained in line
+
+        For instance, "app setting" is contained in "yunohost app setting $app ..."
+        """
+        return any(re.match(regex, line)
+                   for line in [' '.join(line) for line in self.lines])
+
     def analyze(self):
 
         print_header(self.name.upper() + " SCRIPT")
@@ -594,7 +603,7 @@ class Script():
             print_error("[YEP-2.12] You should avoid using 'rm -rf', please use 'ynh_secure_remove' instead")
         if self.contains("sed -i"):
             print_warning("[YEP-2.12] You should avoid using 'sed -i', please use 'ynh_replace_string' instead")
-        if self.contains("sudo "):
+        if self.containsregex(r"sudo \w"):  # \w is here to not match sudo -u, legit use because ynh_exec_as not official yet...
             print_warning(
                 "[YEP-2.12] You should not need to use 'sudo', the script is being run as root. "
                 "(If you need to run a command using a specific user, use 'ynh_exec_as')"
