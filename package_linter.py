@@ -10,7 +10,6 @@ import urllib.request
 import codecs
 
 reader = codecs.getreader("utf-8")
-return_code = 0
 
 
 # ############################################################################
@@ -61,14 +60,22 @@ def print_warning_not_reliable(str):
     print(c.MAYBE_FAIL + "?", str, c.END)
 
 
+warning_count = 0
 def print_warning(str):
+    global warning_count
+    warning_count += 1
     print(c.WARNING + "!", str, c.END)
 
 
+error_count = 0
 def print_error(str):
-    global return_code
-    return_code = 1
+    global error_count
+    error_count += 1
     print(c.FAIL + "✘", str, c.END)
+
+
+def print_happy(str):
+    print(c.OKGREEN + "☺ ", str, "♥")
 
 
 def urlopen(url):
@@ -660,7 +667,15 @@ def main():
     header(app_path)
     App(app_path).analyze()
 
-    sys.exit(return_code)
+    if error_count > 0:
+        sys.exit(1)
+    elif warning_count > 3:
+        print("Still some warnings to be fixed :s")
+    elif warning_count > 0:
+        print("Only %s warning remaining! You can do it!" % warning_count)
+    else:
+        print_happy("Not even a warning! Congratz and thank you for keeping that package up to date with good practices !")
+
 
 
 if __name__ == '__main__':
