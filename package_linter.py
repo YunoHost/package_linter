@@ -712,7 +712,7 @@ class Script():
 
         For instance, "app setting" is contained in "yunohost app setting $app ..."
         """
-        return any(re.match(regex, line)
+        return any(re.search(regex, line)
                    for line in [' '.join(line) for line in self.lines])
 
     def analyze(self):
@@ -799,8 +799,9 @@ class Script():
 
         if self.contains("rm -rf"):
             print_error("[YEP-2.12] You should avoid using 'rm -rf', please use 'ynh_secure_remove' instead")
-        if self.contains("sed -i"):
-            print_warning("[YEP-2.12] You should avoid using 'sed -i', please use 'ynh_replace_string' instead")
+
+        if self.containsregex(r"sed\s+(-i|--in-place)\s+(-r\s+)?s") or self.containsregex(r"sed\s+s\S*\s+(-i|--in-place)"):
+            print_warning("[YEP-2.12] You should avoid using 'sed -i' for substitutions, please use 'ynh_replace_string' instead")
         if self.containsregex(r"sudo \w"):  # \w is here to not match sudo -u, legit use because ynh_exec_as not official yet...
             print_warning(
                 "[YEP-2.12] You should not need to use 'sudo', the script is being run as root. "
