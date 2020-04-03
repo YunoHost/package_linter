@@ -280,7 +280,7 @@ class App():
 
         # Check for helpers usage that do not match version required in manifest...
         if self.yunohost_version_req:
-            cmd = "grep -IhEro 'ynh_\w+' %s/scripts" % self.path
+            cmd = "grep -IhEro 'ynh_\w+' '%s/scripts'" % self.path
             helpers_used = subprocess.check_output(cmd, shell=True).decode('utf-8').strip().split("\n")
             helpers_used = sorted(set(helpers_used))
 
