@@ -428,7 +428,7 @@ class App():
                     nginxconf = []
 
                 for location in find_path_traversal_issue(nginxconf):
-                    print_error(
+                    print_warning(
                         "The nginx configuration (especially location %s) "
                         "appears vulnerable to path traversal issues as explained in\n"
                         "  https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
