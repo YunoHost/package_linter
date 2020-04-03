@@ -8,9 +8,144 @@ import json
 import shlex
 import urllib.request
 import codecs
+import subprocess
 
 reader = codecs.getreader("utf-8")
-return_code = 0
+
+# ############################################################################
+#  Helper list
+# ############################################################################
+
+# Generated March 31st using:
+# cat /path/to/yunohost/data/helpers.d/* | grep  "^ynh_" | tr -d '(){ ' > helperlist
+# for HELPER in $(cat helperlist); do REQUIRE=$(grep -whB1 "^$HELPER" /path/to/yunohost/data/helpers.d/* | grep Requires | grep -o -E "[0-9].[0-9].[0-9]"); echo "'$HELPER': '$REQUIRE'",; done
+
+official_helpers = {
+    'ynh_wait_dpkg_free': '3.3.1',
+    'ynh_package_is_installed': '2.2.4',
+    'ynh_package_version': '2.2.4',
+    'ynh_apt': '2.4.0',
+    'ynh_package_update': '2.2.4',
+    'ynh_package_install': '2.2.4',
+    'ynh_package_remove': '2.2.4',
+    'ynh_package_autoremove': '2.2.4',
+    'ynh_package_autopurge': '2.7.2',
+    'ynh_package_install_from_equivs': '2.2.4',
+    'ynh_install_app_dependencies': '2.6.4',
+    'ynh_remove_app_dependencies': '2.6.4',
+    'ynh_backup': '2.4.0',
+    'ynh_restore': '2.6.4',
+    'ynh_restore_file': '2.6.4',
+    'ynh_bind_or_cp': '',
+    'ynh_store_file_checksum': '2.6.4',
+    'ynh_backup_if_checksum_is_different': '2.6.4',
+    'ynh_delete_file_checksum': '3.3.1',
+    'ynh_backup_before_upgrade': '2.7.2',
+    'ynh_restore_upgradebackup': '2.7.2',
+    'ynh_add_fail2ban_config': '3.5.0',
+    'ynh_remove_fail2ban_config': '3.5.0',
+    'ynh_handle_getopts_args': '3.2.2',
+    'ynh_die': '2.4.0',
+    'ynh_print_info': '3.2.0',
+    'ynh_no_log': '2.6.4',
+    'ynh_print_log': '3.2.0',
+    'ynh_print_warn': '3.2.0',
+    'ynh_print_err': '3.2.0',
+    'ynh_exec_err': '3.2.0',
+    'ynh_exec_warn': '3.2.0',
+    'ynh_exec_warn_less': '3.2.0',
+    'ynh_exec_quiet': '3.2.0',
+    'ynh_exec_fully_quiet': '3.2.0',
+    'ynh_print_OFF': '3.2.0',
+    'ynh_print_ON': '3.2.0',
+    'ynh_script_progression': '3.5.0',
+    'ynh_return': '3.6.0',
+    'ynh_debug': '3.5.0',
+    'ynh_debug_exec': '3.5.0',
+    'ynh_use_logrotate': '2.6.4',
+    'ynh_remove_logrotate': '2.6.4',
+    'ynh_mysql_connect_as': '2.2.4',
+    'ynh_mysql_execute_as_root': '2.2.4',
+    'ynh_mysql_execute_file_as_root': '2.2.4',
+    'ynh_mysql_create_db': '2.2.4',
+    'ynh_mysql_drop_db': '2.2.4',
+    'ynh_mysql_dump_db': '2.2.4',
+    'ynh_mysql_create_user': '2.2.4',
+    'ynh_mysql_user_exists': '2.2.4',
+    'ynh_mysql_drop_user': '2.2.4',
+    'ynh_mysql_setup_db': '2.6.4',
+    'ynh_mysql_remove_db': '2.6.4',
+    'ynh_find_port': '2.6.4',
+    'ynh_port_available': '',
+    'ynh_validate_ip': '2.2.4',
+    'ynh_validate_ip4': '2.2.4',
+    'ynh_validate_ip6': '2.2.4',
+    'ynh_add_nginx_config': '2.7.2',
+    'ynh_remove_nginx_config': '2.7.2',
+    'ynh_install_n': '2.7.1',
+    'ynh_use_nodejs': '2.7.1',
+    'ynh_install_nodejs': '2.7.1',
+    'ynh_remove_nodejs': '2.7.1',
+    'ynh_cron_upgrade_node': '2.7.1',
+    'ynh_add_fpm_config': '2.7.2',
+    'ynh_remove_fpm_config': '2.7.2',
+    'ynh_psql_connect_as': '3.5.0',
+    'ynh_psql_execute_as_root': '3.5.0',
+    'ynh_psql_execute_file_as_root': '3.5.0',
+    'ynh_psql_create_db': '3.5.0',
+    'ynh_psql_drop_db': '3.5.0',
+    'ynh_psql_dump_db': '3.5.0',
+    'ynh_psql_create_user': '3.5.0',
+    'ynh_psql_user_exists': '',
+    'ynh_psql_database_exists': '',
+    'ynh_psql_drop_user': '3.5.0',
+    'ynh_psql_setup_db': '',
+    'ynh_psql_remove_db': '',
+    'ynh_psql_test_if_first_run': '',
+    'ynh_app_setting_get': '2.2.4',
+    'ynh_app_setting_set': '2.2.4',
+    'ynh_app_setting_delete': '2.2.4',
+    'ynh_add_skipped_uris': '3.6.0',
+    'ynh_add_unprotected_uris': '3.6.0',
+    'ynh_add_protected_uris': '3.6.0',
+    'ynh_app_setting': '',
+    'ynh_webpath_available': '2.6.4',
+    'ynh_webpath_register': '2.6.4',
+    'ynh_permission_create': '3.7.0',
+    'ynh_permission_delete': '3.7.0',
+    'ynh_permission_exists': '3.7.0',
+    'ynh_permission_url': '3.7.0',
+    'ynh_permission_update': '3.7.0',
+    'ynh_string_random': '2.2.4',
+    'ynh_replace_string': '2.6.4',
+    'ynh_replace_special_string': '2.7.7',
+    'ynh_sanitize_dbid': '2.2.4',
+    'ynh_normalize_url_path': '2.6.4',
+    'ynh_add_systemd_config': '2.7.2',
+    'ynh_remove_systemd_config': '2.7.2',
+    'ynh_systemd_action': '',
+    'ynh_clean_check_starting': '',
+    'ynh_user_exists': '2.2.4',
+    'ynh_user_get_info': '2.2.4',
+    'ynh_user_list': '2.4.0',
+    'ynh_system_user_exists': '2.2.4',
+    'ynh_system_group_exists': '',
+    'ynh_system_user_create': '2.6.4',
+    'ynh_system_user_delete': '2.6.4',
+    'ynh_exit_properly': '',
+    'ynh_abort_if_errors': '2.6.4',
+    'ynh_setup_source': '2.6.4',
+    'ynh_local_curl': '2.6.4',
+    'ynh_render_template': '',
+    'ynh_get_debian_release': '2.7.1',
+    'ynh_mkdir_tmp': '',
+    'ynh_secure_remove': '2.6.4',
+    'ynh_get_plain_key': '2.2.4',
+    'ynh_read_manifest': '3.5.0',
+    'ynh_app_upstream_version': '3.5.0',
+    'ynh_app_package_version': '3.5.0',
+    'ynh_check_app_version_changed': '3.5.0',
+}
 
 
 # ############################################################################
@@ -49,6 +184,9 @@ def header(app):
  Official helpers            - https://yunohost.org/#/packaging_apps_helpers_en
  Experimental helpers        - https://github.com/YunoHost-Apps/Experimental_helpers
 
+ If you believe this linter returns false negative (warnings / errors which shouldn't happen),
+ please report them on https://github.com/YunoHost/package_linter/issues
+
     Analyzing package {header}{app}{end}"""
     .format(header=c.HEADER, bold=c.BOLD, end=c.END, app=app))
 
@@ -61,14 +199,22 @@ def print_warning_not_reliable(str):
     print(c.MAYBE_FAIL + "?", str, c.END)
 
 
+warning_count = 0
 def print_warning(str):
+    global warning_count
+    warning_count += 1
     print(c.WARNING + "!", str, c.END)
 
 
+error_count = 0
 def print_error(str):
-    global return_code
-    return_code = 1
+    global error_count
+    error_count += 1
     print(c.FAIL + "✘", str, c.END)
+
+
+def print_happy(str):
+    print(c.OKGREEN + "☺ ", str, "♥")
 
 
 def urlopen(url):
@@ -84,10 +230,22 @@ def urlopen(url):
 def file_exists(file_path):
     return os.path.isfile(file_path) and os.stat(file_path).st_size > 0
 
+def spdx_licenses():
+    cachefile = ".spdx_licenses"
+    if os.path.exists(cachefile):
+        return open(cachefile).read()
+
+    link = "https://spdx.org/licenses/"
+    content = urlopen(link)['content']
+    open(cachefile, "w").write(content)
+    return content
+
 
 # ############################################################################
 #   Actual high-level checks
 # ############################################################################
+
+scriptnames = ["_common.sh", "install", "remove", "upgrade", "backup", "restore"]
 
 class App():
 
@@ -95,23 +253,60 @@ class App():
 
         print_header("LOADING APP")
         self.path = path
-
-        scripts = ["install", "remove", "upgrade", "backup", "restore"]
-        self.scripts = {f: Script(self.path, f) for f in scripts}
+        self.scripts = {f: Script(self.path, f) for f in scriptnames}
 
     def analyze(self):
 
-        self.misc_file_checks()
-        self.check_helper_consistency()
-        self.check_source_management()
         self.check_manifest()
+        self.misc_file_checks()
+        self.check_helpers_usage()
+        self.check_source_management()
 
-        # Copypasta of lines from __init__ instead of using
-        # self.script.values() because dict are unordered until python 3.7
-        scripts = ["install", "remove", "upgrade", "backup", "restore"]
-        for script in [self.scripts[s] for s in scripts]:
-            if script.exists:
-                script.analyze()
+        for script in [self.scripts[s] for s in scriptnames if self.scripts[s].exists]:
+            script.analyze()
+
+    def check_helpers_usage(self):
+
+        print_header("HELPERS USAGE")
+
+        # Check for custom helpers definition that are now official...
+        cmd = "grep -IhEro 'ynh_\w+ *\( *\)' '%s/scripts' | tr -d '() '" % self.path
+        custom_helpers = subprocess.check_output(cmd, shell=True).decode('utf-8').strip().split("\n")
+        custom_helpers = [c.split("__")[0] for c in custom_helpers]
+
+        for custom_helper in custom_helpers:
+            if custom_helper in official_helpers.keys():
+                print_warning("%s is now an official helper since version '%s'" % (custom_helper, official_helpers[custom_helper] or '?'))
+
+        # Check for helpers usage that do not match version required in manifest...
+        if self.yunohost_version_req:
+            cmd = "grep -IhEro 'ynh_\w+' %s/scripts" % self.path
+            helpers_used = subprocess.check_output(cmd, shell=True).decode('utf-8').strip().split("\n")
+            helpers_used = sorted(set(helpers_used))
+
+            manifest_req = [int(i) for i in self.yunohost_version_req.strip(">= ").split('.')] + [0,0,0]
+            def validate_version_requirement(helper_req):
+                if helper_req == '':
+                    return True
+                helper_req = [int(i) for i in helper_req.split('.')]
+                for i in range(0,len(helper_req)):
+                    if helper_req[i] == manifest_req[i]:
+                        continue
+                    return helper_req[i] <= manifest_req[i]
+                return True
+
+            for helper in [h for h in helpers_used if h in official_helpers.keys()]:
+                if helper in custom_helpers:
+                    continue
+                helper_req = official_helpers[helper]
+                if not validate_version_requirement(helper_req):
+                    major_diff = manifest_req[0] > int(helper_req[0])
+                    message = "Using official helper %s implies requiring at least version %s, but manifest only requires %s" % (helper, helper_req, self.yunohost_version_req)
+                    if major_diff:
+                        print_error(message)
+                    else:
+                        print_warning(message)
+
 
     def misc_file_checks(self):
 
@@ -133,7 +328,7 @@ class App():
             elif filename in non_mandatory:
                 print_warning("Consider adding a file %s" % filename)
             else:
-                print_error("File %s is mandatory" % filename)
+                print_error("Providing a %s is mandatory" % filename)
 
         #
         # Deprecated php-fpm.ini thing
@@ -152,7 +347,7 @@ class App():
         # - Spot path traversal issue vulnerability
         #
 
-        for filename in os.listdir(self.path + "/conf"):
+        for filename in os.listdir(self.path + "/conf") if os.path.exists(self.path + "/conf") else []:
             # Ignore subdirs or filename not containing nginx in the name
             if not os.path.isfile(self.path + "/conf/" + filename) or "nginx" not in filename:
                 continue
@@ -171,37 +366,75 @@ class App():
             #
             # Path traversal issues
             #
-            lines = open(self.path + "/conf/" + filename).readlines()
-            lines = [line.strip() for line in lines if not line.strip().startswith("#")]
-            # Let's find the first location line
-            location_line = None
-            path_traversal_vulnerable = False
-            lines_iter = lines.__iter__()
-            for line in lines_iter:
-                if line.startswith("location"):
-                    location_line = line.split()
-                    break
-            # Look at the next lines for an 'alias' directive
-            if location_line is not None:
-                for line in lines_iter:
-                    if line.startswith("location"):
-                        # Entering a new location block ... abort here
-                        # and assume there's no alias block later...
-                        break
-                    if line.startswith("alias"):
-                        # We should definitely check for path traversal issue
-                        # Does the location target ends with / ?
-                        target = location_line[-2] if location_line[-1] == "{" else location_line[-1]
-                        if not target.endswith("/"):
-                            path_traversal_vulnerable = True
-                        break
-            if path_traversal_vulnerable:
-                print_warning(
-                    "The nginx configuration appears vulnerable to path traversal as explained in "
-                    "https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
-                    "To fix it, look at the first lines of the nginx conf of the example app : "
-                    "https://github.com/YunoHost/example_ynh/blob/master/conf/nginx.conf"
-                )
+            def find_location_with_alias(locationblock):
+
+                if locationblock[0][0] != "location":
+                    return
+
+                location = locationblock[0][-1]
+                for line in locationblock[1]:
+                    instruction = line[0]
+                    if instruction == "alias":
+                        yield (location, line)
+                    elif isinstance(instruction, list) and instruction and instruction[0] == "location":
+                        yield from find_location_with_alias(instruction)
+                    else:
+                        continue
+
+            def find_path_traversal_issue(nginxconf):
+
+                for block in nginxconf:
+                    for location, alias in find_location_with_alias(block):
+                        alias_path = alias[-1]
+                        # For path traversal issues to occur, both of those are needed :
+                        # - location /foo {          (*without* a / after foo)
+                        # -    alias /var/www/foo/   (*with* a / after foo)
+                        #
+                        # Note that we also consider a positive the case where
+                        # the alias folder (e.g. /var/www/foo/) does not ends
+                        # with / if __FINALPATH__ ain't used ...  that probably
+                        # means that the app is not using the standard nginx
+                        # helper, and therefore it is likely to be replaced by
+                        # something ending with / ...
+                        if not location.endswith("/") \
+                           and (alias_path.endswith("/") or "__FINALPATH__" not in alias_path):
+                            yield location
+
+            do_path_traversal_check = False
+            try:
+                import pyparsing, six
+                do_path_traversal_check = True
+            except:
+                # If inside a venv, try to magically install pyparsing
+                if 'VIRTUAL_ENV' in os.environ:
+                    try:
+                        print("(Trying to auto install pyparsing...)")
+                        subprocess.check_output("pip3 install pyparsing six", shell=True)
+                        import pyparsing
+                        print("Ok!")
+                        do_path_traversal_check = True
+                    except Exception as e:
+                        print("Failed :[ : %s" % str(e))
+
+            if not do_path_traversal_check:
+                print("N.B.: The package linter need you to run 'pip3 install pyparsing six' if you want it to be able to check for path traversal issue in nginx confs")
+
+            if do_path_traversal_check:
+                from lib.nginxparser import nginxparser
+                try:
+                    nginxconf = nginxparser.load(open(self.path + "/conf/" + filename))
+                except Exception as e:
+                    print_warning_not_reliable("Could not parse nginx conf ... : " + str(e))
+                    nginxconf = []
+
+                for location in find_path_traversal_issue(nginxconf):
+                    print_warning(
+                        "The nginx configuration (especially location %s) "
+                        "appears vulnerable to path traversal issues as explained in\n"
+                        "  https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
+                        "  To fix it, look at the first lines of the nginx conf of the example app : \n"
+                        "  https://github.com/YunoHost/example_ynh/blob/master/conf/nginx.conf" % location
+                    )
 
     def check_helper_consistency(self):
         """
@@ -300,7 +533,6 @@ class App():
         if "license" in manifest:
             for license in manifest['license'].replace('&', ',').split(','):
                 code_license = '<code property="spdx:licenseId">' + license + '</code>'
-                link = "https://spdx.org/licenses/"
                 if license == "nonfree":
                     print_warning("[YEP-1.3] The correct value for non free license in license field is 'non-free' and not 'nonfree'")
                     license = "non-free"
@@ -315,7 +547,7 @@ class App():
                             "[YEP-1.3] 'non-free' apps can't be officialized. "
                             " Their integration is still being discussed, especially for apps with non-free dependencies"
                         )
-                elif code_license not in urlopen(link)['content']:
+                elif code_license not in spdx_licenses():
                     print_warning(
                         "[YEP-1.3] The license '%s' is not registered in https://spdx.org/licenses/ . "
                         "It can be a typo error. If not, you should replace it by 'free' "
@@ -412,7 +644,7 @@ class App():
                             )
 
                 if argument["name"] == "is_public" and "help" not in argument.keys():
-                    print_warning(
+                    print_warning_not_reliable(
                         "Consider adding an 'help' key for argument 'is_public' "
                         "to explain to the user what it means for *this* app "
                         "to be public or private :\n"
@@ -427,17 +659,7 @@ class App():
                 "but rather the website or repo of the upstream app itself..."
             )
 
-        yunohost_version_req = manifest.get("requirements", {}).get("yunohost", None)
-        if yunohost_version_req:
-            major_version = yunohost_version_req.split()[-1]
-            if major_version.startswith("2"):
-                print_warning(
-                    "YunoHost version requirement is still 2.x ... Good job if "
-                    "it does still work on Jessie !... But are you really sure "
-                    "about that ;) ? be careful that many new helpers you might "
-                    "already be playing with are only available on 3.x..."
-                )
-
+        self.yunohost_version_req = manifest.get("requirements", {}).get("yunohost", None)
 
 
 class Script():
@@ -484,48 +706,29 @@ class Script():
         return any(command in line
                    for line in [' '.join(line) for line in self.lines])
 
+    def containsregex(self, regex):
+        """
+        Iterate on lines to check if command is contained in line
+
+        For instance, "app setting" is contained in "yunohost app setting $app ..."
+        """
+        return any(re.match(regex, line)
+                   for line in [' '.join(line) for line in self.lines])
+
     def analyze(self):
 
         print_header(self.name.upper() + " SCRIPT")
 
-        self.check_verifications_done_before_modifying_system()
         self.check_set_usage()
         self.check_helper_usage_dependencies()
         self.check_deprecated_practices()
         self.check_source_common()
 
-    def check_verifications_done_before_modifying_system(self):
-        """
-        Check if verifications are done before modifying the system
-        """
+    def check_set_usage(self):
 
-        if not self.contains("ynh_die") and not self.contains("exit"):
+        if self.name == "_common.sh":
             return
 
-        # FIXME : this really looks like a very small subset of command that
-        # can be used ... also packagers are not supposed to use apt or service
-        # anymore ...
-        modifying_cmds = ("cp", "mkdir", "rm", "chown", "chmod", "apt-get", "apt",
-                          "service", "find", "sed", "mysql", "swapon", "mount",
-                          "dd", "mkswap", "useradd")
-        cmds_before_exit = []
-        for cmd in self.lines:
-            cmd = " ".join(cmd)
-
-            if "ynh_die" in cmd or "exit" in cmd:
-                break
-            cmds_before_exit.append(cmd)
-
-        for modifying_cmd in modifying_cmds:
-            if any(modifying_cmd in cmd for cmd in cmds_before_exit):
-                print_warning_not_reliable(
-                    "[YEP-2.4] 'ynh_die' or 'exit' command is executed with system modification before (cmd '%s').\n"
-                    "This system modification is an issue if a verification exit the script.\n"
-                    "You should move this verification before any system modification." % modifying_cmd
-                )
-                return
-
-    def check_set_usage(self):
         present = False
 
         if self.name in ["backup", "remove"]:
@@ -554,6 +757,10 @@ class Script():
         and suggest herlpers ynh_install_app_dependencies and ynh_remove_app_dependencies
         """
 
+        # Skip this in common.sh, sometimes custom not-yet-official helpers need this
+        if self.name == "_common.sh":
+            return
+
         if self.contains("ynh_package_install") or self.contains("apt-get install"):
             print_warning(
                 "You should not use `ynh_package_install` or `apt-get install`, "
@@ -569,23 +776,32 @@ class Script():
     def check_deprecated_practices(self):
 
         if self.contains("yunohost app setting"):
-            print_warning("'yunohost app setting' shouldn't be used directly. Please use 'ynh_app_setting_(set,get,delete)' instead.")
+            print_error("Do not use 'yunohost app setting' directly. Please use 'ynh_app_setting_(set,get,delete)' instead.")
         if self.contains("yunohost app checkurl"):
-            print_warning("'yunohost app checkurl' is deprecated. Please use 'ynh_webpath_register' instead.")
+            print_error("'yunohost app checkurl' is obsolete!!! Please use 'ynh_webpath_register' instead.")
         if self.contains("yunohost app checkport"):
-            print_warning("'yunohost app checkport' is deprecated. Please use 'ynh_find_port' instead.")
+            print_error("'yunohost app checkport' is obsolete!!! Please use 'ynh_find_port' instead.")
         if self.contains("yunohost app initdb"):
-            print_warning("'yunohost app initdb' is deprecated. Please use 'ynh_mysql_setup_db' instead.")
+            print_error("'yunohost app initdb' is obsolete!!! Please use 'ynh_mysql_setup_db' instead.")
         if self.contains("exit"):
             print_warning("'exit' command shouldn't be used. Please use 'ynh_die' instead.")
+
+        if self.contains("yunohost service regen-conf"):
+            print_warning("'yunohost tools regen-conf' has been replaced by 'yunohost tools regen-conf'.")
+
+        # Dirty hack to check only the 10 last lines for ssowatconf
+        # (the "bad" practice being using this at the very end of the script, but some apps legitimately need this in the middle of the script)
+        oldlines = list(self.lines)
+        self.lines = self.lines[-10:]
         if self.contains("yunohost app ssowatconf"):
             print_warning("You probably don't need to run 'yunohost app ssowatconf' in the app script. It's supposed to be ran automatically after the script.")
+        self.lines = oldlines
 
         if self.contains("rm -rf"):
             print_error("[YEP-2.12] You should avoid using 'rm -rf', please use 'ynh_secure_remove' instead")
         if self.contains("sed -i"):
             print_warning("[YEP-2.12] You should avoid using 'sed -i', please use 'ynh_replace_string' instead")
-        if self.contains("sudo "):
+        if self.containsregex(r"sudo \w"):  # \w is here to not match sudo -u, legit use because ynh_exec_as not official yet...
             print_warning(
                 "[YEP-2.12] You should not need to use 'sudo', the script is being run as root. "
                 "(If you need to run a command using a specific user, use 'ynh_exec_as')"
@@ -636,7 +852,15 @@ def main():
     header(app_path)
     App(app_path).analyze()
 
-    sys.exit(return_code)
+    if error_count > 0:
+        sys.exit(1)
+    elif warning_count > 3:
+        print("Still some warnings to be fixed :s")
+    elif warning_count > 0:
+        print("Only %s warning remaining! You can do it!" % warning_count)
+    else:
+        print_happy("Not even a warning! Congratz and thank you for keeping that package up to date with good practices !")
+
 
 
 if __name__ == '__main__':
