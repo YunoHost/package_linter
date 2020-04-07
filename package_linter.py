@@ -837,6 +837,12 @@ class Script():
                     "https://github.com/YunoHost-Apps/Experimental_helpers/tree/master/ynh_add_extra_apt_repos )"
                 )
 
+        helpers_after_official = subprocess.check_output("head -n 30 %s | grep -A 10 '^ *source */usr/share/yunohost/helpers' | grep '^ *source' | tail -n +2" % self.path, shell=True).decode("utf-8")
+        helpers_after_official = helpers_after_official.replace("source", "").replace(" ", "").strip()
+        if helpers_after_official:
+            helpers_after_official = helpers_after_official.split("\n")
+            print_warning("Please avoid sourcing additional helpers after the official helpers (in this case file %s)" % ", ".join(helpers_after_official))
+
     def check_source_common(self):
 
         if self.name in ["backup", "restore"]:
