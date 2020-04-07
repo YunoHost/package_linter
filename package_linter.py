@@ -260,7 +260,6 @@ class App():
         self.check_manifest()
         self.misc_file_checks()
         self.check_helpers_usage()
-        self.check_source_management()
 
         for script in [self.scripts[s] for s in scriptnames if self.scripts[s].exists]:
             script.analyze()
@@ -341,6 +340,19 @@ class App():
                 "(c.f. https://github.com/YunoHost-Apps/nextcloud_ynh/issues/138 )"
             )
 
+        #
+        # Source management
+        #
+        source_dir = os.path.join(self.path, "sources")
+        if os.path.exists(source_dir) \
+           and len([name for name in os.listdir(source_dir) if os.path.isfile(os.path.join(source_dir, name))]) > 5:
+            print_warning(
+                "[YEP-3.3] Upstream app sources shouldn't be stored in this 'sources' folder of this git repository as a copy/paste\n"
+                "During installation, the package should download sources from upstream via 'ynh_setup_source'.\n"
+                "See the helper documentation. "
+                "Original discussion happened here : "
+                "https://github.com/YunoHost/issues/issues/201#issuecomment-391549262"
+            )
         #
         # Analyze nginx conf
         # - Deprecated usage of 'add_header' in nginx conf
@@ -456,19 +468,6 @@ class App():
                         "but not 'yunohost service remove' in the remove script."
                     )
 
-    def check_source_management(self):
-        print_header("SOURCES MANAGEMENT")
-        DIR = os.path.join(self.path, "sources")
-        # Check if there is more than six files on 'sources' folder
-        if os.path.exists(os.path.join(self.path, "sources")) \
-           and len([name for name in os.listdir(DIR) if os.path.isfile(os.path.join(DIR, name))]) > 5:
-            print_warning(
-                "[YEP-3.3] Upstream app sources shouldn't be stored in this 'sources' folder of this git repository as a copy/paste\n"
-                "During installation, the package should download sources from upstream via 'ynh_setup_source'.\n"
-                "See the helper documentation. "
-                "Original discussion happened here : "
-                "https://github.com/YunoHost/issues/issues/201#issuecomment-391549262"
-            )
 
     def check_manifest(self):
         manifest = os.path.join(self.path, 'manifest.json')
@@ -722,7 +721,6 @@ class Script():
         self.check_set_usage()
         self.check_helper_usage_dependencies()
         self.check_deprecated_practices()
-        self.check_source_common()
 
     def check_set_usage(self):
 
@@ -842,8 +840,6 @@ class Script():
         if helpers_after_official:
             helpers_after_official = helpers_after_official.split("\n")
             print_warning("Please avoid sourcing additional helpers after the official helpers (in this case file %s)" % ", ".join(helpers_after_official))
-
-    def check_source_common(self):
 
         if self.name in ["backup", "restore"]:
             if self.contains("source _common.sh") or self.contains("source ./_common.sh"):
