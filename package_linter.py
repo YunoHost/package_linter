@@ -9,6 +9,7 @@ import shlex
 import urllib.request
 import codecs
 import subprocess
+import time
 
 reader = codecs.getreader("utf-8")
 
@@ -232,7 +233,7 @@ def file_exists(file_path):
 
 def spdx_licenses():
     cachefile = ".spdx_licenses"
-    if os.path.exists(cachefile):
+    if os.path.exists(cachefile) and time.time() - os.path.getmtime(cachefile) < 3600:
         return open(cachefile).read()
 
     link = "https://spdx.org/licenses/"
@@ -515,13 +516,6 @@ class App():
                     "The most current bigger name is actually compound of 22 characters."
                 )
 
-        # YEP 1.2 Put the app in a weel known repo
-        if "id" in manifest:
-            app_list_url = "https://raw.githubusercontent.com/YunoHost/apps/master/apps.json"
-            app_list = json.loads(urlopen(app_list_url)['content'])
-            if manifest["id"] not in app_list:
-                print_warning("[YEP-1.2] This app is not registered in our applications list")
-
         # YEP 1.3 License
         def license_mentionned_in_readme(path):
             readme_path = os.path.join(path, 'README.md')
@@ -557,15 +551,32 @@ class App():
         # YEP 1.5 Update regularly the app status
         # YEP 1.6 Check regularly the evolution of the upstream
 
+        # YEP 1.2 Put the app in a weel known repo
         # YEP 1.7 - Add an app to the YunoHost-Apps organization
         if "id" in manifest:
-            repo = "https://github.com/YunoHost-Apps/%s_ynh" % (manifest["id"])
-            is_not_added_to_org =  urlopen(repo)['code'] == 404
-            brique = "https://github.com/labriqueinternet/%s_ynh" % (manifest["id"])
-            is_not_added_to_brique =  urlopen(brique)['code'] == 404
 
-            if is_not_added_to_org and is_not_added_to_brique:
-                print_warning("[YEP-1.7] You should add your app in the YunoHost-Apps organisation.")
+            cachefile = "./.apps.json"
+            if os.path.exists(cachefile) and time.time() - os.path.getmtime(cachefile) < 3600:
+                app_list = open(cachefile).read()
+            else:
+                app_list_url = "https://raw.githubusercontent.com/YunoHost/apps/master/apps.json"
+                app_list = urlopen(app_list_url)['content']
+                open(cachefile, "w").write(app_list)
+            app_list = json.loads(app_list)
+            if manifest["id"] not in app_list:
+                print_warning("[YEP-1.2] This app is not registered in our applications list")
+
+            all_urls = [infos.get("url", "").lower() for infos in app_list.values()]
+
+            repo_org = "https://github.com/YunoHost-Apps/%s_ynh" % (manifest["id"])
+            repo_brique = "https://github.com/labriqueinternet/%s_ynh" % (manifest["id"])
+
+            if repo_org.lower() not in all_urls and repo_brique.lower() not in all_urls:
+                is_not_added_to_org =  urlopen(repo_org)['code'] == 404
+                is_not_added_to_brique =  urlopen(repo_brique)['code'] == 404
+
+                if is_not_added_to_org and is_not_added_to_brique:
+                    print_warning("[YEP-1.7] You should add your app in the YunoHost-Apps organisation.")
 
         # YEP 1.8 Publish test request
         # YEP 1.9 Document app
