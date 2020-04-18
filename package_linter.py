@@ -629,7 +629,7 @@ class App():
 
         if "install" in manifest["arguments"]:
 
-            recognized_types = ("domain", "path", "boolean", "app", "password", "user", "string")
+            recognized_types = ("domain", "path", "boolean", "app", "password", "user", "string", "display_text")
 
             for argument in manifest["arguments"]["install"]:
                 if "optional" in argument.keys():
