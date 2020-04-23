@@ -556,13 +556,21 @@ class App():
         if "id" in manifest:
 
             cachefile = "./.apps.json"
+            app_list = None
             if os.path.exists(cachefile) and time.time() - os.path.getmtime(cachefile) < 3600:
-                app_list = open(cachefile).read()
-            else:
+                try:
+                    app_list = open(cachefile).read()
+                    app_list = json.loads(app_list)
+                except:
+                    print("Uuuuh failed to load apps.json from cache...")
+                    app_list = None
+
+            if app_list is None:
                 app_list_url = "https://raw.githubusercontent.com/YunoHost/apps/master/apps.json"
                 app_list = urlopen(app_list_url)['content']
                 open(cachefile, "w").write(app_list)
-            app_list = json.loads(app_list)
+                app_list = json.loads(app_list)
+
             if manifest["id"] not in app_list:
                 print_warning("[YEP-1.2] This app is not registered in our applications list")
 
