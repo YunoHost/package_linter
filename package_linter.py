@@ -830,6 +830,11 @@ class Script():
                 "(If you need to run a command using a specific user, use 'ynh_exec_as')"
             )
 
+        if self.containsregex(r"chmod .*777") or self.containsregex(r'chmod .*o\+w'):
+            print_warning(
+                "DO NOT use chmod 777 or chmod o+w that gives write permission to every users on the system !!! If you have permission issues, just make sure that the owner and/or group owner is right ..."
+            )
+
         if self.contains("dd if=/dev/urandom") or self.contains("openssl rand"):
             print_warning(
                 "Instead of 'dd if=/dev/urandom' or 'openssl rand', "
