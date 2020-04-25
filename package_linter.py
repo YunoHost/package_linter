@@ -617,6 +617,9 @@ class App():
 
         # YEP 1.10 Garder un historique de version propre
 
+        if not "version" in manifest or manifest["version"][-5:-1] != "~ynh":
+            print_warning("Please specify a 'version' field in the manifest. It should match the format <upstreamversion>~ynh<packageversion>. For example : 4.3-2~ynh3. It is composed of the upstream version number (in the example, 4.3-2) and an incremental number for each change in the package without upstream change (in the example, 3). This incremental number can be reset to 1 each time the upstream version changes.")
+
         # YEP 1.11 Cancelled
 
         # YEP 2.1
