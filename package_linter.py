@@ -877,8 +877,8 @@ class Script():
         # Usage of ynh_script_prorgression with --time or --weight=1 all over the place...
         if self.containsregex(r"ynh_script_progression.*--time"):
             print_warning("Using ynh_script_progression --time should only be for calibrating the weight (c.f. --weight). It's not meant to be kept for production versions.")
-        if self.containsregex(r"ynh_script_progression.*--weight=1") and \
-        not self.containsregex(r"ynh_script_progression.*--weight=([^1]|[1-9]{2})"):
+        if self.containsregex(r"ynh_script_progression.*--weight=1") \
+            and not self.containsregex(r"ynh_script_progression.*--weight=([^1]|[1-9][0-9]+)"):
             print_warning("Having only '--weight=1' for ynh_script_progression is useless... Either calibrate the weights with --time once, or don't put any --weight at all.")
 
 
