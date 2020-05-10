@@ -506,8 +506,8 @@ class App():
 
         # YEP 1.1 Name is app
         if "id" in manifest:
-            if not re.match('^[a-z1-9]((_|-)?[a-z1-9])+$', manifest["id"]):
-                print_error("[YEP-1.1] 'id' field '%s' should respect this regex '^[a-z1-9]((_|-)?[a-z1-9])+$'")
+            if not re.match('^[a-z0-9]((_|-)?[a-z0-9])+$', manifest["id"]):
+                print_error("[YEP-1.1] 'id' field '%s' should respect this regex '^[a-z0-9]((_|-)?[a-z0-9])+$'")
 
         if "name" in manifest:
             if len(manifest["name"]) > 22:
