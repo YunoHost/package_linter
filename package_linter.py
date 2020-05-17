@@ -635,7 +635,11 @@ class App():
 
             for service in manifest["services"]:
                 if service not in known_services:
-                    if not self.scripts["install"].contains("yunohost service add %s" % service):
+                    if service == 'postgresql':
+                        if not self.scripts["install"].contains('ynh_psql_test_if_first_run')\
+                           or not self.scripts["restore"].contains('ynh_psql_test_if_first_run'):
+                            print_error("[YEP-2.1?] postgresql service present in the manifest, install and restore scripts must call ynh_psql_test_if_first_run")
+                    elif not self.scripts["install"].contains("yunohost service add %s" % service):
                         print_error("[YEP-2.1?] " + service + " service not installed by the install file but present in the manifest")
 
         if "install" in manifest["arguments"]:
