@@ -867,6 +867,12 @@ class Script():
                 "You can use 'ynh_print_info' or 'ynh_script_progression' for this."
             )
 
+        if self.name == "install" and self.containsregex(r"^\w+\=\$\{?[0-9]"):
+            print_error(
+                "Do not fetch arguments from manifest using variable=$N (e.g."
+                " domain=$1 ...) Instead, use name=$YNH_APP_ARG_NAME"
+            )
+
         if self.name == "install":
             if self.contains("/etc/apt/sources.list") \
             or (os.path.exists(self.app_path + "/scripts/_common.sh") and "/etc/apt/sources.list" in open(self.app_path+"/scripts/_common.sh").read() and "ynh_add_repo" not in open(self.app_path+"/scripts/_common.sh").read()):
