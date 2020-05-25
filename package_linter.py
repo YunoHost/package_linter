@@ -883,6 +883,10 @@ class Script():
                     "https://github.com/YunoHost-Apps/Experimental_helpers/tree/master/ynh_add_extra_apt_repos )"
                 )
 
+        if self.name == "backup":
+            if self.containsregex("^ynh_systemd_action"):
+                print_warning("Unless you really have a good reason to do so, starting/stopping services during backup has no benefit and leads to unecessary service interruptions when creating backups... As a 'reminder': apart from possibly database dumps (which usually do not require the service to be stopped) or other super-specific action, running the backup script is only a *declaration* of what needs to be backuped. The real copy and archive creation happens *after* the backup script is ran.")
+
         helpers_after_official = subprocess.check_output("head -n 30 '%s' | grep -A 10 '^ *source */usr/share/yunohost/helpers' | grep '^ *source' | tail -n +2" % self.path, shell=True).decode("utf-8")
         helpers_after_official = helpers_after_official.replace("source", "").replace(" ", "").strip()
         if helpers_after_official:
