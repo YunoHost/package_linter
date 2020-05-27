@@ -882,6 +882,10 @@ class Script():
                     "need to install dependencies from a custom apt repo."
                 )
 
+        if self.name in ["install", "_common.sh"]:
+            if self.containsregex("dependencies.*php-"):
+                print_warning("You should avoid having dependencies like 'php-foobar'. Instead, specify the exact version you want like 'php7.0-foobar'. Otherwise, the *wrong* version of the dependency may be installed if sury is also installed. Note that for Stretch/Buster/Bullseye/... transition, Yunohost will automatically patch your file so there's no need to care about that.")
+
         if self.name == "backup":
             if self.containsregex("^ynh_systemd_action"):
                 print_warning("Unless you really have a good reason to do so, starting/stopping services during backup has no benefit and leads to unecessary service interruptions when creating backups... As a 'reminder': apart from possibly database dumps (which usually do not require the service to be stopped) or other super-specific action, running the backup script is only a *declaration* of what needs to be backuped. The real copy and archive creation happens *after* the backup script is ran.")
