@@ -186,7 +186,7 @@ class c:
 
 
 def header(app):
-    print("""
+    _print("""
     [{header}{bold}YunoHost App Package Linter{end}]
 
  App packaging documentation - https://yunohost.org/#/packaging_apps
@@ -201,30 +201,40 @@ def header(app):
     .format(header=c.HEADER, bold=c.BOLD, end=c.END, app=app))
 
 
+output = "plain"
+
+
+def _print(*args, **kwargs):
+    if output == "plain":
+        print(*args, **kwargs)
+
+
 def print_header(str):
-    print("\n [" + c.BOLD + c.HEADER + str.title() + c.END + "]\n")
+    _print("\n [" + c.BOLD + c.HEADER + str.title() + c.END + "]\n")
 
 
 def print_warning_not_reliable(str):
-    print(c.MAYBE_FAIL + "?", str, c.END)
+    _print(c.MAYBE_FAIL + "?", str, c.END)
 
 
-warning_count = 0
+warnings = []
+
+
 def print_warning(str):
-    global warning_count
-    warning_count += 1
-    print(c.WARNING + "!", str, c.END)
+    warnings.append(str)
+    _print(c.WARNING + "!", str, c.END)
 
 
-error_count = 0
+errors = []
+
+
 def print_error(str):
-    global error_count
-    error_count += 1
-    print(c.FAIL + "✘", str, c.END)
+    errors.append(str)
+    _print(c.FAIL + "✘", str, c.END)
 
 
 def print_happy(str):
-    print(c.OKGREEN + "☺ ", str, "♥")
+    _print(c.OKGREEN + "☺ ", str, "♥")
 
 
 def urlopen(url):
@@ -233,12 +243,13 @@ def urlopen(url):
     except urllib.error.HTTPError as e:
         return {'content': '', 'code': e.code}
     except urllib.error.URLError as e:
-        print('URLError')
+        _print('URLError')
     return {'content': conn.read().decode('UTF8'), 'code': 200}
 
 
 def file_exists(file_path):
     return os.path.isfile(file_path) and os.stat(file_path).st_size > 0
+
 
 def spdx_licenses():
     cachefile = ".spdx_licenses"
@@ -256,6 +267,7 @@ def spdx_licenses():
 # ############################################################################
 
 scriptnames = ["_common.sh", "install", "remove", "upgrade", "backup", "restore"]
+
 
 class App():
 
@@ -430,16 +442,16 @@ class App():
                 # If inside a venv, try to magically install pyparsing
                 if 'VIRTUAL_ENV' in os.environ:
                     try:
-                        print("(Trying to auto install pyparsing...)")
+                        _print("(Trying to auto install pyparsing...)")
                         subprocess.check_output("pip3 install pyparsing six", shell=True)
                         import pyparsing
-                        print("Ok!")
+                        _print("Ok!")
                         do_path_traversal_check = True
                     except Exception as e:
-                        print("Failed :[ : %s" % str(e))
+                        _print("Failed :[ : %s" % str(e))
 
             if not do_path_traversal_check:
-                print("N.B.: The package linter need you to run 'pip3 install pyparsing six' if you want it to be able to check for path traversal issue in nginx confs")
+                _print("N.B.: The package linter need you to run 'pip3 install pyparsing six' if you want it to be able to check for path traversal issue in nginx confs")
 
             if do_path_traversal_check:
                 from lib.nginxparser import nginxparser
@@ -571,7 +583,7 @@ class App():
                     app_list = open(cachefile).read()
                     app_list = json.loads(app_list)
                 except:
-                    print("Uuuuh failed to load apps.json from cache...")
+                    _print("Uuuuh failed to load apps.json from cache...")
                     app_list = None
 
             if app_list is None:
@@ -729,7 +741,7 @@ class Script():
                 yield line
             except Exception as e:
                 if not some_parsing_failed:
-                    print("Some lines could not be parsed in script %s. (That's probably not really critical)" % self.name)
+                    _print("Some lines could not be parsed in script %s. (That's probably not really critical)" % self.name)
                     some_parsing_failed = True
                 print_warning_not_reliable("%s : %s" % (e, line))
 
@@ -908,25 +920,30 @@ class Script():
             print_warning("Having only '--weight=1' for ynh_script_progression is useless... Either calibrate the weights with --time once, or don't put any --weight at all.")
 
 
-
 def main():
-    if len(sys.argv) != 2:
+    if len(sys.argv) < 2:
         print("Give one app package path.")
         exit()
 
     app_path = sys.argv[1]
+
+    global output
+    output = "json" if "--json" in sys.argv else "plain"
+
     header(app_path)
     App(app_path).analyze()
 
-    if error_count > 0:
-        sys.exit(1)
-    elif warning_count > 3:
-        print("Still some warnings to be fixed :s")
-    elif warning_count > 0:
-        print("Only %s warning remaining! You can do it!" % warning_count)
+    if output == "json":
+        print(json.dumps({"warnings": warnings, "errors": errors}, indent=4))
     else:
-        print_happy("Not even a warning! Congratz and thank you for keeping that package up to date with good practices !")
-
+        if len(errors) > 0:
+            sys.exit(1)
+        elif len(warnings) > 3:
+            print("Still some warnings to be fixed :s")
+        elif len(warnings) > 0:
+            print("Only %s warning remaining! You can do it!" % warning_count)
+        else:
+            print_happy("Not even a warning! Congratz and thank you for keeping that package up to date with good practices !")
 
 
 if __name__ == '__main__':
