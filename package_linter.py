@@ -941,7 +941,7 @@ def main():
         elif len(warnings) > 3:
             print("Still some warnings to be fixed :s")
         elif len(warnings) > 0:
-            print("Only %s warning remaining! You can do it!" % warning_count)
+            print("Only %s warning remaining! You can do it!" % len(warnings))
         else:
             print_happy("Not even a warning! Congratz and thank you for keeping that package up to date with good practices !")
 
