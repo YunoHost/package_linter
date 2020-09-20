@@ -243,7 +243,8 @@ def urlopen(url):
     except urllib.error.HTTPError as e:
         return {'content': '', 'code': e.code}
     except urllib.error.URLError as e:
-        _print('URLError')
+        _print('Could not fetch %s : %s' % (url, e))
+        return {'content': '', 'code': 0}
     return {'content': conn.read().decode('UTF8'), 'code': 200}
 
 
