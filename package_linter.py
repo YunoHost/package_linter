@@ -383,44 +383,46 @@ class App(TestSuite):
 
 
     @test()
-    def helper_consistency(app):
+    def helper_consistency_apt_deps(app):
         """
         check if ynh_install_app_dependencies is present in install/upgrade/restore
         so dependencies are up to date after restoration or upgrade
         """
 
         install_script = app.scripts["install"]
-        if install_script.exists:
-            if install_script.contains("ynh_install_app_dependencies"):
-                for name in ["upgrade", "restore"]:
-                    if app.scripts[name].exists and not app.scripts[name].contains("ynh_install_app_dependencies"):
-                        yield Warning("ynh_install_app_dependencies should also be in %s script" % name)
+        if install_script.contains("ynh_install_app_dependencies"):
+            for name in ["upgrade", "restore"]:
+                if app.scripts[name].exists and not app.scripts[name].contains("ynh_install_app_dependencies"):
+                    yield Warning("ynh_install_app_dependencies should also be in %s script" % name)
 
-            if install_script.contains("yunohost service add"):
-                if app.scripts["remove"].exists and not app.scripts["remove"].contains("yunohost service remove"):
-                    yield Error(
-                        "You used 'yunohost service add' in the install script, "
-                        "but not 'yunohost service remove' in the remove script."
-                    )
-#
-#        if "services" in manifest and app.scripts["install"].exists:
-#
-#            known_services = ("nginx", "mysql", "uwsgi", "metronome",
-#                              "php5-fpm", "php7.0-fpm", "php-fpm",
-#                              "postfix", "dovecot", "rspamd")
-#
-#            for service in manifest["services"]:
-#                if service not in known_services:
-#                    if service == 'postgresql':
-#                        if not app.scripts["install"].contains('ynh_psql_test_if_first_run')\
-#                           or not app.scripts["restore"].contains('ynh_psql_test_if_first_run'):
-#                            report_error("[YEP-2.1?] postgresql service present in the manifest, install and restore scripts must call ynh_psql_test_if_first_run")
-#                    elif not app.scripts["install"].contains("yunohost service add %s" % service):
-#                        report_error("[YEP-2.1?] " + service + " service not installed by the install file but present in the manifest")
-#
+    @test()
+    def helper_consistency_service_add(app):
+        install_script = app.scripts["install"]
+        if install_script.contains("yunohost service add"):
+            if app.scripts["remove"].exists and not app.scripts["remove"].contains("yunohost service remove"):
+                yield Error(
+                    "You used 'yunohost service add' in the install script, "
+                    "but not 'yunohost service remove' in the remove script."
+                )
 
+            if app.scripts["upgrade"].exists and not app.scripts["upgrade"].contains("yunohost service add"):
+                yield Warning(
+                    "You used 'yunohost service add' in the install script, "
+                    "but not in the upgrade script"
+                )
 
+            if app.scripts["restore"].exists and not app.scripts["restore"].contains("yunohost service add"):
+                yield Warning(
+                    "You used 'yunohost service add' in the install script, "
+                    "but not in the restore script"
+                )
 
+    @test()
+    def helper_consistency_firewall(app):
+        install_script = app.scripts["install"]
+        if install_script.contains("yunohost firewall allow"):
+            if not install_script.contains("--needs_exposed_ports"):
+                yield Warning("The install script expose a port on the outside with 'yunohost firewall allow' but doesn't use 'yunohost service add' with --needs_exposed_ports ... If your are ABSOLUTELY SURE that the service needs to be exposed on THE OUTSIDE, then add --needs_exposed_ports to 'yunohost service add' with the relevant port number. Otherwise, opening the port leads to a significant security risk and you should keep the damn port closed !")
 
 
     ###########################################################
