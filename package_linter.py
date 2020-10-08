@@ -951,8 +951,8 @@ class Script(TestSuite):
     @test()
     def exit_ynhdie(self):
 
-        if self.contains("exit"):
-            yield Warning("'exit' command shouldn't be used. Please use 'ynh_die' instead.")
+        if self.contains(r"\bexit\b"):
+            yield Error("'exit' command shouldn't be used. Please use 'ynh_die' instead.")
 
     @test()
     def old_regenconf(self):
