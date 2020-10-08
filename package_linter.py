@@ -614,13 +614,19 @@ class Manifest(TestSuite):
     @test()
     def mandatory_fields(self):
 
-        fields = ("name", "id", "packaging_format", "description", "url", "version",
-                  "license", "maintainer", "requirements", "multi_instance",
+        fields = ("name", "id", "packaging_format", "description", "version",
+                  "maintainer", "requirements", "multi_instance",
                   "services", "arguments")
         missing_fields = [field for field in fields if field not in self.manifest.keys()]
 
         if missing_fields:
             yield Error("The following mandatory fields are missing: %s" % missing_fields)
+
+        fields = ("license", "url")
+        missing_fields = [field for field in fields if field not in self.manifest.keys()]
+
+        if missing_fields:
+            yield Warning("The following mandatory fields are missing: %s" % missing_fields)
 
     @test()
     def yunohost_version_requirement(self):
@@ -645,7 +651,7 @@ class Manifest(TestSuite):
             return
 
         def license_mentionned_in_readme():
-            readme_path = os.path.join(app.path, 'README.md')
+            readme_path = os.path.join(self.path, 'README.md')
             if os.path.isfile(readme_path):
                 return "LICENSE" in open(readme_path).read()
             return False
@@ -674,13 +680,13 @@ class Manifest(TestSuite):
 
 
     @test()
-    def app_in_app_list(self):
+    def app_in_app_catalog(self):
 
         if self.manifest["id"] not in app_list():
-            yield Error("This app is not Yunohost's application catalog")
+            yield Warning("This app is not Yunohost's application catalog")
 
     @test()
-    def app_in_app_list(self):
+    def app_in_github_org(self):
 
         all_urls = [infos.get("url", "").lower() for infos in app_list().values()]
 
@@ -696,7 +702,7 @@ class Manifest(TestSuite):
             return urlopen(repo_brique)['code'] != 404
 
         if not is_in_github_org() and not is_in_brique_org():
-            yield Error("Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily")
+            yield Warning("Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily")
 
     @test()
     def description(self):
@@ -743,7 +749,7 @@ class Manifest(TestSuite):
 
     @test()
     def url(self):
-        if self.manifest["url"].endswith("_ynh"):
+        if self.manifest.get("url", "").endswith("_ynh"):
             yield Warning(
                 "'url' is not meant to be the url of the yunohost package, "
                 "but rather the website or repo of the upstream app itself..."
