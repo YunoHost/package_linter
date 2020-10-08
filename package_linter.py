@@ -526,6 +526,9 @@ class App(TestSuite):
 
                 for block in nginxconf:
                     for location, alias in find_location_with_alias(block):
+                        # Ignore locations which are regexes..?
+                        if location.startswith("^") and location.endswith("$"):
+                            continue
                         alias_path = alias[-1]
                         # For path traversal issues to occur, both of those are needed :
                         # - location /foo {          (*without* a / after foo)
