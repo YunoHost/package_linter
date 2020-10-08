@@ -451,7 +451,7 @@ class App(TestSuite):
     def misc_legacy_phpini(app):
 
         if file_exists(app.path + "/conf/php-fpm.ini"):
-            yield Warning(
+            yield Error(
                 "Using a separate php-fpm.ini file is deprecated. "
                 "Please merge your php-fpm directives directly in the pool file. "
                 "(c.f. https://github.com/YunoHost-Apps/nextcloud_ynh/issues/138 )"
@@ -464,7 +464,7 @@ class App(TestSuite):
         source_dir = os.path.join(app.path, "sources")
         if os.path.exists(source_dir) \
            and len([name for name in os.listdir(source_dir) if os.path.isfile(os.path.join(source_dir, name))]) > 5:
-            yield Warning(
+            yield Error(
                 "Upstream app sources shouldn't be stored in this 'sources' folder of this git repository as a copy/paste\n"
                 "During installation, the package should download sources from upstream via 'ynh_setup_source'.\n"
                 "See the helper documentation. "
@@ -489,7 +489,7 @@ class App(TestSuite):
 
             content = open(app.path + "/conf/" + filename).read()
             if "location" in content and "add_header" in content:
-                yield Warning(
+                yield Error(
                     "Do not use 'add_header' in the nginx conf. Use 'more_set_headers' instead. "
                     "(See https://www.peterbe.com/plog/be-very-careful-with-your-add_header-in-nginx "
                     "and https://github.com/openresty/headers-more-nginx-module#more_set_headers )"
@@ -569,7 +569,7 @@ class App(TestSuite):
                     nginxconf = []
 
                 for location in find_path_traversal_issue(nginxconf):
-                    yield Warning(
+                    yield Error(
                         "The nginx configuration (especially location %s) "
                         "appears vulnerable to path traversal issues as explained in\n"
                         "  https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
@@ -735,7 +735,7 @@ class Manifest(TestSuite):
     def version_format(self):
 
         if self.manifest["version"][-5:-1] != "~ynh":
-            yield Warning(
+            yield Error(
                 "The 'version' field should match the format <upstreamversion>~ynh<packageversion>. "
                 "For example : 4.3-2~ynh3. It is composed of the upstream version number (in the "
                 "example, 4.3-2) and an incremental number for each change in the package without "
@@ -980,7 +980,7 @@ class Script(TestSuite):
             )
 
     @test()
-    def chmod(self):
+    def chmod777(self):
         if self.containsregex(r"chmod .*777") or self.containsregex(r'chmod .*o\+w'):
             yield Warning(
                 "DO NOT use chmod 777 or chmod o+w that gives write permission to every users on the system !!! If you have permission issues, just make sure that the owner and/or group owner is right ..."
@@ -989,9 +989,8 @@ class Script(TestSuite):
     @test()
     def random(self):
         if self.contains("dd if=/dev/urandom") or self.contains("openssl rand"):
-            yield Warning(
-                "Instead of 'dd if=/dev/urandom' or 'openssl rand', "
-                "you might want to use ynh_string_random"
+            yield Error(
+                "Instead of 'dd if=/dev/urandom' or 'openssl rand', you should use ynh_string_random"
             )
 
     @test(only=["install"])
@@ -1020,12 +1019,12 @@ class Script(TestSuite):
             yield Warning("You should avoid having dependencies like 'php-foobar'. Instead, specify the exact version you want like 'php7.0-foobar'. Otherwise, the *wrong* version of the dependency may be installed if sury is also installed. Note that for Stretch/Buster/Bullseye/... transition, Yunohost will automatically patch your file so there's no need to care about that.")
 
     @test(only=["backup"])
-    def random(self):
+    def systemd_during_backup(self):
         if self.containsregex("^ynh_systemd_action"):
             yield Warning("Unless you really have a good reason to do so, starting/stopping services during backup has no benefit and leads to unecessary service interruptions when creating backups... As a 'reminder': apart from possibly database dumps (which usually do not require the service to be stopped) or other super-specific action, running the backup script is only a *declaration* of what needs to be backuped. The real copy and archive creation happens *after* the backup script is ran.")
 
     @test()
-    def helpers_sourcing(self):
+    def helpers_sourcing_after_official(self):
         helpers_after_official = subprocess.check_output("head -n 30 '%s' | grep -A 10 '^ *source */usr/share/yunohost/helpers' | grep '^ *source' | tail -n +2" % self.path, shell=True).decode("utf-8")
         helpers_after_official = helpers_after_official.replace("source", "").replace(" ", "").strip()
         if helpers_after_official:
@@ -1033,7 +1032,7 @@ class Script(TestSuite):
             yield Warning("Please avoid sourcing additional helpers after the official helpers (in this case file %s)" % ", ".join(helpers_after_official))
 
     @test(only=["backup", "restore"])
-    def helpers_sourcing(self):
+    def helpers_sourcing_backuprestore(self):
         if self.contains("source _common.sh") or self.contains("source ./_common.sh"):
             yield Warning("In the context of backup and restore script, you should load _common.sh with \"source ../settings/scripts/_common.sh\"")
 
