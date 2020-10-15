@@ -326,6 +326,7 @@ class App(TestSuite):
         print_header("MISC HELPER USAGE / CONSISTENCY")
         self.run_tests()
 
+
     #######################################
     #  _    _      _                      #
     # | |  | |    | |                     #
@@ -436,7 +437,7 @@ class App(TestSuite):
     ###########################################################
 
     @test()
-    def misc_files(app):
+    def mandatory_scripts(app):
         filenames = ("manifest.json", "LICENSE", "README.md",
                      "scripts/install", "scripts/remove",
                      "scripts/upgrade",
@@ -445,6 +446,12 @@ class App(TestSuite):
         for filename in filenames:
             if not file_exists(app.path + "/" + filename):
                 yield Error("Providing %s is mandatory" % filename)
+
+    @test()
+    def change_url_script(app):
+
+        if not file_exists(app.path + "/scripts/change_url"):
+            yield Warning("Consider adding a change_url script to support changing where the app is installed")
 
 
     @test()
