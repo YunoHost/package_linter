@@ -453,6 +453,26 @@ class App(TestSuite):
         if not file_exists(app.path + "/scripts/change_url"):
             yield Warning("Consider adding a change_url script to support changing where the app is installed")
 
+    @test()
+    def check_process_exists(app):
+
+        check_process_file = app.path + "/check_process"
+
+        if not file_exists(check_process_file):
+            yield Warning("You should add a 'check_process' file to properly interface with the continuous integration system")
+
+    @test()
+    def check_process_syntax(app):
+
+        check_process_file = app.path + "/check_process"
+        if not file_exists(check_process_file):
+            return
+
+        if os.system("grep -q 'Level 5=1' %s" % check_process_file) == 0:
+            yield Error("Do not force Level 5=1 in check_process...")
+
+        if os.system("grep -q ' *Level [^5]=' %s" % check_process_file) == 0:
+            yield Warning("Setting Level x=y in check_process is obsolete / not relevant anymore")
 
     @test()
     def misc_legacy_phpini(app):
