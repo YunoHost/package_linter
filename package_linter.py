@@ -475,6 +475,35 @@ class App(TestSuite):
             yield Warning("Setting Level x=y in check_process is obsolete / not relevant anymore")
 
     @test()
+    def check_process_consistency(app):
+
+        check_process_file = app.path + "/check_process"
+        if not file_exists(check_process_file):
+            return
+
+        has_is_public_arg = any(a["name"] == "is_public" for a in app.manifest["arguments"].get("install", []))
+        if has_is_public_arg:
+            if os.system(r"grep -q '^\s*setup_public=1' %s" % check_process_file) != 0:
+                yield Warning("It looks like you forgot to enable setup_public test in check_process ?")
+
+            if os.system(r"grep -q '^\s*setup_private=1' %s" % check_process_file) != 0:
+                yield Warning("It looks like you forgot to enable setup_private test in check_process ?")
+
+        has_path_arg = any(a["name"] == "path" for a in app.manifest["arguments"].get("install", []))
+        if has_path_arg:
+            if os.system(r"grep -q '^\s*setup_sub_dir=1' %s" % check_process_file) != 0:
+                yield Warning("It looks like you forgot to enable setup_sub_dir test in check_process ?")
+
+        if app.manifest.get("multi_instance") in [True, 1, "True", "true"]:
+            if os.system(r"grep -q '^\s*multi_instance=1' %s" % check_process_file) != 0:
+                yield Warning("It looks like you forgot to enable multi_instance test in check_process ?")
+
+        if app.scripts["backup"].exists:
+            if os.system(r"grep -q '^\s*backup_restore=1' %s" % check_process_file) != 0:
+                yield Warning("It looks like you forgot to enable backup_restore test in check_process ?")
+
+
+    @test()
     def misc_legacy_phpini(app):
 
         if file_exists(app.path + "/conf/php-fpm.ini"):
