@@ -667,6 +667,13 @@ class Manifest(TestSuite):
             yield Error("You should add a yunohost version requirement in the manifest")
 
     @test()
+    def yunohost_version_requirement_superold(app):
+
+        yunohost_version_req = app.manifest.get("requirements", {}).get("yunohost", "").strip(">= ")
+        if yunohost_version_req.startswith("2."):
+            yield Error("Your app only requires yunohost >= 2.x, which tends to indicate that your app may not be up to date with recommended packaging practices and helpers.")
+
+    @test()
     def basic_fields_format(self):
 
         if self.manifest.get("packaging_format") != 1:
