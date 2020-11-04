@@ -10,6 +10,7 @@ import urllib.request
 import codecs
 import subprocess
 import time
+import statistics
 
 reader = codecs.getreader("utf-8")
 
@@ -1070,15 +1071,33 @@ class Script(TestSuite):
             )
 
     @test()
-    def progression_weight(self):
+    def progression_time(self):
 
         # Usage of ynh_script_prorgression with --time or --weight=1 all over the place...
         if self.containsregex(r"ynh_script_progression.*--time"):
             yield Warning("Using ynh_script_progression --time should only be for calibrating the weight (c.f. --weight). It's not meant to be kept for production versions.")
-        if self.containsregex(r"ynh_script_progression.*--weight=1") \
-            and not self.containsregex(r"ynh_script_progression.*--weight=([^1]|[1-9][0-9]+)"):
-            yield Warning("Having only '--weight=1' for ynh_script_progression is useless... Either calibrate the weights with --time once, or don't put any --weight at all.")
 
+    @test(ignore=["_common.sh", "backup"])
+    def progression_meaningful_weights(self):
+
+        def weight(line):
+            match = re.search(r"ynh_script_progression.*--weight=([0-9]+)", ' '.join(line))
+            if match:
+                try:
+                    return int(match.groups()[0])
+                except:
+                    return -1
+            else:
+                return 1
+
+        script_progress = [line for line in self.lines if "ynh_script_progression" in line]
+        weights = [weight(line) for line in script_progress]
+
+        if not weights:
+            return
+
+        if len(weights) > 3 and statistics.stdev(weights) > 50:
+            yield Warning("To have a meaningful progress bar, try to keep the weights in the same range of values, for example [1,10], or [10,100] ... otherwise, if you have super-huge weight differentes, the progress bar rendering will be completely dominated by one or two steps... If these steps are really long, just try to indicated in the message that this will take a while.")
 
     @test(only=["install", "_common.sh"])
     def php_deps(self):
