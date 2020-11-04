@@ -450,7 +450,8 @@ class App(TestSuite):
     @test()
     def change_url_script(app):
 
-        if not file_exists(app.path + "/scripts/change_url"):
+        has_domain_arg = any(a["name"] == "is_public" for a in app.manifest["arguments"].get("install", []))
+        if has_domain_arg and not file_exists(app.path + "/scripts/change_url"):
             yield Warning("Consider adding a change_url script to support changing where the app is installed")
 
     @test()
