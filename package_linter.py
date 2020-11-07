@@ -673,6 +673,8 @@ class Manifest(TestSuite):
         except Exception as e:
             raise Exception("Looks like there's a syntax issue in your json ? %s" % e)
 
+        self.catalog_infos = app_list().get(self.manifest.get("id"), {})
+
 
     @test()
     def mandatory_fields(self):
@@ -730,7 +732,7 @@ class Manifest(TestSuite):
 
 
         if "nonfree" in license.replace("-", ""):
-            yield Warning("'non-free' apps can't be officialized.")
+            yield Warning("'non-free' apps cannot be integrated in Yunohost's app catalog.")
 
 
         code_license = '<code property="spdx:licenseId">' + license + '</code>'
@@ -748,31 +750,61 @@ class Manifest(TestSuite):
                 "or 'non-free' and give some explanations in the README.md." % (license)
             )
 
+    @test()
+    def app_catalog(self):
+
+        if not self.catalog_infos:
+            yield Warning("This app is not Yunohost's application catalog")
 
     @test()
-    def app_in_app_catalog(self):
+    def app_catalog_revision(self):
 
-        if self.manifest["id"] not in app_list():
-            yield Warning("This app is not Yunohost's application catalog")
+        if self.catalog_infos and self.catalog_infos.get("revision", "HEAD") != "HEAD":
+            yield Error("You should make sure that the revision used in Yunohost's apps catalog is HEAD ...")
+
+    @test()
+    def app_catalog_state(self):
+
+        if self.catalog_infos and self.catalog_infos.get("state", "working") != "working":
+            yield Warning("The application is not flagged as working in Yunohost's apps catalog")
+
+    @test()
+    def app_catalog_maintained(self):
+
+        if self.catalog_infos and self.catalog_infos.get("maintained", True) is not True:
+            yield Warning("The application is flagged as not maintained in Yunohost's apps catalog")
+
+    @test()
+    def app_catalog_category(self):
+        if self.catalog_infos and not self.catalog_infos.get("category"):
+            yield Warning("The application has no associated category in Yunohost's apps catalog")
 
     @test()
     def app_in_github_org(self):
 
-        all_urls = [infos.get("url", "").lower() for infos in app_list().values()]
-
         repo_org = "https://github.com/YunoHost-Apps/%s_ynh" % (self.manifest["id"])
         repo_brique = "https://github.com/labriqueinternet/%s_ynh" % (self.manifest["id"])
 
-        if repo_org.lower() in all_urls or repo_brique.lower() in all_urls:
-            return
+        if self.catalog_infos:
+            repo_url = self.catalog_infos["url"]
 
-        def is_in_github_org():
-            return urlopen(repo_org)['code'] != 404
-        def is_in_brique_org():
-            return urlopen(repo_brique)['code'] != 404
+            all_urls = [infos.get("url", "").lower() for infos in app_list().values()]
 
-        if not is_in_github_org() and not is_in_brique_org():
-            yield Warning("Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily")
+            if repo_url.lower() not in [repo_org.lower(), repo_brique.lower()]:
+                if repo_url.lower().startswith("https://github.com/YunoHost-Apps/"):
+                    yield Warning("The url for this app in the catalog should be ")
+                else:
+                    yield Warning("Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily")
+
+        else:
+            def is_in_github_org():
+                return urlopen(repo_org)['code'] != 404
+
+            def is_in_brique_org():
+                return urlopen(repo_brique)['code'] != 404
+
+            if not is_in_github_org() and not is_in_brique_org():
+                yield Warning("Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily")
 
     @test()
     def description(self):
@@ -802,7 +834,7 @@ class Manifest(TestSuite):
     @test()
     def version_format(self):
 
-        if self.manifest["version"][-5:-1] != "~ynh":
+        if self.manifest.get("version", "")[-5:-1] != "~ynh":
             yield Error(
                 "The 'version' field should match the format <upstreamversion>~ynh<packageversion>. "
                 "For example : 4.3-2~ynh3. It is composed of the upstream version number (in the "
