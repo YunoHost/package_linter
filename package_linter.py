@@ -860,7 +860,7 @@ class Manifest(TestSuite):
     @test()
     def install_args(self):
 
-        recognized_types = ("domain", "path", "boolean", "app", "password", "user", "string", "display_text")
+        recognized_types = ("domain", "path", "boolean", "password", "user", "string", "display_text")
 
         for argument in self.manifest["arguments"].get("install", []):
             if not isinstance(argument.get("optional", False), bool):
