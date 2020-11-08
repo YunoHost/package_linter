@@ -732,7 +732,7 @@ class Manifest(TestSuite):
 
 
         if "nonfree" in license.replace("-", ""):
-            yield Warning("'non-free' apps cannot be integrated in Yunohost's app catalog.")
+            yield Warning("'non-free' apps cannot be integrated in YunoHost's app catalog.")
 
 
         code_license = '<code property="spdx:licenseId">' + license + '</code>'
@@ -754,30 +754,30 @@ class Manifest(TestSuite):
     def app_catalog(self):
 
         if not self.catalog_infos:
-            yield Warning("This app is not Yunohost's application catalog")
+            yield Warning("This app is not in YunoHost's application catalog")
 
     @test()
     def app_catalog_revision(self):
 
         if self.catalog_infos and self.catalog_infos.get("revision", "HEAD") != "HEAD":
-            yield Error("You should make sure that the revision used in Yunohost's apps catalog is HEAD ...")
+            yield Error("You should make sure that the revision used in YunoHost's apps catalog is HEAD...")
 
     @test()
     def app_catalog_state(self):
 
         if self.catalog_infos and self.catalog_infos.get("state", "working") != "working":
-            yield Warning("The application is not flagged as working in Yunohost's apps catalog")
+            yield Warning("The application is not flagged as working in YunoHost's apps catalog")
 
     @test()
     def app_catalog_maintained(self):
 
         if self.catalog_infos and self.catalog_infos.get("maintained", True) is not True:
-            yield Warning("The application is flagged as not maintained in Yunohost's apps catalog")
+            yield Warning("The application is flagged as not maintained in YunoHost's apps catalog")
 
     @test()
     def app_catalog_category(self):
         if self.catalog_infos and not self.catalog_infos.get("category"):
-            yield Warning("The application has no associated category in Yunohost's apps catalog")
+            yield Warning("The application has no associated category in YunoHost's apps catalog")
 
     @test()
     def app_in_github_org(self):
