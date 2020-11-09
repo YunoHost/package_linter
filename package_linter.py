@@ -792,7 +792,7 @@ class Manifest(TestSuite):
 
             if repo_url.lower() not in [repo_org.lower(), repo_brique.lower()]:
                 if repo_url.lower().startswith("https://github.com/YunoHost-Apps/"):
-                    yield Warning("The url for this app in the catalog should be ")
+                    yield Warning("The url for this app in the catalog should be %s" % repo_org)
                 else:
                     yield Warning("Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily")
 
@@ -1011,11 +1011,13 @@ class Script(TestSuite):
             yield Error("'yunohost app checkport' is obsolete!!! Please use 'ynh_find_port' instead.")
         if self.contains("yunohost app initdb"):
             yield Error("'yunohost app initdb' is obsolete!!! Please use 'ynh_mysql_setup_db' instead.")
+        if self.contains("yunohost tools port-available"):
+            yield Error("'yunohost tools port-available is obsolete!!! Please use 'ynh_port_available' instead.")
 
     @test()
     def safe_rm(self):
-        if self.contains("rm -rf"):
-            yield Error("You should avoid using 'rm -rf', please use 'ynh_secure_remove' instead")
+        if self.contains("rm -r") or self.contains("rm -R") or self.contains("rm -fr") or self.contains("rm -fR"):
+            yield Error("You should not be using 'rm -rf', please use 'ynh_secure_remove' instead")
 
     @test()
     def nginx_restart(self):
@@ -1033,7 +1035,6 @@ class Script(TestSuite):
                 "Do not fetch arguments from manifest using variable=$N (e.g."
                 " domain=$1 ...) Instead, use name=$YNH_APP_ARG_NAME"
             )
-
 
     @test(only=["install"])
     def sources_list_tweaking(self):
