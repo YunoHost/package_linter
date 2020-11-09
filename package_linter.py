@@ -426,6 +426,10 @@ class App(TestSuite):
             if not install_script.contains("--needs_exposed_ports"):
                 yield Warning("The install script expose a port on the outside with 'yunohost firewall allow' but doesn't use 'yunohost service add' with --needs_exposed_ports ... If your are ABSOLUTELY SURE that the service needs to be exposed on THE OUTSIDE, then add --needs_exposed_ports to 'yunohost service add' with the relevant port number. Otherwise, opening the port leads to a significant security risk and you should keep the damn port closed !")
 
+    @test()
+    def references_to_old_php_versions(app):
+        if any(script.contains("/etc/php5") or script.contains("php5-fpm") for script in app.scripts.values() if script.exists):
+            yield Warning("This app still has references to php5 (from the jessie era !!) which tends to indicate that it's not up to date with recent packaging practices.")
 
     ###########################################################
     #    _____             __       __            _           #
@@ -504,7 +508,6 @@ class App(TestSuite):
             if os.system(r"grep -q '^\s*backup_restore=1' %s" % check_process_file) != 0:
                 yield Warning("It looks like you forgot to enable backup_restore test in check_process ?")
 
-
     @test()
     def misc_legacy_phpini(app):
 
@@ -514,7 +517,6 @@ class App(TestSuite):
                 "Please merge your php-fpm directives directly in the pool file. "
                 "(c.f. https://github.com/YunoHost-Apps/nextcloud_ynh/issues/138 )"
             )
-
 
     @test()
     def misc_source_management(app):
@@ -529,7 +531,6 @@ class App(TestSuite):
                 "Original discussion happened here : "
                 "https://github.com/YunoHost/issues/issues/201#issuecomment-391549262"
             )
-
 
     @test()
     def misc_nginx_add_header(app):
@@ -552,7 +553,6 @@ class App(TestSuite):
                     "(See https://www.peterbe.com/plog/be-very-careful-with-your-add_header-in-nginx "
                     "and https://github.com/openresty/headers-more-nginx-module#more_set_headers )"
                 )
-
 
     @test()
     def misc_nginx_path_traversal(app):
