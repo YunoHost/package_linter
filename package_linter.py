@@ -1142,6 +1142,11 @@ class Script(TestSuite):
         if self.containsregex("^ynh_systemd_action"):
             yield Warning("Unless you really have a good reason to do so, starting/stopping services during backup has no benefit and leads to unecessary service interruptions when creating backups... As a 'reminder': apart from possibly database dumps (which usually do not require the service to be stopped) or other super-specific action, running the backup script is only a *declaration* of what needs to be backuped. The real copy and archive creation happens *after* the backup script is ran.")
 
+    @test(only=["backup"])
+    def check_size_backup(self):
+        if self.contains("CHECK_SIZE"):
+            yield Warning("There's no need to 'CHECK_SIZE' during backup ... This check is handled by the core automatically.")
+
     @test()
     def helpers_sourcing_after_official(self):
         helpers_after_official = subprocess.check_output("head -n 30 '%s' | grep -A 10 '^ *source */usr/share/yunohost/helpers' | grep '^ *source' | tail -n +2" % self.path, shell=True).decode("utf-8")
