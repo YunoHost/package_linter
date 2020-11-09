@@ -1055,7 +1055,7 @@ class Script(TestSuite):
     @test()
     def old_regenconf(self):
         if self.contains("yunohost service regen-conf"):
-            yield Warning("'yunohost tools regen-conf' has been replaced by 'yunohost tools regen-conf'.")
+            yield Warning("'yunohost service regen-conf' has been replaced by 'yunohost tools regen-conf'.")
 
     @test()
     def ssowatconf(self):
