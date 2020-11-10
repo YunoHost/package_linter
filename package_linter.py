@@ -671,7 +671,8 @@ class Manifest(TestSuite):
         try:
             self.manifest = json.loads(raw_manifest, object_pairs_hook=check_for_duplicate_keys)
         except Exception as e:
-            raise Exception("Looks like there's a syntax issue in your json ? %s" % e)
+            print(c.FAIL + "✘ Looks like there's a syntax issue in your manifest ?\n ---> %s" % e)
+            sys.exit(1)
 
         self.catalog_infos = app_list().get(self.manifest.get("id"), {})
 
