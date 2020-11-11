@@ -313,7 +313,7 @@ class App(TestSuite):
         self.manifest_ = Manifest(self.path)
         self.manifest = self.manifest_.manifest
         self.scripts = {f: Script(self.path, f) for f in scriptnames}
-
+        self.configurations = Configurations(self)
 
     def analyze(self):
 
@@ -324,9 +324,39 @@ class App(TestSuite):
             print_header(script.name.upper() + " SCRIPT")
             script.run_tests()
 
-        print_header("MISC HELPER USAGE / CONSISTENCY")
+        print_header("GENERAL STUFF, MISC HELPER USAGE")
         self.run_tests()
 
+        print_header("CONFIGURATIONS")
+        self.configurations.run_tests()
+
+    #########################################
+    #   _____                           _   #
+    #  |  __ \                         | |  #
+    #  | |  \/ ___ _ __   ___ _ __ __ _| |  #
+    #  | | __ / _ \ '_ \ / _ \ '__/ _` | |  #
+    #  | |_\ \  __/ | | |  __/ | | (_| | |  #
+    #   \____/\___|_| |_|\___|_|  \__,_|_|  #
+    #                                       #
+    #########################################
+
+    @test()
+    def mandatory_scripts(app):
+        filenames = ("manifest.json", "LICENSE", "README.md",
+                     "scripts/install", "scripts/remove",
+                     "scripts/upgrade",
+                     "scripts/backup", "scripts/restore")
+
+        for filename in filenames:
+            if not file_exists(app.path + "/" + filename):
+                yield Error("Providing %s is mandatory" % filename)
+
+    @test()
+    def change_url_script(app):
+
+        has_domain_arg = any(a["name"] == "is_public" for a in app.manifest["arguments"].get("install", []))
+        if has_domain_arg and not file_exists(app.path + "/scripts/change_url"):
+            yield Warning("Consider adding a change_url script to support changing where the app is installed")
 
     #######################################
     #  _    _      _                      #
@@ -431,36 +461,27 @@ class App(TestSuite):
         if any(script.contains("/etc/php5") or script.contains("php5-fpm") for script in app.scripts.values() if script.exists):
             yield Warning("This app still has references to php5 (from the jessie era !!) which tends to indicate that it's not up to date with recent packaging practices.")
 
-    ###########################################################
-    #    _____             __       __            _           #
-    #   / ____|           / _|     / /           (_)          #
-    #  | |     ___  _ __ | |_     / /   _ __ ___  _ ___  ___  #
-    #  | |    / _ \| '_ \|  _|   / /   | '_ ` _ \| / __|/ __| #
-    #  | |___| (_) | | | | |    / /    | | | | | | \__ \ (__  #
-    #   \_____\___/|_| |_|_|   /_/     |_| |_| |_|_|___/\___| #
-    #                                                         #
-    ###########################################################
+
+class Configurations(TestSuite):
+
+    def __init__(self, app):
+
+        self.app = app
+
+    ############################
+    #    _____             __  #
+    #   / ____|           / _| #
+    #  | |     ___  _ __ | |_  #
+    #  | |    / _ \| '_ \|  _| #
+    #  | |___| (_) | | | | |   #
+    #   \_____\___/|_| |_|_|   #
+    #                          #
+    ############################
 
     @test()
-    def mandatory_scripts(app):
-        filenames = ("manifest.json", "LICENSE", "README.md",
-                     "scripts/install", "scripts/remove",
-                     "scripts/upgrade",
-                     "scripts/backup", "scripts/restore")
+    def check_process_exists(self):
 
-        for filename in filenames:
-            if not file_exists(app.path + "/" + filename):
-                yield Error("Providing %s is mandatory" % filename)
-
-    @test()
-    def change_url_script(app):
-
-        has_domain_arg = any(a["name"] == "is_public" for a in app.manifest["arguments"].get("install", []))
-        if has_domain_arg and not file_exists(app.path + "/scripts/change_url"):
-            yield Warning("Consider adding a change_url script to support changing where the app is installed")
-
-    @test()
-    def check_process_exists(app):
+        app = self.app
 
         check_process_file = app.path + "/check_process"
 
@@ -468,7 +489,9 @@ class App(TestSuite):
             yield Warning("You should add a 'check_process' file to properly interface with the continuous integration system")
 
     @test()
-    def check_process_syntax(app):
+    def check_process_syntax(self):
+
+        app = self.app
 
         check_process_file = app.path + "/check_process"
         if not file_exists(check_process_file):
@@ -481,7 +504,9 @@ class App(TestSuite):
             yield Warning("Setting Level x=y in check_process is obsolete / not relevant anymore")
 
     @test()
-    def check_process_consistency(app):
+    def check_process_consistency(self):
+
+        app = self.app
 
         check_process_file = app.path + "/check_process"
         if not file_exists(check_process_file):
@@ -509,7 +534,9 @@ class App(TestSuite):
                 yield Warning("It looks like you forgot to enable backup_restore test in check_process ?")
 
     @test()
-    def misc_legacy_phpini(app):
+    def misc_legacy_phpini(self):
+
+        app = self.app
 
         if file_exists(app.path + "/conf/php-fpm.ini"):
             yield Error(
@@ -519,7 +546,9 @@ class App(TestSuite):
             )
 
     @test()
-    def misc_source_management(app):
+    def misc_source_management(self):
+
+        app = self.app
 
         source_dir = os.path.join(app.path, "sources")
         if os.path.exists(source_dir) \
@@ -533,7 +562,45 @@ class App(TestSuite):
             )
 
     @test()
-    def misc_nginx_add_header(app):
+    def systemd_config_specific_user(self):
+
+        app = self.app
+        for filename in os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []:
+            # Ignore subdirs or filename not containing nginx in the name
+            if not filename.endswith(".service"):
+                continue
+
+            content = open(app.path + "/conf/" + filename).read()
+            matches = re.findall(r"^ *(User|Group)=(\S+)", content, flags=re.MULTILINE)
+            if not any(match[0] == "User" for match in matches):
+                yield Warning("You should specify a User= directive in the systemd config !")
+                return
+
+            if any(match[1] in ["root", "www-data"] for match in matches):
+                yield Warning("DO NOT run the app's systemd service as root or www-data ! Use a dedicated system user for this app ! If your app requires administrator priviledges, you should consider adding the user to the sudoers (and restrict the commands it can use !)")
+
+    @test()
+    def php_config_specific_user(self):
+
+        app = self.app
+        for filename in os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []:
+            # Ignore subdirs or filename not containing nginx in the name
+            if not filename.startswith("php") or not filename.endswith(".conf"):
+                continue
+
+            content = open(app.path + "/conf/" + filename).read()
+            matches = re.findall(r"^ *(user|group) = (\S+)", content, flags=re.MULTILINE)
+            if not any(match[0] == "user" for match in matches):
+                yield Warning("You should at least specify a user = directive in your php conf file")
+                return
+
+            if any(match[1] in ["root", "www-data"] for match in matches):
+                yield Warning("DO NOT run the app php worker as root or www-data ! Use a dedicated system user for this app !")
+
+    @test()
+    def misc_nginx_add_header(self):
+
+        app = self.app
 
         #
         # Analyze nginx conf
@@ -555,7 +622,9 @@ class App(TestSuite):
                 )
 
     @test()
-    def misc_nginx_path_traversal(app):
+    def misc_nginx_path_traversal(self):
+
+        app = self.app
         for filename in os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []:
             # Ignore subdirs or filename not containing nginx in the name
             if not os.path.isfile(app.path + "/conf/" + filename) or "nginx" not in filename:
