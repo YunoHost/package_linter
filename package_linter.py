@@ -570,7 +570,12 @@ class Configurations(TestSuite):
             if not filename.endswith(".service"):
                 continue
 
-            content = open(app.path + "/conf/" + filename).read()
+            try:
+                content = open(app.path + "/conf/" + filename).read()
+            except Exception as e:
+                yield Warning("Can't open/read %s : %s" % (filename, e))
+                return
+
             matches = re.findall(r"^ *(User|Group)=(\S+)", content, flags=re.MULTILINE)
             if not any(match[0] == "User" for match in matches):
                 yield Warning("You should specify a User= directive in the systemd config !")
@@ -588,7 +593,12 @@ class Configurations(TestSuite):
             if not filename.startswith("php") or not filename.endswith(".conf"):
                 continue
 
-            content = open(app.path + "/conf/" + filename).read()
+            try:
+                content = open(app.path + "/conf/" + filename).read()
+            except Exception as e:
+                yield Warning("Can't open/read %s : %s" % (filename, e))
+                return
+
             matches = re.findall(r"^ *(user|group) = (\S+)", content, flags=re.MULTILINE)
             if not any(match[0] == "user" for match in matches):
                 yield Warning("You should at least specify a user = directive in your php conf file")
