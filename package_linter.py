@@ -632,6 +632,33 @@ class Configurations(TestSuite):
                 )
 
     @test()
+    def misc_nginx_more_set_headers(self):
+
+        app = self.app
+
+        for filename in os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []:
+            # Ignore subdirs or filename not containing nginx in the name
+            if not os.path.isfile(app.path + "/conf/" + filename) or "nginx" not in filename:
+                continue
+
+            content = open(app.path + "/conf/" + filename).read()
+            if "location" in content and "more_set_headers" in content:
+
+                lines = content.split("\n")
+                more_set_headers_lines = [l for l in lines if "more_set_headers" in l]
+                def right_syntax(line):
+                    return re.search(r"more_set_headers [\"\'][\w-]+\s?: .*[\"\'];", line)
+
+                if any(not right_syntax(line) for line in more_set_headers_lines):
+                    yield Warning(
+                        "It looks like the syntax for the more_set_headers "
+                        "instruction is incorrect in the nginx conf (N.B. "
+                        ": it's different than the add_header syntax!) ... "
+                        "The syntax should look like: "
+                        "more_set_headers \"Header-Name: value\""
+                    )
+
+    @test()
     def misc_nginx_path_traversal(self):
 
         app = self.app
