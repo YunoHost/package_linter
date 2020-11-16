@@ -1093,6 +1093,13 @@ class Script(TestSuite):
             yield Error("'yunohost app initdb' is obsolete!!! Please use 'ynh_mysql_setup_db' instead.")
         if self.contains("yunohost tools port-available"):
             yield Error("'yunohost tools port-available is obsolete!!! Please use 'ynh_port_available' instead.")
+        if self.contains("yunohost app list -i") or self.contains("yunohost app list --installed"):
+            yield Warning(
+                "Argument --installed ain't needed anymore when using "
+                "'yunohost app list'. It directly returns the list of installed "
+                "apps.. Also beware that option -f is obsolete as well .. "
+                "Use grep -q 'id: $appname' to check a specific app is installed"
+            )
 
     @test()
     def safe_rm(self):
