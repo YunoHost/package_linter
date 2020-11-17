@@ -11,6 +11,7 @@ import codecs
 import subprocess
 import time
 import statistics
+from datetime import datetime
 
 reader = codecs.getreader("utf-8")
 
@@ -180,16 +181,20 @@ class TestReport:
         self.message = message
 
     def display(self):
-        _print(self.style, self.message, c.END)
+        _print(self.style % self.message)
 
 class Warning(TestReport):
-    style = c.WARNING + "!"
+    style = c.WARNING + "! %s " + c.END
 
 class Error(TestReport):
-    style = c.FAIL + "✘"
+    style = c.FAIL + "✘ %s" + c.END
 
 class Info(TestReport):
-    style = c.OKBLUE
+    style = c.OKBLUE + " %s" + c.END
+
+class Success(TestReport):
+    style = c.OKGREEN + "☺  %s ♥" + c.END
+
 
 
 def header(app):
@@ -255,22 +260,6 @@ def spdx_licenses():
     open(cachefile, "w").write(content)
     return content
 
-
-def app_list():
-
-    cachefile = "./.apps.json"
-    if os.path.exists(cachefile) and time.time() - os.path.getmtime(cachefile) < 3600:
-        try:
-            return json.loads(open(cachefile).read())
-        except:
-            _print("Uuuuh failed to load apps.json from cache...")
-
-    url = "https://raw.githubusercontent.com/YunoHost/apps/master/apps.json"
-    content = urlopen(url)['content']
-    open(cachefile, "w").write(content)
-    return json.loads(content)
-
-
 tests = {}
 tests_reports = []
 
@@ -291,11 +280,15 @@ class TestSuite():
                 continue
             if "ignore" in options and self.name in options["ignore"]:
                 continue
-            reports = list(test(self))
-            for report in reports:
-                if output == "plain":
-                    report.display()
-                tests_reports.append((test.__qualname__, report))
+            self.run_single_test(test)
+
+    def run_single_test(self, test):
+
+        reports = list(test(self))
+        for report in reports:
+            if output == "plain":
+                report.display()
+            tests_reports.append((test.__qualname__, report))
 
 # ############################################################################
 #   Actual high-level checks
@@ -314,6 +307,7 @@ class App(TestSuite):
         self.manifest = self.manifest_.manifest
         self.scripts = {f: Script(self.path, f) for f in scriptnames}
         self.configurations = Configurations(self)
+        self.app_catalog = AppCatalog(self.manifest["id"])
 
     def analyze(self):
 
@@ -329,6 +323,68 @@ class App(TestSuite):
 
         print_header("CONFIGURATIONS")
         self.configurations.run_tests()
+
+        print_header("APP CATALOG")
+        self.app_catalog.run_tests()
+
+        self.report()
+
+    def report(self):
+
+        self.run_single_test(App.qualify_for_level_7)  # That test is meant to be the last test being ran...
+
+        errors = [r for r in tests_reports if isinstance(r[1], Error)]
+        warnings = [r for r in tests_reports if isinstance(r[1], Warning)]
+        success = [r for r in tests_reports if isinstance(r[1], Success)]
+
+        if output == "json":
+            print(json.dumps({
+                "warnings": [test for test, _ in warnings],
+                "errors": [test for test, _ in errors],
+                "success": [test for test, _ in success]
+            }, indent=4))
+            return
+
+        if errors:
+            print("Uhoh there are some errors to be fixed :(")
+            sys.exit(1)
+        elif len(warnings) > 3:
+            print("Still some warnings to be fixed :s")
+        elif len(warnings) > 0:
+            print("Only %s warning remaining! You can do it!" % len(warnings))
+        else:
+            print_happy("Not even a warning! Congratz and thank you for keeping that package up to date with good practices !")
+
+    def qualify_for_level_7(app):
+
+        # If any error found, nope
+        if any(isinstance(report, Error) for _, report in tests_reports):
+            return
+
+        non_mandatory_warnings = [
+            "helpers_now_official",
+            "sed",
+            "url",
+            "sudo",
+            "progression_meaningful_weights",
+            "license",
+            "chmod777",
+            "check_process_consistency",
+            "check_process_syntax",
+        ]
+
+        def is_important_warning(test_report):
+            test, report = test_report
+            return isinstance(report, Warning) and test.split(".")[1] not in non_mandatory_warnings
+
+        # If any warning (except the non-mandatory ones), nope
+        if any(is_important_warning(test_report) for test_report in tests_reports):
+            return
+
+        # Last condition is to be long-term good quality
+        if any(test.split(".")[1] == "is_long_term_good_quality"
+               for test, report in tests_reports if isinstance(report, Success)):
+            yield Success("This app qualifies for level 7!")
 
     #########################################
     #   _____                           _   #
@@ -780,8 +836,6 @@ class Manifest(TestSuite):
             print(c.FAIL + "✘ Looks like there's a syntax issue in your manifest ?\n ---> %s" % e)
             sys.exit(1)
 
-        self.catalog_infos = app_list().get(self.manifest.get("id"), {})
-
 
     @test()
     def mandatory_fields(self):
@@ -856,62 +910,6 @@ class Manifest(TestSuite):
                 "It can be a typo error. If not, you should replace it by 'free' "
                 "or 'non-free' and give some explanations in the README.md." % (license)
             )
-
-    @test()
-    def app_catalog(self):
-
-        if not self.catalog_infos:
-            yield Warning("This app is not in YunoHost's application catalog")
-
-    @test()
-    def app_catalog_revision(self):
-
-        if self.catalog_infos and self.catalog_infos.get("revision", "HEAD") != "HEAD":
-            yield Error("You should make sure that the revision used in YunoHost's apps catalog is HEAD...")
-
-    @test()
-    def app_catalog_state(self):
-
-        if self.catalog_infos and self.catalog_infos.get("state", "working") != "working":
-            yield Warning("The application is not flagged as working in YunoHost's apps catalog")
-
-    @test()
-    def app_catalog_maintained(self):
-
-        if self.catalog_infos and self.catalog_infos.get("maintained", True) is not True:
-            yield Warning("The application is flagged as not maintained in YunoHost's apps catalog")
-
-    @test()
-    def app_catalog_category(self):
-        if self.catalog_infos and not self.catalog_infos.get("category"):
-            yield Warning("The application has no associated category in YunoHost's apps catalog")
-
-    @test()
-    def app_in_github_org(self):
-
-        repo_org = "https://github.com/YunoHost-Apps/%s_ynh" % (self.manifest["id"])
-        repo_brique = "https://github.com/labriqueinternet/%s_ynh" % (self.manifest["id"])
-
-        if self.catalog_infos:
-            repo_url = self.catalog_infos["url"]
-
-            all_urls = [infos.get("url", "").lower() for infos in app_list().values()]
-
-            if repo_url.lower() not in [repo_org.lower(), repo_brique.lower()]:
-                if repo_url.lower().startswith("https://github.com/YunoHost-Apps/"):
-                    yield Warning("The url for this app in the catalog should be %s" % repo_org)
-                else:
-                    yield Warning("Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily")
-
-        else:
-            def is_in_github_org():
-                return urlopen(repo_org)['code'] != 404
-
-            def is_in_brique_org():
-                return urlopen(repo_brique)['code'] != 404
-
-            if not is_in_github_org() and not is_in_brique_org():
-                yield Warning("Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily")
 
     @test()
     def description(self):
@@ -1006,6 +1004,171 @@ class Manifest(TestSuite):
                     '       "en": "Some explanation"\n'
                     '    }')
 
+
+########################################
+#  _____       _        _              #
+# /  __ \     | |      | |             #
+# | /  \/ __ _| |_ __ _| | ___   __ _  #
+# | |    / _` | __/ _` | |/ _ \ / _` | #
+# | \__/\ (_| | || (_| | | (_) | (_| | #
+#  \____/\__,_|\__\__,_|_|\___/ \__, | #
+#                                __/ | #
+#                               |___/  #
+#                                      #
+########################################
+
+
+class AppCatalog(TestSuite):
+
+    def __init__(self, app_id):
+
+        self.app_id = app_id
+
+        self._fetch_app_repo()
+
+        try:
+            self.app_list = json.loads(open("./.apps/apps.json").read())
+        except Exception:
+            _print("Failed to read apps.json :/")
+            sys.exit(-1)
+
+        self.catalog_infos = self.app_list.get(app_id, {})
+
+    def _fetch_app_repo(self):
+
+        flagfile = "./.apps_git_clone_cache"
+        if os.path.exists("./.apps") and os.path.exists(flagfile) and time.time() - os.path.getmtime(flagfile) < 3600:
+            return
+
+        if not os.path.exists("./.apps"):
+            subprocess.check_call(["git", "clone", "https://github.com/YunoHost/apps", "./.apps", "--quiet"])
+        else:
+            subprocess.check_call(["git", "-C", "./.apps", "fetch", "--quiet"])
+            subprocess.check_call(["git", "-C", "./.apps", "reset", "origin/master", "--hard"])
+
+        open(flagfile, "w").write("")
+
+    @test()
+    def is_in_catalog(self):
+
+        if not self.catalog_infos:
+            yield Warning("This app is not in YunoHost's application catalog")
+
+    @test()
+    def revision_is_HEAD(self):
+
+        if self.catalog_infos and self.catalog_infos.get("revision", "HEAD") != "HEAD":
+            yield Error("You should make sure that the revision used in YunoHost's apps catalog is HEAD...")
+
+    @test()
+    def state_is_working(self):
+
+        if self.catalog_infos and self.catalog_infos.get("state", "working") != "working":
+            yield Warning("The application is not flagged as working in YunoHost's apps catalog")
+
+    @test()
+    def is_maintained(self):
+
+        if self.catalog_infos and self.catalog_infos.get("maintained", True) is not True:
+            yield Warning("The application is flagged as not maintained in YunoHost's apps catalog")
+
+    @test()
+    def has_category(self):
+        if self.catalog_infos and not self.catalog_infos.get("category"):
+            yield Warning("The application has no associated category in YunoHost's apps catalog")
+
+    @test()
+    def is_in_github_org(self):
+
+        repo_org = "https://github.com/YunoHost-Apps/%s_ynh" % (self.app_id)
+        repo_brique = "https://github.com/labriqueinternet/%s_ynh" % (self.app_id)
+
+        if self.catalog_infos:
+            repo_url = self.catalog_infos["url"]
+
+            all_urls = [infos.get("url", "").lower() for infos in self.app_list.values()]
+
+            if repo_url.lower() not in [repo_org.lower(), repo_brique.lower()]:
+                if repo_url.lower().startswith("https://github.com/YunoHost-Apps/"):
+                    yield Warning("The url for this app in the catalog should be %s" % repo_org)
+                else:
+                    yield Warning("Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily")
+
+        else:
+            def is_in_github_org():
+                return urlopen(repo_org)['code'] != 404
+
+            def is_in_brique_org():
+                return urlopen(repo_brique)['code'] != 404
+
+            if not is_in_github_org() and not is_in_brique_org():
+                yield Warning("Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily")
+
+    @test()
+    def is_long_term_good_quality(self):
+
+        #
+        # This analyzes the (git) history of apps.json in the past year and
+        # compute a score according to the number of period where the app was
+        # known + flagged working + level >= 5
+        #
+
+        def git(cmd):
+            return subprocess.check_output(["git", "-C", "./.apps"] + cmd).decode('utf-8').strip()
+
+        def _time_points_until_today():
+
+            # Prior to April 4th, 2019, we still had official.json and community.json
+            # Nowadays we only have apps.json
+            year = 2019
+            month = 6
+            day = 1
+            today = datetime.today()
+            date = datetime(year, month, day)
+
+            while date < today:
+                yield date
+
+                day += 14
+                if day > 15:
+                    day = 1
+                    month += 1
+
+                if month > 12:
+                    month = 1
+                    year += 1
+
+                date = datetime(year, month, day)
+
+        def get_history(N):
+
+            for t in list(_time_points_until_today())[(-1 * N):]:
+
+                # Fetch apps.json content at this date
+                commit = git(["rev-list", "-1", "--before='%s'" % t.strftime("%b %d %Y"), "master"])
+                raw_json_at_this_date = git(["show", "%s:apps.json" % commit])
+                json_at_this_date = json.loads(raw_json_at_this_date)
+
+                yield (t, json_at_this_date.get(self.app_id))
+
+        # We'll check the history for last 12 months (*2 points per month)
+        N = 12 * 2
+        history = list(get_history(N))
+
+        # Must have been
+        #   known
+        # + flagged as working
+        # + level > 5
+        # for the past 6 months
+        def good_quality(infos):
+            return bool(infos) and isinstance(infos, dict) \
+                and infos.get("state") == "working" \
+                and infos.get("level", -1) >= 5
+
+        score = sum([good_quality(infos) for d, infos in history])
+        rel_score = int(100 * score / N)
+        if rel_score > 90:
+            yield Success("The app is long-term good quality in the catalog ! (Score: %s/100)" % rel_score)
 
 ##################################
 #   _____           _       _    #
@@ -1275,6 +1438,7 @@ class Script(TestSuite):
             yield Warning("In the context of backup and restore script, you should load _common.sh with \"source ../settings/scripts/_common.sh\"")
 
 
+
 def main():
     if len(sys.argv) < 2:
         print("Give one app package path.")
@@ -1286,24 +1450,8 @@ def main():
     output = "json" if "--json" in sys.argv else "plain"
 
     header(app_path)
-    App(app_path).analyze()
-
-    if output == "json":
-        print(json.dumps({"warnings": [test for test, report in tests_reports if isinstance(report, Warning)],
-                          "errors": [test for test, report in tests_reports if isinstance(report, Error)]}, indent=4))
-    else:
-        errors = [report for _, report in tests_reports if isinstance(report, Error)]
-        warnings = [report for _, report in tests_reports if isinstance(report, Warning)]
-        if errors:
-            print("Uhoh there are some errors to be fixed :(")
-            sys.exit(1)
-        elif len(warnings) > 3:
-            print("Still some warnings to be fixed :s")
-        elif len(warnings) > 0:
-            print("Only %s warning remaining! You can do it!" % len(warnings))
-        else:
-            print_happy("Not even a warning! Congratz and thank you for keeping that package up to date with good practices !")
-
+    app = App(app_path)
+    app.analyze()
 
 if __name__ == '__main__':
     main()
