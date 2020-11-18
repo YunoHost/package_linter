@@ -184,16 +184,16 @@ class TestReport:
         _print(self.style % self.message)
 
 class Warning(TestReport):
-    style = c.WARNING + "! %s " + c.END
+    style = c.WARNING + " ! %s " + c.END
 
 class Error(TestReport):
-    style = c.FAIL + "✘ %s" + c.END
+    style = c.FAIL + " ✘ %s" + c.END
 
 class Info(TestReport):
-    style = c.OKBLUE + " %s" + c.END
+    style = c.OKBLUE + " ⓘ  %s" + c.END
 
 class Success(TestReport):
-    style = c.OKGREEN + "☺  %s ♥" + c.END
+    style = c.OKGREEN + " ☺  %s ♥" + c.END
 
 
 
@@ -232,7 +232,7 @@ def report_warning_not_reliable(str):
 
 
 def print_happy(str):
-    _print(c.OKGREEN + "☺ ", str, "♥")
+    _print(c.OKGREEN + " ☺ ", str, "♥")
 
 
 def urlopen(url):
@@ -358,11 +358,11 @@ class App(TestSuite):
     def qualify_for_level_7(self):
 
         if tests_reports["error"]:
-            print("Uhoh there are some errors to be fixed :(")
+            print(" Uhoh there are some errors to be fixed :(")
         elif len(tests_reports["warning"]) > 3:
-            print("Still some warnings to be fixed :s")
+            print(" Still some warnings to be fixed :s")
         elif len(tests_reports["warning"]) > 0:
-            print("Only %s warning remaining! You can do it!" % len(test_reports["warning"]))
+            print(" Only %s warning remaining! You can do it!" % len(tests_reports["warning"]))
         else:
             yield Success("Not even a warning! Congratz and thank you for keeping that package up to date with good practices! This app qualifies for level 7!")
 
@@ -1022,7 +1022,7 @@ class AppCatalog(TestSuite):
             subprocess.check_call(["git", "clone", "https://github.com/YunoHost/apps", "./.apps", "--quiet"])
         else:
             subprocess.check_call(["git", "-C", "./.apps", "fetch", "--quiet"])
-            subprocess.check_call(["git", "-C", "./.apps", "reset", "origin/master", "--hard"])
+            subprocess.check_call(["git", "-C", "./.apps", "reset", "origin/master", "--hard", "--quiet"])
 
         open(flagfile, "w").write("")
 
@@ -1140,7 +1140,7 @@ class AppCatalog(TestSuite):
         score = sum([good_quality(infos) for d, infos in history])
         rel_score = int(100 * score / N)
         if rel_score > 90:
-            yield Success("The app is long-term good quality in the catalog ! (Score: %s/100)" % rel_score)
+            yield Success("The app is long-term good quality in the catalog !")
 
 ##################################
 #   _____           _       _    #
