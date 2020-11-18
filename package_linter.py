@@ -261,7 +261,12 @@ def spdx_licenses():
     return content
 
 tests = {}
-tests_reports = []
+tests_reports = {
+    "warning": [],
+    "error": [],
+    "info": [],
+    "success": [],
+}
 
 def test(**kwargs):
     def decorator(f):
@@ -288,7 +293,9 @@ class TestSuite():
         for report in reports:
             if output == "plain":
                 report.display()
-            tests_reports.append((test.__qualname__, report))
+            report_type = report.__class__.__name__.lower()
+            test_name = test.__qualname__
+            tests_reports[report_type].append((test_name, report))
 
 # ############################################################################
 #   Actual high-level checks
@@ -331,44 +338,45 @@ class App(TestSuite):
 
     def report(self):
 
-        self.run_single_test(App.qualify_for_level_7)  # That test is meant to be the last test being ran...
-
-        errors = [r for r in tests_reports if isinstance(r[1], Error)]
-        warnings = [r for r in tests_reports if isinstance(r[1], Warning)]
-        success = [r for r in tests_reports if isinstance(r[1], Success)]
+        # These are meant to be the last stuff running, they are based on
+        # previously computed errors/warning/successes
+        self.run_single_test(App.qualify_for_level_7)
+        self.run_single_test(App.qualify_for_level_8)
 
         if output == "json":
             print(json.dumps({
-                "warnings": [test for test, _ in warnings],
-                "errors": [test for test, _ in errors],
-                "success": [test for test, _ in success]
+                "warning": [test for test, _ in tests_reports["warning"]],
+                "error": [test for test, _ in tests_reports["error"]],
+                "success": [test for test, _ in tests_reports["success"]],
+                "info": [test for test, _ in tests_reports["info"]]
             }, indent=4))
             return
 
-        if errors:
-            print("Uhoh there are some errors to be fixed :(")
+        if tests_reports["error"]:
             sys.exit(1)
-        elif len(warnings) > 3:
+
+    def qualify_for_level_7(self):
+
+        if tests_reports["error"]:
+            print("Uhoh there are some errors to be fixed :(")
+        elif len(tests_reports["warning"]) > 3:
             print("Still some warnings to be fixed :s")
-        elif len(warnings) > 0:
-            print("Only %s warning remaining! You can do it!" % len(warnings))
+        elif len(tests_reports["warning"]) > 0:
+            print("Only %s warning remaining! You can do it!" % len(test_reports["warning"]))
         else:
-            print_happy("Not even a warning! Congratz and thank you for keeping that package up to date with good practices !")
+            yield Success("Not even a warning! Congratz and thank you for keeping that package up to date with good practices! This app qualifies for level 7!")
 
-    def qualify_for_level_7(app):
+    def qualify_for_level_8(self):
 
-        # If any error found, nope
-        if any(isinstance(report, Error) for _, report in tests_reports):
-            return
+        successes = [test.split(".")[1] for test, _ in tests_reports["success"]]
 
-        # If any warning, nope
-        if any(isinstance(report, Warning) for test_report in tests_reports):
-            return
-
-        # Last condition is to be long-term good quality
-        if any(test.split(".")[1] == "is_long_term_good_quality"
-               for test, report in tests_reports if isinstance(report, Success)):
-            yield Success("This app qualifies for level 7!")
+        # Level 8 = qualifies for level 7 + maintained + long term good quality
+        catalog_infos = self.app_catalog.catalog_infos
+        is_maintained = catalog_infos and catalog_infos.get("maintained", True) is True
+        if not is_maintained:
+            print("The app is flagged as not maintained in the app catalog")
+        elif "qualify_for_level_7" in successes and "is_long_term_good_quality" in successes:
+            yield Success("The app is maintained and long-term good quality, and therefore qualifies for level 8!")
 
     #########################################
     #   _____                           _   #
@@ -1035,12 +1043,6 @@ class AppCatalog(TestSuite):
 
         if self.catalog_infos and self.catalog_infos.get("state", "working") != "working":
             yield Warning("The application is not flagged as working in YunoHost's apps catalog")
-
-    @test()
-    def is_maintained(self):
-
-        if self.catalog_infos and self.catalog_infos.get("maintained", True) is not True:
-            yield Warning("The application is flagged as not maintained in YunoHost's apps catalog")
 
     @test()
     def has_category(self):
