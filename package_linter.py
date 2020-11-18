@@ -374,7 +374,7 @@ class App(TestSuite):
         catalog_infos = self.app_catalog.catalog_infos
         is_maintained = catalog_infos and catalog_infos.get("maintained", True) is True
         if not is_maintained:
-            _print("The app is flagged as not maintained in the app catalog")
+            _print(" The app is flagged as not maintained in the app catalog")
         elif "qualify_for_level_7" in successes and "is_long_term_good_quality" in successes:
             yield Success("The app is maintained and long-term good quality, and therefore qualifies for level 8!")
 
@@ -1326,8 +1326,8 @@ class Script(TestSuite):
     def sudo(self):
         if self.containsregex(r"sudo \w"):  # \w is here to not match sudo -u, legit use because ynh_exec_as not official yet...
             yield Info(
-                "You should not need to use 'sudo', the self is being run as root. "
-                "(If you need to run a command using a specific user, use 'ynh_exec_as')"
+                "You should not need to use 'sudo', the script is being run as root. "
+                "(If you need to run a command using a specific user, use 'ynh_exec_as' (or 'sudo -u'))"
             )
 
     @test()
@@ -1346,11 +1346,11 @@ class Script(TestSuite):
 
     @test(only=["install"])
     def progression(self):
-        if not self.contains("ynh_print_info") and not self.contains("ynh_script_progression"):
+        if not self.contains("ynh_script_progression"):
             yield Warning(
-                "Please add a few messages for the user, to explain what is going on "
-                "(in friendly, not-too-technical terms) during the installation. "
-                "You can use 'ynh_print_info' or 'ynh_script_progression' for this."
+                "Please add a few messages for the user using 'ynh_script_progression' "
+                "to explain what is going on (in friendly, not-too-technical terms) "
+                "during the installation. (and ideally in scripts remove, upgrade and restore too)"
             )
 
     @test()
