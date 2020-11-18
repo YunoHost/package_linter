@@ -190,7 +190,7 @@ class Error(TestReport):
     style = c.FAIL + " ✘ %s" + c.END
 
 class Info(TestReport):
-    style = c.OKBLUE + " ⓘ  %s" + c.END
+    style = " ⓘ  %s" + c.END
 
 class Success(TestReport):
     style = c.OKGREEN + " ☺  %s ♥" + c.END
@@ -358,11 +358,11 @@ class App(TestSuite):
     def qualify_for_level_7(self):
 
         if tests_reports["error"]:
-            print(" Uhoh there are some errors to be fixed :(")
+            _print(" Uhoh there are some errors to be fixed :(")
         elif len(tests_reports["warning"]) > 3:
-            print(" Still some warnings to be fixed :s")
+            _print(" Still some warnings to be fixed :s")
         elif len(tests_reports["warning"]) > 0:
-            print(" Only %s warning remaining! You can do it!" % len(tests_reports["warning"]))
+            _print(" Only %s warning remaining! You can do it!" % len(tests_reports["warning"]))
         else:
             yield Success("Not even a warning! Congratz and thank you for keeping that package up to date with good practices! This app qualifies for level 7!")
 
@@ -374,7 +374,7 @@ class App(TestSuite):
         catalog_infos = self.app_catalog.catalog_infos
         is_maintained = catalog_infos and catalog_infos.get("maintained", True) is True
         if not is_maintained:
-            print("The app is flagged as not maintained in the app catalog")
+            _print("The app is flagged as not maintained in the app catalog")
         elif "qualify_for_level_7" in successes and "is_long_term_good_quality" in successes:
             yield Success("The app is maintained and long-term good quality, and therefore qualifies for level 8!")
 
