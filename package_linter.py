@@ -880,36 +880,22 @@ class Manifest(TestSuite):
     @test()
     def license(self):
 
-        if not "license" in self.manifest:
+        if "license" not in self.manifest:
             return
-
-        def license_mentionned_in_readme():
-            readme_path = os.path.join(self.path, 'README.md')
-            if os.path.isfile(readme_path):
-                return "LICENSE" in open(readme_path).read()
-            return False
 
         license = self.manifest["license"]
 
-
         if "nonfree" in license.replace("-", ""):
             yield Warning("'non-free' apps cannot be integrated in YunoHost's app catalog.")
-
+            return
 
         code_license = '<code property="spdx:licenseId">' + license + '</code>'
 
-        if license == "free" and not license_mentionned_in_readme():
+        if code_license not in spdx_licenses():
             yield Warning(
-                "Setting the license as 'free' implies to write something about it in "
-                "the README.md. Alternatively, consider using one of the codes available "
-                "on https://spdx.org/licenses/"
+                "The license id '%s' is not registered in https://spdx.org/licenses/." % license
             )
-        elif code_license not in spdx_licenses():
-            yield Warning(
-                "The license id '%s' is not registered in https://spdx.org/licenses/. "
-                "It can be a typo error. If not, you should replace it by 'free' "
-                "or 'non-free' and give some explanations in the README.md." % (license)
-            )
+            return
 
     @test()
     def description(self):
