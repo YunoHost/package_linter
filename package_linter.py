@@ -458,8 +458,9 @@ class App(TestSuite):
             helper_req = official_helpers[helper]
             if not validate_version_requirement(helper_req):
                 major_diff = manifest_req[0] > int(helper_req[0])
+                minor_diff = helper_req.startswith(yunohost_version_req)  # This is meant to cover the case where manifest says "3.8" vs. the helper requires "3.8.1"
                 message = "Using official helper %s implies requiring at least version %s, but manifest only requires %s" % (helper, helper_req, yunohost_version_req)
-                yield Error(message) if major_diff else Warning(message)
+                yield Error(message) if major_diff else (Info(message) if minor_diff else Warning(message))
 
 
     @test()
