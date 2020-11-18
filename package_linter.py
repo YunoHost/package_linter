@@ -361,24 +361,8 @@ class App(TestSuite):
         if any(isinstance(report, Error) for _, report in tests_reports):
             return
 
-        non_mandatory_warnings = [
-            "helpers_now_official",
-            "sed",
-            "url",
-            "sudo",
-            "progression_meaningful_weights",
-            "license",
-            "chmod777",
-            "check_process_consistency",
-            "check_process_syntax",
-        ]
-
-        def is_important_warning(test_report):
-            test, report = test_report
-            return isinstance(report, Warning) and test.split(".")[1] not in non_mandatory_warnings
-
-        # If any warning (except the non-mandatory ones), nope
-        if any(is_important_warning(test_report) for test_report in tests_reports):
+        # If any warning, nope
+        if any(isinstance(report, Warning) for test_report in tests_reports):
             return
 
         # Last condition is to be long-term good quality
@@ -434,7 +418,7 @@ class App(TestSuite):
 
         for custom_helper in custom_helpers:
             if custom_helper in official_helpers.keys():
-                yield Warning("%s is now an official helper since version '%s'" % (custom_helper, official_helpers[custom_helper] or '?'))
+                yield Info("%s is now an official helper since version '%s'" % (custom_helper, official_helpers[custom_helper] or '?'))
 
     @test()
     def helpers_version_requirement(app):
@@ -557,7 +541,7 @@ class Configurations(TestSuite):
             yield Error("Do not force Level 5=1 in check_process...")
 
         if os.system("grep -q ' *Level [^5]=' '%s'" % check_process_file) == 0:
-            yield Warning("Setting Level x=y in check_process is obsolete / not relevant anymore")
+            yield Info("Setting Level x=y in check_process is obsolete / not relevant anymore")
 
     @test()
     def check_process_consistency(self):
@@ -571,23 +555,23 @@ class Configurations(TestSuite):
         has_is_public_arg = any(a["name"] == "is_public" for a in app.manifest["arguments"].get("install", []))
         if has_is_public_arg:
             if os.system(r"grep -q '^\s*setup_public=1' '%s'" % check_process_file) != 0:
-                yield Warning("It looks like you forgot to enable setup_public test in check_process ?")
+                yield Info("It looks like you forgot to enable setup_public test in check_process ?")
 
             if os.system(r"grep -q '^\s*setup_private=1' '%s'" % check_process_file) != 0:
-                yield Warning("It looks like you forgot to enable setup_private test in check_process ?")
+                yield Info("It looks like you forgot to enable setup_private test in check_process ?")
 
         has_path_arg = any(a["name"] == "path" for a in app.manifest["arguments"].get("install", []))
         if has_path_arg:
             if os.system(r"grep -q '^\s*setup_sub_dir=1' '%s'" % check_process_file) != 0:
-                yield Warning("It looks like you forgot to enable setup_sub_dir test in check_process ?")
+                yield Info("It looks like you forgot to enable setup_sub_dir test in check_process ?")
 
         if app.manifest.get("multi_instance") in [True, 1, "True", "true"]:
             if os.system(r"grep -q '^\s*multi_instance=1' '%s'" % check_process_file) != 0:
-                yield Warning("It looks like you forgot to enable multi_instance test in check_process ?")
+                yield Info("It looks like you forgot to enable multi_instance test in check_process ?")
 
         if app.scripts["backup"].exists:
             if os.system(r"grep -q '^\s*backup_restore=1' '%s'" % check_process_file) != 0:
-                yield Warning("It looks like you forgot to enable backup_restore test in check_process ?")
+                yield Info("It looks like you forgot to enable backup_restore test in check_process ?")
 
     @test()
     def misc_legacy_phpini(self):
@@ -943,7 +927,7 @@ class Manifest(TestSuite):
     @test()
     def url(self):
         if self.manifest.get("url", "").endswith("_ynh"):
-            yield Warning(
+            yield Info(
                 "'url' is not meant to be the url of the yunohost package, "
                 "but rather the website or repo of the upstream app itself..."
             )
@@ -1333,12 +1317,12 @@ class Script(TestSuite):
     @test()
     def sed(self):
         if self.containsregex(r"sed\s+(-i|--in-place)\s+(-r\s+)?s") or self.containsregex(r"sed\s+s\S*\s+(-i|--in-place)"):
-            yield Warning("You should avoid using 'sed -i' for substitutions, please use 'ynh_replace_string' instead")
+            yield Info("You should avoid using 'sed -i' for substitutions, please use 'ynh_replace_string' instead")
 
     @test()
     def sudo(self):
         if self.containsregex(r"sudo \w"):  # \w is here to not match sudo -u, legit use because ynh_exec_as not official yet...
-            yield Warning(
+            yield Info(
                 "You should not need to use 'sudo', the self is being run as root. "
                 "(If you need to run a command using a specific user, use 'ynh_exec_as')"
             )
@@ -1393,12 +1377,12 @@ class Script(TestSuite):
             return
 
         if len(weights) > 3 and statistics.stdev(weights) > 50:
-            yield Warning("To have a meaningful progress bar, try to keep the weights in the same range of values, for example [1,10], or [10,100] ... otherwise, if you have super-huge weight differentes, the progress bar rendering will be completely dominated by one or two steps... If these steps are really long, just try to indicated in the message that this will take a while.")
+            yield Info("To have a meaningful progress bar, try to keep the weights in the same range of values, for example [1,10], or [10,100] ... otherwise, if you have super-huge weight differentes, the progress bar rendering will be completely dominated by one or two steps... If these steps are really long, just try to indicated in the message that this will take a while.")
 
     @test(only=["install", "_common.sh"])
     def php_deps(self):
         if self.containsregex("dependencies.*php-"):
-            yield Warning("You should avoid having dependencies like 'php-foobar'. Instead, specify the exact version you want like 'php7.0-foobar'. Otherwise, the *wrong* version of the dependency may be installed if sury is also installed. Note that for Stretch/Buster/Bullseye/... transition, Yunohost will automatically patch your file so there's no need to care about that.")
+            yield Info("You should avoid having dependencies like 'php-foobar'. Instead, specify the exact version you want like 'php7.0-foobar'. Otherwise, the *wrong* version of the dependency may be installed if sury is also installed. Note that for Stretch/Buster/Bullseye/... transition, Yunohost will automatically patch your file so there's no need to care about that.")
 
     @test(only=["backup"])
     def systemd_during_backup(self):
