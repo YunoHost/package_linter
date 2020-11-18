@@ -1357,7 +1357,7 @@ class Script(TestSuite):
 
         # Usage of ynh_script_prorgression with --time or --weight=1 all over the place...
         if self.containsregex(r"ynh_script_progression.*--time"):
-            yield Warning("Using ynh_script_progression --time should only be for calibrating the weight (c.f. --weight). It's not meant to be kept for production versions.")
+            yield Info("Using ynh_script_progression --time should only be for calibrating the weight (c.f. --weight). It's not meant to be kept for production versions.")
 
     @test(ignore=["_common.sh", "backup"])
     def progression_meaningful_weights(self):
@@ -1384,7 +1384,7 @@ class Script(TestSuite):
     @test(only=["install", "_common.sh"])
     def php_deps(self):
         if self.containsregex("dependencies.*php-"):
-            yield Info("You should avoid having dependencies like 'php-foobar'. Instead, specify the exact version you want like 'php7.0-foobar'. Otherwise, the *wrong* version of the dependency may be installed if sury is also installed. Note that for Stretch/Buster/Bullseye/... transition, Yunohost will automatically patch your file so there's no need to care about that.")
+            yield Warning("You should avoid having dependencies like 'php-foobar'. Instead, specify the exact version you want like 'php7.0-foobar'. Otherwise, the *wrong* version of the dependency may be installed if sury is also installed. Note that for Stretch/Buster/Bullseye/... transition, Yunohost will automatically patch your file so there's no need to care about that.")
 
     @test(only=["backup"])
     def systemd_during_backup(self):
