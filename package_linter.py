@@ -195,7 +195,8 @@ class Info(TestReport):
 class Success(TestReport):
     style = c.OKGREEN + " ☺  %s ♥" + c.END
 
-
+class Critical(TestReport):
+    style = c.FAIL + " ✘✘✘ %s" + c.END
 
 def header(app):
     _print("""
@@ -262,10 +263,11 @@ def spdx_licenses():
 
 tests = {}
 tests_reports = {
+    "success": [],
+    "info": [],
     "warning": [],
     "error": [],
-    "info": [],
-    "success": [],
+    "critical": [],
 }
 
 def test(**kwargs):
@@ -345,19 +347,22 @@ class App(TestSuite):
 
         if output == "json":
             print(json.dumps({
+                "success": [test for test, _ in tests_reports["success"]],
+                "info": [test for test, _ in tests_reports["info"]],
                 "warning": [test for test, _ in tests_reports["warning"]],
                 "error": [test for test, _ in tests_reports["error"]],
-                "success": [test for test, _ in tests_reports["success"]],
-                "info": [test for test, _ in tests_reports["info"]]
+                "critical": [test for test, _ in tests_reports["critical"]],
             }, indent=4))
             return
 
-        if tests_reports["error"]:
+        if tests_reports["error"] or tests_reports["critical"]:
             sys.exit(1)
 
     def qualify_for_level_7(self):
 
-        if tests_reports["error"]:
+        if tests_reports["critical"]:
+            _print(" There are some critical issues in this app :(")
+        elif tests_reports["error"]:
             _print(" Uhoh there are some errors to be fixed :(")
         elif len(tests_reports["warning"]) > 3:
             _print(" Still some warnings to be fixed :s")
@@ -839,7 +844,7 @@ class Manifest(TestSuite):
         missing_fields = [field for field in fields if field not in self.manifest.keys()]
 
         if missing_fields:
-            yield Error("The following mandatory fields are missing: %s" % missing_fields)
+            yield Critical("The following mandatory fields are missing: %s" % missing_fields)
 
         fields = ("license", "url")
         missing_fields = [field for field in fields if field not in self.manifest.keys()]
@@ -851,14 +856,14 @@ class Manifest(TestSuite):
     def yunohost_version_requirement(self):
 
         if not self.manifest.get("requirements", {}).get("yunohost", ""):
-            yield Error("You should add a yunohost version requirement in the manifest")
+            yield Critical("You should add a yunohost version requirement in the manifest")
 
     @test()
     def yunohost_version_requirement_superold(app):
 
         yunohost_version_req = app.manifest.get("requirements", {}).get("yunohost", "").strip(">= ")
         if yunohost_version_req.startswith("2."):
-            yield Error("Your app only requires yunohost >= 2.x, which tends to indicate that your app may not be up to date with recommended packaging practices and helpers.")
+            yield Critical("Your app only requires yunohost >= 2.x, which tends to indicate that your app may not be up to date with recommended packaging practices and helpers.")
 
     @test()
     def basic_fields_format(self):
@@ -1031,7 +1036,7 @@ class AppCatalog(TestSuite):
     def is_in_catalog(self):
 
         if not self.catalog_infos:
-            yield Warning("This app is not in YunoHost's application catalog")
+            yield Critical("This app is not in YunoHost's application catalog")
 
     @test()
     def revision_is_HEAD(self):
@@ -1043,7 +1048,7 @@ class AppCatalog(TestSuite):
     def state_is_working(self):
 
         if self.catalog_infos and self.catalog_infos.get("state", "working") != "working":
-            yield Warning("The application is not flagged as working in YunoHost's apps catalog")
+            yield Critical("The application is not flagged as working in YunoHost's apps catalog")
 
     @test()
     def has_category(self):
@@ -1247,15 +1252,15 @@ class Script(TestSuite):
     @test()
     def obsolete_helpers(self):
         if self.contains("yunohost app setting"):
-            yield Error("Do not use 'yunohost app setting' directly. Please use 'ynh_app_setting_(set,get,delete)' instead.")
+            yield Critical("Do not use 'yunohost app setting' directly. Please use 'ynh_app_setting_(set,get,delete)' instead.")
         if self.contains("yunohost app checkurl"):
-            yield Error("'yunohost app checkurl' is obsolete!!! Please use 'ynh_webpath_register' instead.")
+            yield Critical("'yunohost app checkurl' is obsolete!!! Please use 'ynh_webpath_register' instead.")
         if self.contains("yunohost app checkport"):
-            yield Error("'yunohost app checkport' is obsolete!!! Please use 'ynh_find_port' instead.")
+            yield Critical("'yunohost app checkport' is obsolete!!! Please use 'ynh_find_port' instead.")
         if self.contains("yunohost app initdb"):
-            yield Error("'yunohost app initdb' is obsolete!!! Please use 'ynh_mysql_setup_db' instead.")
+            yield Critical("'yunohost app initdb' is obsolete!!! Please use 'ynh_mysql_setup_db' instead.")
         if self.contains("yunohost tools port-available"):
-            yield Error("'yunohost tools port-available is obsolete!!! Please use 'ynh_port_available' instead.")
+            yield Critical("'yunohost tools port-available is obsolete!!! Please use 'ynh_port_available' instead.")
         if self.contains("yunohost app list -i") or self.contains("yunohost app list --installed"):
             yield Warning(
                 "Argument --installed ain't needed anymore when using "
@@ -1281,7 +1286,7 @@ class Script(TestSuite):
     def argument_fetching(self):
 
         if self.containsregex(r"^\w+\=\$\{?[0-9]"):
-            yield Error(
+            yield Critical(
                 "Do not fetch arguments from manifest using variable=$N (e.g."
                 " domain=$1 ...) Instead, use name=$YNH_APP_ARG_NAME"
             )
