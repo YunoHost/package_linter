@@ -881,19 +881,24 @@ class Manifest(TestSuite):
         if "license" not in self.manifest:
             return
 
-        license = self.manifest["license"]
+        # Turns out there may be multiple licenses ... (c.f. seafile)
+        licenses = self.manifest["license"].split(",")
 
-        if "nonfree" in license.replace("-", ""):
-            yield Warning("'non-free' apps cannot be integrated in YunoHost's app catalog.")
-            return
+        for license in licenses:
 
-        code_license = '<code property="spdx:licenseId">' + license + '</code>'
+            license = license.strip()
 
-        if code_license not in spdx_licenses():
-            yield Warning(
-                "The license id '%s' is not registered in https://spdx.org/licenses/." % license
-            )
-            return
+            if "nonfree" in license.replace("-", ""):
+                yield Warning("'non-free' apps cannot be integrated in YunoHost's app catalog.")
+                return
+
+            code_license = '<code property="spdx:licenseId">' + license + '</code>'
+
+            if code_license not in spdx_licenses():
+                yield Warning(
+                    "The license id '%s' is not registered in https://spdx.org/licenses/." % license
+                )
+                return
 
     @test()
     def description(self):
