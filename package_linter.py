@@ -1141,6 +1141,17 @@ class Script(TestSuite):
                 "and should be avoided at all cost. Use 'reload' instead."
             )
 
+    @test()
+    def quiet_systemctl_enable(self):
+
+        systemctl_enable = [line
+                            for line in [' '.join(line) for line in self.lines]
+                            if re.search(r"systemctl.*(enable|disable)", line)]
+
+        if any("-q" not in cmd for cmd in systemctl_enable):
+            message = "Please add --quiet to systemctl enable/disable commands to avoid unecessary warnings when the script runs"
+            yield Warning(message) if self.name in ["_common.sh", "install"] else Info(message)
+
     @test(only=["install"])
     def argument_fetching(self):
 
