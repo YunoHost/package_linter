@@ -984,6 +984,10 @@ class Manifest(TestSuite):
                     "The type '%s' for argument '%s' is not recognized... "
                     "it probably doesn't behave as you expect ? Choose among those instead : %s" % (argument["type"], argument["name"], ', '.join(recognized_types))
                 )
+            elif argument["type"] == "boolean" and argument.get("default", True) not in [True, False]:
+                yield Warning(
+                    "Default value for boolean-type arguments should be a boolean... (in particular, make sure it's not a string!)"
+                )
 
             if "choices" in argument.keys():
                 choices = [c.lower() for c in argument["choices"]]
