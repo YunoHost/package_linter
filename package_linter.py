@@ -971,6 +971,10 @@ class Manifest(TestSuite):
                     "The type '%s' for argument '%s' is not recognized... "
                     "it probably doesn't behave as you expect ? Choose among those instead : %s" % (argument["type"], argument["name"], ', '.join(recognized_types))
                 )
+            elif argument["type"] == "boolean" and argument.get("default", True) not in [True, False]:
+                yield Warning(
+                    "Default value for boolean-type arguments should be a boolean... (in particular, make sure it's not a string!)"
+                )
 
             if "choices" in argument.keys():
                 choices = [c.lower() for c in argument["choices"]]
@@ -1286,6 +1290,28 @@ class Script(TestSuite):
                 "Restarting nginx is quite dangerous (especially for web installs) "
                 "and should be avoided at all cost. Use 'reload' instead."
             )
+
+    @test()
+    def quiet_systemctl_enable(self):
+
+        systemctl_enable = [line
+                            for line in [' '.join(line) for line in self.lines]
+                            if re.search(r"systemctl.*(enable|disable)", line)]
+
+        if any("-q" not in cmd for cmd in systemctl_enable):
+            message = "Please add --quiet to systemctl enable/disable commands to avoid unecessary warnings when the script runs"
+            yield Warning(message) if self.name in ["_common.sh", "install"] else Info(message)
+
+    @test()
+    def quiet_wget(self):
+
+        wget_cmds = [line
+                     for line in [' '.join(line) for line in self.lines]
+                     if re.search(r"^wget ", line)]
+
+        if any(" -q " not in cmd and "--quiet" not in cmd and "2>" not in cmd for cmd in wget_cmds):
+            message = "Please redirect wget's stderr to stdout with 2>&1 to avoid unecessary warnings when the script runs (yes, wget is annoying and displays a warning even when things are going okay >_> ...)"
+            yield Warning(message) if self.name in ["_common.sh", "install"] else Info(message)
 
     @test(only=["install"])
     def argument_fetching(self):
