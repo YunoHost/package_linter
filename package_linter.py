@@ -624,6 +624,11 @@ class Configurations(TestSuite):
             if not filename.endswith(".service"):
                 continue
 
+            # Some apps only provide an override conf file, which is different
+            # from the full/base service config (c.f. ffsync)
+            if "override" in filename:
+                continue
+
             try:
                 content = open(app.path + "/conf/" + filename).read()
             except Exception as e:
