@@ -411,6 +411,27 @@ class App(TestSuite):
         if has_domain_arg and not file_exists(app.path + "/scripts/change_url"):
             yield Warning("Consider adding a change_url script to support changing where the app is installed")
 
+    @test()
+    def badges_in_readme(app):
+
+        id_ = app.manifest["id"]
+
+        if not file_exists(app.path + "/README.md"):
+            return
+
+        content = open(app.path + "/README.md").read()
+
+        if not "dash.yunohost.org/integration/%s.svg" % id_ in content:
+            yield Warning(
+                "Please add a badge displaying the level of the app in the README.  "
+                "At least something like :\n   "
+                "[![Integration level](https://dash.yunohost.org/integration/%s.svg)](https://dash.yunohost.org/appci/app/%s)\n"
+                "  (but ideally you should check example_ynh for the full set of recommendations !)"
+                % (id_, id_)
+            )
+
+
+
     #######################################
     #  _    _      _                      #
     # | |  | |    | |                     #
