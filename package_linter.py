@@ -1413,6 +1413,18 @@ class Script(TestSuite):
                 "during the installation. (and ideally in scripts remove, upgrade and restore too)"
             )
 
+    @test(only=["backup"])
+    def progression_in_backup(self):
+        if self.contains("ynh_script_progression"):
+            yield Info(
+                "We recommend to *not* use 'ynh_script_progression' in backup "
+                "scripts because no actual work happens when running the script "
+                " : yunohost only fetches the list of things to backup (apart "
+                "from the DB dumps which effectively happens during the script..). "
+                "Consider using a simple message like this instead: 'ynh_print_info \"Declaring files to be backed up...\"'"
+            )
+
+
     @test()
     def progression_time(self):
 
