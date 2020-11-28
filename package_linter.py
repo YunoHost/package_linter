@@ -616,6 +616,25 @@ class Configurations(TestSuite):
             )
 
     @test()
+    def src_file_checksum_type(self):
+
+        app = self.app
+        for filename in os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []:
+            if not filename.endswith(".src"):
+                continue
+
+            try:
+                content = open(app.path + "/conf/" + filename).read()
+            except Exception as e:
+                yield Warning("Can't open/read %s : %s" % (filename, e))
+                return
+
+            if "SOURCE_SUM_PRG=md5sum" in content:
+                yield Info("%s: Using md5sum checksum is not so great for "
+                        "security. Consider using sha256sum instead." % filename)
+
+
+    @test()
     def systemd_config_specific_user(self):
 
         app = self.app
