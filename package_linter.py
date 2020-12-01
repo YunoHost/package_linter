@@ -504,25 +504,38 @@ class App(TestSuite):
 
     @test()
     def helper_consistency_service_add(app):
-        install_script = app.scripts["install"]
-        if install_script.contains("yunohost service add"):
-            if app.scripts["remove"].exists and not app.scripts["remove"].contains("yunohost service remove"):
-                yield Error(
-                    "You used 'yunohost service add' in the install script, "
-                    "but not 'yunohost service remove' in the remove script."
-                )
 
-            if app.scripts["upgrade"].exists and not app.scripts["upgrade"].contains("yunohost service add"):
-                yield Warning(
-                    "You used 'yunohost service add' in the install script, "
-                    "but not in the upgrade script"
-                )
+        occurences = {
+            "install": app.scripts["install"].occurences("yunohost service add") if app.scripts["install"].exists else [],
+            "upgrade": app.scripts["upgrade"].occurences("yunohost service add") if app.scripts["upgrade"].exists else [],
+            "restore": app.scripts["restore"].occurences("yunohost service add") if app.scripts["restore"].exists else [],
+        }
 
-            if app.scripts["restore"].exists and not app.scripts["restore"].contains("yunohost service add"):
-                yield Warning(
-                    "You used 'yunohost service add' in the install script, "
-                    "but not in the restore script"
-                )
+        occurences = {k: [sub_v.replace('"$app"', '$app') for sub_v in v] for k, v in occurences.items()}
+
+        all_occurences = occurences["install"] + occurences["upgrade"] + occurences["restore"]
+        found_inconsistency = False
+        found_legacy_logtype_option = False
+        for cmd in all_occurences:
+            if any(cmd not in occurences_list for occurences_list in occurences.values()):
+                found_inconsistency = True
+            if "--log_type systemd" in cmd:
+                found_legacy_logtype_option = True
+
+        if found_inconsistency:
+            details = [("   %s : " % script + ''.join("\n      " + cmd for cmd in occurences[script] or ["...None?..."]))
+                       for script in occurences.keys()]
+            details = '\n'.join(details)
+            yield Warning("Found some inconsistencies in the 'yunohost service add' commands between install, upgrade and restore:\n%s" % details)
+
+        if found_legacy_logtype_option:
+            yield Info("Using option '--log_type systemd' with 'yunohost service add' is not relevant anymore")
+
+        if occurences["install"] and not app.scripts["remove"].contains("yunohost service remove"):
+            yield Error(
+                "You used 'yunohost service add' in the install script, "
+                "but not 'yunohost service remove' in the remove script."
+            )
 
     @test()
     def helper_consistency_firewall(app):
@@ -1246,6 +1259,9 @@ class Script(TestSuite):
                     _print("Some lines could not be parsed in script %s. (That's probably not really critical)" % self.name)
                     some_parsing_failed = True
                 report_warning_not_reliable("%s : %s" % (e, line))
+
+    def occurences(self, command):
+        return [line for line in [' '.join(line) for line in self.lines] if command in line]
 
     def contains(self, command):
         """
