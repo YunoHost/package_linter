@@ -1331,6 +1331,8 @@ class Script(TestSuite):
             yield Critical("'yunohost app initdb' is obsolete!!! Please use 'ynh_mysql_setup_db' instead.")
         if self.contains("yunohost tools port-available"):
             yield Critical("'yunohost tools port-available is obsolete!!! Please use 'ynh_port_available' instead.")
+        if self.contains("yunohost app addaccess") or self.contains("yunohost app removeaccess"):
+            yield Warning("'yunohost app addaccess/removeacces' is obsolete. You should use the new permission system to manage accesses.")
         if self.contains("yunohost app list -i") or self.contains("yunohost app list --installed"):
             yield Warning(
                 "Argument --installed ain't needed anymore when using "
