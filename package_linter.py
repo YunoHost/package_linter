@@ -11,6 +11,7 @@ import codecs
 import subprocess
 import time
 import statistics
+from datetime import datetime
 
 reader = codecs.getreader("utf-8")
 
@@ -180,17 +181,22 @@ class TestReport:
         self.message = message
 
     def display(self):
-        _print(self.style, self.message, c.END)
+        _print(self.style % self.message)
 
 class Warning(TestReport):
-    style = c.WARNING + "!"
+    style = c.WARNING + " ! %s " + c.END
 
 class Error(TestReport):
-    style = c.FAIL + "✘"
+    style = c.FAIL + " ✘ %s" + c.END
 
 class Info(TestReport):
-    style = c.OKBLUE
+    style = " ⓘ  %s" + c.END
 
+class Success(TestReport):
+    style = c.OKGREEN + " ☺  %s ♥" + c.END
+
+class Critical(TestReport):
+    style = c.FAIL + " ✘✘✘ %s" + c.END
 
 def header(app):
     _print("""
@@ -227,7 +233,7 @@ def report_warning_not_reliable(str):
 
 
 def print_happy(str):
-    _print(c.OKGREEN + "☺ ", str, "♥")
+    _print(c.OKGREEN + " ☺ ", str, "♥")
 
 
 def urlopen(url):
@@ -255,24 +261,14 @@ def spdx_licenses():
     open(cachefile, "w").write(content)
     return content
 
-
-def app_list():
-
-    cachefile = "./.apps.json"
-    if os.path.exists(cachefile) and time.time() - os.path.getmtime(cachefile) < 3600:
-        try:
-            return json.loads(open(cachefile).read())
-        except:
-            _print("Uuuuh failed to load apps.json from cache...")
-
-    url = "https://raw.githubusercontent.com/YunoHost/apps/master/apps.json"
-    content = urlopen(url)['content']
-    open(cachefile, "w").write(content)
-    return json.loads(content)
-
-
 tests = {}
-tests_reports = []
+tests_reports = {
+    "success": [],
+    "info": [],
+    "warning": [],
+    "error": [],
+    "critical": [],
+}
 
 def test(**kwargs):
     def decorator(f):
@@ -291,11 +287,17 @@ class TestSuite():
                 continue
             if "ignore" in options and self.name in options["ignore"]:
                 continue
-            reports = list(test(self))
-            for report in reports:
-                if output == "plain":
-                    report.display()
-                tests_reports.append((test.__qualname__, report))
+            self.run_single_test(test)
+
+    def run_single_test(self, test):
+
+        reports = list(test(self))
+        for report in reports:
+            if output == "plain":
+                report.display()
+            report_type = report.__class__.__name__.lower()
+            test_name = test.__qualname__
+            tests_reports[report_type].append((test_name, report))
 
 # ############################################################################
 #   Actual high-level checks
@@ -314,6 +316,7 @@ class App(TestSuite):
         self.manifest = self.manifest_.manifest
         self.scripts = {f: Script(self.path, f) for f in scriptnames}
         self.configurations = Configurations(self)
+        self.app_catalog = AppCatalog(self.manifest["id"])
 
     def analyze(self):
 
@@ -329,6 +332,56 @@ class App(TestSuite):
 
         print_header("CONFIGURATIONS")
         self.configurations.run_tests()
+
+        print_header("APP CATALOG")
+        self.app_catalog.run_tests()
+
+        self.report()
+
+    def report(self):
+
+        # These are meant to be the last stuff running, they are based on
+        # previously computed errors/warning/successes
+        self.run_single_test(App.qualify_for_level_7)
+        self.run_single_test(App.qualify_for_level_8)
+
+        if output == "json":
+            print(json.dumps({
+                "success": [test for test, _ in tests_reports["success"]],
+                "info": [test for test, _ in tests_reports["info"]],
+                "warning": [test for test, _ in tests_reports["warning"]],
+                "error": [test for test, _ in tests_reports["error"]],
+                "critical": [test for test, _ in tests_reports["critical"]],
+            }, indent=4))
+            return
+
+        if tests_reports["error"] or tests_reports["critical"]:
+            sys.exit(1)
+
+    def qualify_for_level_7(self):
+
+        if tests_reports["critical"]:
+            _print(" There are some critical issues in this app :(")
+        elif tests_reports["error"]:
+            _print(" Uhoh there are some errors to be fixed :(")
+        elif len(tests_reports["warning"]) > 3:
+            _print(" Still some warnings to be fixed :s")
+        elif len(tests_reports["warning"]) > 0:
+            _print(" Only %s warning remaining! You can do it!" % len(tests_reports["warning"]))
+        else:
+            yield Success("Not even a warning! Congratz and thank you for keeping that package up to date with good practices! This app qualifies for level 7!")
+
+    def qualify_for_level_8(self):
+
+        successes = [test.split(".")[1] for test, _ in tests_reports["success"]]
+
+        # Level 8 = qualifies for level 7 + maintained + long term good quality
+        catalog_infos = self.app_catalog.catalog_infos
+        is_maintained = catalog_infos and catalog_infos.get("maintained", True) is True
+        if not is_maintained:
+            _print(" The app is flagged as not maintained in the app catalog")
+        elif "qualify_for_level_7" in successes and "is_long_term_good_quality" in successes:
+            yield Success("The app is maintained and long-term good quality, and therefore qualifies for level 8!")
 
     #########################################
     #   _____                           _   #
@@ -358,6 +411,27 @@ class App(TestSuite):
         if has_domain_arg and not file_exists(app.path + "/scripts/change_url"):
             yield Warning("Consider adding a change_url script to support changing where the app is installed")
 
+    @test()
+    def badges_in_readme(app):
+
+        id_ = app.manifest["id"]
+
+        if not file_exists(app.path + "/README.md"):
+            return
+
+        content = open(app.path + "/README.md").read()
+
+        if not "dash.yunohost.org/integration/%s.svg" % id_ in content:
+            yield Warning(
+                "Please add a badge displaying the level of the app in the README.  "
+                "At least something like :\n   "
+                "[![Integration level](https://dash.yunohost.org/integration/%s.svg)](https://dash.yunohost.org/appci/app/%s)\n"
+                "  (but ideally you should check example_ynh for the full set of recommendations !)"
+                % (id_, id_)
+            )
+
+
+
     #######################################
     #  _    _      _                      #
     # | |  | |    | |                     #
@@ -378,7 +452,7 @@ class App(TestSuite):
 
         for custom_helper in custom_helpers:
             if custom_helper in official_helpers.keys():
-                yield Warning("%s is now an official helper since version '%s'" % (custom_helper, official_helpers[custom_helper] or '?'))
+                yield Info("%s is now an official helper since version '%s'" % (custom_helper, official_helpers[custom_helper] or '?'))
 
     @test()
     def helpers_version_requirement(app):
@@ -410,8 +484,9 @@ class App(TestSuite):
             helper_req = official_helpers[helper]
             if not validate_version_requirement(helper_req):
                 major_diff = manifest_req[0] > int(helper_req[0])
+                minor_diff = helper_req.startswith(yunohost_version_req)  # This is meant to cover the case where manifest says "3.8" vs. the helper requires "3.8.1"
                 message = "Using official helper %s implies requiring at least version %s, but manifest only requires %s" % (helper, helper_req, yunohost_version_req)
-                yield Error(message) if major_diff else Warning(message)
+                yield Error(message) if major_diff else (Info(message) if minor_diff else Warning(message))
 
 
     @test()
@@ -429,25 +504,38 @@ class App(TestSuite):
 
     @test()
     def helper_consistency_service_add(app):
-        install_script = app.scripts["install"]
-        if install_script.contains("yunohost service add"):
-            if app.scripts["remove"].exists and not app.scripts["remove"].contains("yunohost service remove"):
-                yield Error(
-                    "You used 'yunohost service add' in the install script, "
-                    "but not 'yunohost service remove' in the remove script."
-                )
 
-            if app.scripts["upgrade"].exists and not app.scripts["upgrade"].contains("yunohost service add"):
-                yield Warning(
-                    "You used 'yunohost service add' in the install script, "
-                    "but not in the upgrade script"
-                )
+        occurences = {
+            "install": app.scripts["install"].occurences("yunohost service add") if app.scripts["install"].exists else [],
+            "upgrade": app.scripts["upgrade"].occurences("yunohost service add") if app.scripts["upgrade"].exists else [],
+            "restore": app.scripts["restore"].occurences("yunohost service add") if app.scripts["restore"].exists else [],
+        }
 
-            if app.scripts["restore"].exists and not app.scripts["restore"].contains("yunohost service add"):
-                yield Warning(
-                    "You used 'yunohost service add' in the install script, "
-                    "but not in the restore script"
-                )
+        occurences = {k: [sub_v.replace('"$app"', '$app') for sub_v in v] for k, v in occurences.items()}
+
+        all_occurences = occurences["install"] + occurences["upgrade"] + occurences["restore"]
+        found_inconsistency = False
+        found_legacy_logtype_option = False
+        for cmd in all_occurences:
+            if any(cmd not in occurences_list for occurences_list in occurences.values()):
+                found_inconsistency = True
+            if "--log_type systemd" in cmd:
+                found_legacy_logtype_option = True
+
+        if found_inconsistency:
+            details = [("   %s : " % script + ''.join("\n      " + cmd for cmd in occurences[script] or ["...None?..."]))
+                       for script in occurences.keys()]
+            details = '\n'.join(details)
+            yield Warning("Found some inconsistencies in the 'yunohost service add' commands between install, upgrade and restore:\n%s" % details)
+
+        if found_legacy_logtype_option:
+            yield Info("Using option '--log_type systemd' with 'yunohost service add' is not relevant anymore")
+
+        if occurences["install"] and not app.scripts["remove"].contains("yunohost service remove"):
+            yield Error(
+                "You used 'yunohost service add' in the install script, "
+                "but not 'yunohost service remove' in the remove script."
+            )
 
     @test()
     def helper_consistency_firewall(app):
@@ -501,7 +589,7 @@ class Configurations(TestSuite):
             yield Error("Do not force Level 5=1 in check_process...")
 
         if os.system("grep -q ' *Level [^5]=' '%s'" % check_process_file) == 0:
-            yield Warning("Setting Level x=y in check_process is obsolete / not relevant anymore")
+            yield Info("Setting Level x=y in check_process is obsolete / not relevant anymore")
 
     @test()
     def check_process_consistency(self):
@@ -515,23 +603,23 @@ class Configurations(TestSuite):
         has_is_public_arg = any(a["name"] == "is_public" for a in app.manifest["arguments"].get("install", []))
         if has_is_public_arg:
             if os.system(r"grep -q '^\s*setup_public=1' '%s'" % check_process_file) != 0:
-                yield Warning("It looks like you forgot to enable setup_public test in check_process ?")
+                yield Info("It looks like you forgot to enable setup_public test in check_process ?")
 
             if os.system(r"grep -q '^\s*setup_private=1' '%s'" % check_process_file) != 0:
-                yield Warning("It looks like you forgot to enable setup_private test in check_process ?")
+                yield Info("It looks like you forgot to enable setup_private test in check_process ?")
 
         has_path_arg = any(a["name"] == "path" for a in app.manifest["arguments"].get("install", []))
         if has_path_arg:
             if os.system(r"grep -q '^\s*setup_sub_dir=1' '%s'" % check_process_file) != 0:
-                yield Warning("It looks like you forgot to enable setup_sub_dir test in check_process ?")
+                yield Info("It looks like you forgot to enable setup_sub_dir test in check_process ?")
 
         if app.manifest.get("multi_instance") in [True, 1, "True", "true"]:
             if os.system(r"grep -q '^\s*multi_instance=1' '%s'" % check_process_file) != 0:
-                yield Warning("It looks like you forgot to enable multi_instance test in check_process ?")
+                yield Info("It looks like you forgot to enable multi_instance test in check_process ?")
 
         if app.scripts["backup"].exists:
             if os.system(r"grep -q '^\s*backup_restore=1' '%s'" % check_process_file) != 0:
-                yield Warning("It looks like you forgot to enable backup_restore test in check_process ?")
+                yield Info("It looks like you forgot to enable backup_restore test in check_process ?")
 
     @test()
     def misc_legacy_phpini(self):
@@ -562,12 +650,36 @@ class Configurations(TestSuite):
             )
 
     @test()
+    def src_file_checksum_type(self):
+
+        app = self.app
+        for filename in os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []:
+            if not filename.endswith(".src"):
+                continue
+
+            try:
+                content = open(app.path + "/conf/" + filename).read()
+            except Exception as e:
+                yield Warning("Can't open/read %s : %s" % (filename, e))
+                return
+
+            if "SOURCE_SUM_PRG=md5sum" in content:
+                yield Info("%s: Using md5sum checksum is not so great for "
+                        "security. Consider using sha256sum instead." % filename)
+
+
+    @test()
     def systemd_config_specific_user(self):
 
         app = self.app
         for filename in os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []:
             # Ignore subdirs or filename not containing nginx in the name
             if not filename.endswith(".service"):
+                continue
+
+            # Some apps only provide an override conf file, which is different
+            # from the full/base service config (c.f. ffsync)
+            if "override" in filename:
                 continue
 
             try:
@@ -780,8 +892,6 @@ class Manifest(TestSuite):
             print(c.FAIL + "✘ Looks like there's a syntax issue in your manifest ?\n ---> %s" % e)
             sys.exit(1)
 
-        self.catalog_infos = app_list().get(self.manifest.get("id"), {})
-
 
     @test()
     def mandatory_fields(self):
@@ -792,7 +902,7 @@ class Manifest(TestSuite):
         missing_fields = [field for field in fields if field not in self.manifest.keys()]
 
         if missing_fields:
-            yield Error("The following mandatory fields are missing: %s" % missing_fields)
+            yield Critical("The following mandatory fields are missing: %s" % missing_fields)
 
         fields = ("license", "url")
         missing_fields = [field for field in fields if field not in self.manifest.keys()]
@@ -804,14 +914,14 @@ class Manifest(TestSuite):
     def yunohost_version_requirement(self):
 
         if not self.manifest.get("requirements", {}).get("yunohost", ""):
-            yield Error("You should add a yunohost version requirement in the manifest")
+            yield Critical("You should add a yunohost version requirement in the manifest")
 
     @test()
     def yunohost_version_requirement_superold(app):
 
         yunohost_version_req = app.manifest.get("requirements", {}).get("yunohost", "").strip(">= ")
         if yunohost_version_req.startswith("2."):
-            yield Error("Your app only requires yunohost >= 2.x, which tends to indicate that your app may not be up to date with recommended packaging practices and helpers.")
+            yield Critical("Your app only requires yunohost >= 2.x, which tends to indicate that your app may not be up to date with recommended packaging practices and helpers.")
 
     @test()
     def basic_fields_format(self):
@@ -826,92 +936,27 @@ class Manifest(TestSuite):
     @test()
     def license(self):
 
-        if not "license" in self.manifest:
+        if "license" not in self.manifest:
             return
 
-        def license_mentionned_in_readme():
-            readme_path = os.path.join(self.path, 'README.md')
-            if os.path.isfile(readme_path):
-                return "LICENSE" in open(readme_path).read()
-            return False
+        # Turns out there may be multiple licenses ... (c.f. seafile)
+        licenses = self.manifest["license"].split(",")
 
-        license = self.manifest["license"]
+        for license in licenses:
 
+            license = license.strip()
 
-        if "nonfree" in license.replace("-", ""):
-            yield Warning("'non-free' apps cannot be integrated in YunoHost's app catalog.")
+            if "nonfree" in license.replace("-", ""):
+                yield Warning("'non-free' apps cannot be integrated in YunoHost's app catalog.")
+                return
 
+            code_license = '<code property="spdx:licenseId">' + license + '</code>'
 
-        code_license = '<code property="spdx:licenseId">' + license + '</code>'
-
-        if license == "free" and not license_mentionned_in_readme():
-            yield Warning(
-                "Setting the license as 'free' implies to write something about it in "
-                "the README.md. Alternatively, consider using one of the codes available "
-                "on https://spdx.org/licenses/"
-            )
-        elif code_license not in spdx_licenses():
-            yield Warning(
-                "The license id '%s' is not registered in https://spdx.org/licenses/. "
-                "It can be a typo error. If not, you should replace it by 'free' "
-                "or 'non-free' and give some explanations in the README.md." % (license)
-            )
-
-    @test()
-    def app_catalog(self):
-
-        if not self.catalog_infos:
-            yield Warning("This app is not in YunoHost's application catalog")
-
-    @test()
-    def app_catalog_revision(self):
-
-        if self.catalog_infos and self.catalog_infos.get("revision", "HEAD") != "HEAD":
-            yield Error("You should make sure that the revision used in YunoHost's apps catalog is HEAD...")
-
-    @test()
-    def app_catalog_state(self):
-
-        if self.catalog_infos and self.catalog_infos.get("state", "working") != "working":
-            yield Warning("The application is not flagged as working in YunoHost's apps catalog")
-
-    @test()
-    def app_catalog_maintained(self):
-
-        if self.catalog_infos and self.catalog_infos.get("maintained", True) is not True:
-            yield Warning("The application is flagged as not maintained in YunoHost's apps catalog")
-
-    @test()
-    def app_catalog_category(self):
-        if self.catalog_infos and not self.catalog_infos.get("category"):
-            yield Warning("The application has no associated category in YunoHost's apps catalog")
-
-    @test()
-    def app_in_github_org(self):
-
-        repo_org = "https://github.com/YunoHost-Apps/%s_ynh" % (self.manifest["id"])
-        repo_brique = "https://github.com/labriqueinternet/%s_ynh" % (self.manifest["id"])
-
-        if self.catalog_infos:
-            repo_url = self.catalog_infos["url"]
-
-            all_urls = [infos.get("url", "").lower() for infos in app_list().values()]
-
-            if repo_url.lower() not in [repo_org.lower(), repo_brique.lower()]:
-                if repo_url.lower().startswith("https://github.com/YunoHost-Apps/"):
-                    yield Warning("The url for this app in the catalog should be %s" % repo_org)
-                else:
-                    yield Warning("Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily")
-
-        else:
-            def is_in_github_org():
-                return urlopen(repo_org)['code'] != 404
-
-            def is_in_brique_org():
-                return urlopen(repo_brique)['code'] != 404
-
-            if not is_in_github_org() and not is_in_brique_org():
-                yield Warning("Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily")
+            if code_license not in spdx_licenses():
+                yield Warning(
+                    "The license id '%s' is not registered in https://spdx.org/licenses/." % license
+                )
+                return
 
     @test()
     def description(self):
@@ -959,7 +1004,7 @@ class Manifest(TestSuite):
     @test()
     def url(self):
         if self.manifest.get("url", "").endswith("_ynh"):
-            yield Warning(
+            yield Info(
                 "'url' is not meant to be the url of the yunohost package, "
                 "but rather the website or repo of the upstream app itself..."
             )
@@ -1011,6 +1056,165 @@ class Manifest(TestSuite):
                     '    }')
 
 
+########################################
+#  _____       _        _              #
+# /  __ \     | |      | |             #
+# | /  \/ __ _| |_ __ _| | ___   __ _  #
+# | |    / _` | __/ _` | |/ _ \ / _` | #
+# | \__/\ (_| | || (_| | | (_) | (_| | #
+#  \____/\__,_|\__\__,_|_|\___/ \__, | #
+#                                __/ | #
+#                               |___/  #
+#                                      #
+########################################
+
+
+class AppCatalog(TestSuite):
+
+    def __init__(self, app_id):
+
+        self.app_id = app_id
+
+        self._fetch_app_repo()
+
+        try:
+            self.app_list = json.loads(open("./.apps/apps.json").read())
+        except Exception:
+            _print("Failed to read apps.json :/")
+            sys.exit(-1)
+
+        self.catalog_infos = self.app_list.get(app_id, {})
+
+    def _fetch_app_repo(self):
+
+        flagfile = "./.apps_git_clone_cache"
+        if os.path.exists("./.apps") and os.path.exists(flagfile) and time.time() - os.path.getmtime(flagfile) < 3600:
+            return
+
+        if not os.path.exists("./.apps"):
+            subprocess.check_call(["git", "clone", "https://github.com/YunoHost/apps", "./.apps", "--quiet"])
+        else:
+            subprocess.check_call(["git", "-C", "./.apps", "fetch", "--quiet"])
+            subprocess.check_call(["git", "-C", "./.apps", "reset", "origin/master", "--hard", "--quiet"])
+
+        open(flagfile, "w").write("")
+
+    @test()
+    def is_in_catalog(self):
+
+        if not self.catalog_infos:
+            yield Critical("This app is not in YunoHost's application catalog")
+
+    @test()
+    def revision_is_HEAD(self):
+
+        if self.catalog_infos and self.catalog_infos.get("revision", "HEAD") != "HEAD":
+            yield Error("You should make sure that the revision used in YunoHost's apps catalog is HEAD...")
+
+    @test()
+    def state_is_working(self):
+
+        if self.catalog_infos and self.catalog_infos.get("state", "working") != "working":
+            yield Critical("The application is not flagged as working in YunoHost's apps catalog")
+
+    @test()
+    def has_category(self):
+        if self.catalog_infos and not self.catalog_infos.get("category"):
+            yield Warning("The application has no associated category in YunoHost's apps catalog")
+
+    @test()
+    def is_in_github_org(self):
+
+        repo_org = "https://github.com/YunoHost-Apps/%s_ynh" % (self.app_id)
+        repo_brique = "https://github.com/labriqueinternet/%s_ynh" % (self.app_id)
+
+        if self.catalog_infos:
+            repo_url = self.catalog_infos["url"]
+
+            all_urls = [infos.get("url", "").lower() for infos in self.app_list.values()]
+
+            if repo_url.lower() not in [repo_org.lower(), repo_brique.lower()]:
+                if repo_url.lower().startswith("https://github.com/YunoHost-Apps/"):
+                    yield Warning("The url for this app in the catalog should be %s" % repo_org)
+                else:
+                    yield Warning("Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily")
+
+        else:
+            def is_in_github_org():
+                return urlopen(repo_org)['code'] != 404
+
+            def is_in_brique_org():
+                return urlopen(repo_brique)['code'] != 404
+
+            if not is_in_github_org() and not is_in_brique_org():
+                yield Warning("Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily")
+
+    @test()
+    def is_long_term_good_quality(self):
+
+        #
+        # This analyzes the (git) history of apps.json in the past year and
+        # compute a score according to the number of period where the app was
+        # known + flagged working + level >= 5
+        #
+
+        def git(cmd):
+            return subprocess.check_output(["git", "-C", "./.apps"] + cmd).decode('utf-8').strip()
+
+        def _time_points_until_today():
+
+            # Prior to April 4th, 2019, we still had official.json and community.json
+            # Nowadays we only have apps.json
+            year = 2019
+            month = 6
+            day = 1
+            today = datetime.today()
+            date = datetime(year, month, day)
+
+            while date < today:
+                yield date
+
+                day += 14
+                if day > 15:
+                    day = 1
+                    month += 1
+
+                if month > 12:
+                    month = 1
+                    year += 1
+
+                date = datetime(year, month, day)
+
+        def get_history(N):
+
+            for t in list(_time_points_until_today())[(-1 * N):]:
+
+                # Fetch apps.json content at this date
+                commit = git(["rev-list", "-1", "--before='%s'" % t.strftime("%b %d %Y"), "master"])
+                raw_json_at_this_date = git(["show", "%s:apps.json" % commit])
+                json_at_this_date = json.loads(raw_json_at_this_date)
+
+                yield (t, json_at_this_date.get(self.app_id))
+
+        # We'll check the history for last 12 months (*2 points per month)
+        N = 12 * 2
+        history = list(get_history(N))
+
+        # Must have been
+        #   known
+        # + flagged as working
+        # + level > 5
+        # for the past 6 months
+        def good_quality(infos):
+            return bool(infos) and isinstance(infos, dict) \
+                and infos.get("state") == "working" \
+                and infos.get("level", -1) >= 5
+
+        score = sum([good_quality(infos) for d, infos in history])
+        rel_score = int(100 * score / N)
+        if rel_score > 90:
+            yield Success("The app is long-term good quality in the catalog !")
+
 ##################################
 #   _____           _       _    #
 #  / ____|         (_)     | |   #
@@ -1055,6 +1259,9 @@ class Script(TestSuite):
                     _print("Some lines could not be parsed in script %s. (That's probably not really critical)" % self.name)
                     some_parsing_failed = True
                 report_warning_not_reliable("%s : %s" % (e, line))
+
+    def occurences(self, command):
+        return [line for line in [' '.join(line) for line in self.lines] if command in line]
 
     def contains(self, command):
         """
@@ -1115,15 +1322,17 @@ class Script(TestSuite):
     @test()
     def obsolete_helpers(self):
         if self.contains("yunohost app setting"):
-            yield Error("Do not use 'yunohost app setting' directly. Please use 'ynh_app_setting_(set,get,delete)' instead.")
+            yield Critical("Do not use 'yunohost app setting' directly. Please use 'ynh_app_setting_(set,get,delete)' instead.")
         if self.contains("yunohost app checkurl"):
-            yield Error("'yunohost app checkurl' is obsolete!!! Please use 'ynh_webpath_register' instead.")
+            yield Critical("'yunohost app checkurl' is obsolete!!! Please use 'ynh_webpath_register' instead.")
         if self.contains("yunohost app checkport"):
-            yield Error("'yunohost app checkport' is obsolete!!! Please use 'ynh_find_port' instead.")
+            yield Critical("'yunohost app checkport' is obsolete!!! Please use 'ynh_find_port' instead.")
         if self.contains("yunohost app initdb"):
-            yield Error("'yunohost app initdb' is obsolete!!! Please use 'ynh_mysql_setup_db' instead.")
+            yield Critical("'yunohost app initdb' is obsolete!!! Please use 'ynh_mysql_setup_db' instead.")
         if self.contains("yunohost tools port-available"):
-            yield Error("'yunohost tools port-available is obsolete!!! Please use 'ynh_port_available' instead.")
+            yield Critical("'yunohost tools port-available is obsolete!!! Please use 'ynh_port_available' instead.")
+        if self.contains("yunohost app addaccess") or self.contains("yunohost app removeaccess"):
+            yield Warning("'yunohost app addaccess/removeacces' is obsolete. You should use the new permission system to manage accesses.")
         if self.contains("yunohost app list -i") or self.contains("yunohost app list --installed"):
             yield Warning(
                 "Argument --installed ain't needed anymore when using "
@@ -1131,6 +1340,11 @@ class Script(TestSuite):
                 "apps.. Also beware that option -f is obsolete as well .. "
                 "Use grep -q 'id: $appname' to check a specific app is installed"
             )
+
+    @test()
+    def normalize_url_path(self):
+        if self.contains("ynh_normalize_url_path"):
+            yield Info("You probably don't need to call ynh_normalize_url_path ... this is only relevant for upgrades from super-old versions (like 3 years ago or so...)")
 
     @test()
     def safe_rm(self):
@@ -1171,7 +1385,7 @@ class Script(TestSuite):
     def argument_fetching(self):
 
         if self.containsregex(r"^\w+\=\$\{?[0-9]"):
-            yield Error(
+            yield Critical(
                 "Do not fetch arguments from manifest using variable=$N (e.g."
                 " domain=$1 ...) Instead, use name=$YNH_APP_ARG_NAME"
             )
@@ -1210,14 +1424,14 @@ class Script(TestSuite):
     @test()
     def sed(self):
         if self.containsregex(r"sed\s+(-i|--in-place)\s+(-r\s+)?s") or self.containsregex(r"sed\s+s\S*\s+(-i|--in-place)"):
-            yield Warning("You should avoid using 'sed -i' for substitutions, please use 'ynh_replace_string' instead")
+            yield Info("You should avoid using 'sed -i' for substitutions, please use 'ynh_replace_string' instead")
 
     @test()
     def sudo(self):
         if self.containsregex(r"sudo \w"):  # \w is here to not match sudo -u, legit use because ynh_exec_as not official yet...
-            yield Warning(
-                "You should not need to use 'sudo', the self is being run as root. "
-                "(If you need to run a command using a specific user, use 'ynh_exec_as')"
+            yield Info(
+                "You should not need to use 'sudo', the script is being run as root. "
+                "(If you need to run a command using a specific user, use 'ynh_exec_as' (or 'sudo -u'))"
             )
 
     @test()
@@ -1236,19 +1450,31 @@ class Script(TestSuite):
 
     @test(only=["install"])
     def progression(self):
-        if not self.contains("ynh_print_info") and not self.contains("ynh_script_progression"):
+        if not self.contains("ynh_script_progression"):
             yield Warning(
-                "Please add a few messages for the user, to explain what is going on "
-                "(in friendly, not-too-technical terms) during the installation. "
-                "You can use 'ynh_print_info' or 'ynh_script_progression' for this."
+                "Please add a few messages for the user using 'ynh_script_progression' "
+                "to explain what is going on (in friendly, not-too-technical terms) "
+                "during the installation. (and ideally in scripts remove, upgrade and restore too)"
             )
+
+    @test(only=["backup"])
+    def progression_in_backup(self):
+        if self.contains("ynh_script_progression"):
+            yield Info(
+                "We recommend to *not* use 'ynh_script_progression' in backup "
+                "scripts because no actual work happens when running the script "
+                " : yunohost only fetches the list of things to backup (apart "
+                "from the DB dumps which effectively happens during the script..). "
+                "Consider using a simple message like this instead: 'ynh_print_info \"Declaring files to be backed up...\"'"
+            )
+
 
     @test()
     def progression_time(self):
 
         # Usage of ynh_script_prorgression with --time or --weight=1 all over the place...
         if self.containsregex(r"ynh_script_progression.*--time"):
-            yield Warning("Using ynh_script_progression --time should only be for calibrating the weight (c.f. --weight). It's not meant to be kept for production versions.")
+            yield Info("Using ynh_script_progression --time should only be for calibrating the weight (c.f. --weight). It's not meant to be kept for production versions.")
 
     @test(ignore=["_common.sh", "backup"])
     def progression_meaningful_weights(self):
@@ -1270,7 +1496,7 @@ class Script(TestSuite):
             return
 
         if len(weights) > 3 and statistics.stdev(weights) > 50:
-            yield Warning("To have a meaningful progress bar, try to keep the weights in the same range of values, for example [1,10], or [10,100] ... otherwise, if you have super-huge weight differentes, the progress bar rendering will be completely dominated by one or two steps... If these steps are really long, just try to indicated in the message that this will take a while.")
+            yield Info("To have a meaningful progress bar, try to keep the weights in the same range of values, for example [1,10], or [10,100] ... otherwise, if you have super-huge weight differentes, the progress bar rendering will be completely dominated by one or two steps... If these steps are really long, just try to indicated in the message that this will take a while.")
 
     @test(only=["install", "_common.sh"])
     def php_deps(self):
@@ -1301,6 +1527,7 @@ class Script(TestSuite):
             yield Warning("In the context of backup and restore script, you should load _common.sh with \"source ../settings/scripts/_common.sh\"")
 
 
+
 def main():
     if len(sys.argv) < 2:
         print("Give one app package path.")
@@ -1312,24 +1539,8 @@ def main():
     output = "json" if "--json" in sys.argv else "plain"
 
     header(app_path)
-    App(app_path).analyze()
-
-    if output == "json":
-        print(json.dumps({"warnings": [test for test, report in tests_reports if isinstance(report, Warning)],
-                          "errors": [test for test, report in tests_reports if isinstance(report, Error)]}, indent=4))
-    else:
-        errors = [report for _, report in tests_reports if isinstance(report, Error)]
-        warnings = [report for _, report in tests_reports if isinstance(report, Warning)]
-        if errors:
-            print("Uhoh there are some errors to be fixed :(")
-            sys.exit(1)
-        elif len(warnings) > 3:
-            print("Still some warnings to be fixed :s")
-        elif len(warnings) > 0:
-            print("Only %s warning remaining! You can do it!" % len(warnings))
-        else:
-            print_happy("Not even a warning! Congratz and thank you for keeping that package up to date with good practices !")
-
+    app = App(app_path)
+    app.analyze()
 
 if __name__ == '__main__':
     main()
