@@ -738,7 +738,7 @@ class Configurations(TestSuite):
             content = open(app.path + "/conf/" + filename).read()
             if "location" in content and "add_header" in content:
                 yield Error(
-                    "Do not use 'add_header' in the nginx conf. Use 'more_set_headers' instead. "
+                    "Do not use 'add_header' in the NGINX conf. Use 'more_set_headers' instead. "
                     "(See https://www.peterbe.com/plog/be-very-careful-with-your-add_header-in-nginx "
                     "and https://github.com/openresty/headers-more-nginx-module#more_set_headers )"
                 )
@@ -764,8 +764,8 @@ class Configurations(TestSuite):
                 if any(not right_syntax(line) for line in more_set_headers_lines):
                     yield Warning(
                         "It looks like the syntax for the more_set_headers "
-                        "instruction is incorrect in the nginx conf (N.B. "
-                        ": it's different than the add_header syntax!) ... "
+                        "instruction is incorrect in the NGINX conf. (N.B. "
+                        ": it's different than the add_header syntax!)... "
                         "The syntax should look like: "
                         "more_set_headers \"Header-Name: value\""
                     )
@@ -806,13 +806,13 @@ class Configurations(TestSuite):
                         if location.startswith("^") and location.endswith("$"):
                             continue
                         alias_path = alias[-1]
-                        # For path traversal issues to occur, both of those are needed :
+                        # For path traversal issues to occur, both of those are needed:
                         # - location /foo {          (*without* a / after foo)
                         # -    alias /var/www/foo/   (*with* a / after foo)
                         #
                         # Note that we also consider a positive the case where
                         # the alias folder (e.g. /var/www/foo/) does not ends
-                        # with / if __FINALPATH__ ain't used ...  that probably
+                        # with / if __FINALPATH__ ain't used...  that probably
                         # means that the app is not using the standard nginx
                         # helper, and therefore it is likely to be replaced by
                         # something ending with / ...
@@ -837,22 +837,22 @@ class Configurations(TestSuite):
                         _print("Failed :[ : %s" % str(e))
 
             if not do_path_traversal_check:
-                _print("N.B.: The package linter need you to run 'pip3 install pyparsing six' if you want it to be able to check for path traversal issue in nginx confs")
+                _print("N.B.: The package linter need you to run 'pip3 install pyparsing six' if you want it to be able to check for path traversal issue in NGINX confs")
 
             if do_path_traversal_check:
                 from lib.nginxparser import nginxparser
                 try:
                     nginxconf = nginxparser.load(open(app.path + "/conf/" + filename))
                 except Exception as e:
-                    _print("Could not parse nginx conf ... : " + str(e))
+                    _print("Could not parse NGINX conf...: " + str(e))
                     nginxconf = []
 
                 for location in find_path_traversal_issue(nginxconf):
                     yield Error(
-                        "The nginx configuration (especially location %s) "
+                        "The NGINX configuration (especially location %s) "
                         "appears vulnerable to path traversal issues as explained in\n"
                         "  https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
-                        "  To fix it, look at the first lines of the nginx conf of the example app : \n"
+                        "  To fix it, look at the first lines of the NGINX conf of the example app : \n"
                         "  https://github.com/YunoHost/example_ynh/blob/master/conf/nginx.conf" % location
                     )
 
@@ -914,7 +914,7 @@ class Manifest(TestSuite):
     def yunohost_version_requirement(self):
 
         if not self.manifest.get("requirements", {}).get("yunohost", ""):
-            yield Critical("You should add a yunohost version requirement in the manifest")
+            yield Critical("You should add a YunoHost version requirement in the manifest")
 
     @test()
     def yunohost_version_requirement_superold(app):
@@ -939,7 +939,7 @@ class Manifest(TestSuite):
         if "license" not in self.manifest:
             return
 
-        # Turns out there may be multiple licenses ... (c.f. seafile)
+        # Turns out there may be multiple licenses... (c.f. Seafile)
         licenses = self.manifest["license"].split(",")
 
         for license in licenses:
@@ -969,7 +969,7 @@ class Manifest(TestSuite):
             descr = descr.get("en", "")
 
         if len(descr) < 5 or len(descr) > 150:
-            yield Warning("The description of your app is either missing, too short or too long... Please describe in *consise* terms what the app is / does.")
+            yield Warning("The description of your app is either missing, too short or too long... Please describe in *consise* terms what the app is/does.")
 
         if "for yunohost" in descr.lower():
             yield Warning(
@@ -980,7 +980,7 @@ class Manifest(TestSuite):
         if descr.lower().startswith(id) or descr.lower().startswith(name):
             yield Warning(
                 "Try to avoid starting the description by '$app is' "
-                "... explain what the app is / does directly !"
+                "... explain what the app is/does directly!"
             )
 
     @test()
@@ -989,7 +989,7 @@ class Manifest(TestSuite):
         if self.manifest.get("version", "")[-5:-1] != "~ynh":
             yield Error(
                 "The 'version' field should match the format <upstreamversion>~ynh<packageversion>. "
-                "For example : 4.3-2~ynh3. It is composed of the upstream version number (in the "
+                "For example: 4.3-2~ynh3. It is composed of the upstream version number (in the "
                 "example, 4.3-2) and an incremental number for each change in the package without "
                 "upstream change (in the example, 3). This incremental number can be reset to 1 "
                 "each time the upstream version changes."
@@ -1005,7 +1005,7 @@ class Manifest(TestSuite):
     def url(self):
         if self.manifest.get("url", "").endswith("_ynh"):
             yield Info(
-                "'url' is not meant to be the url of the yunohost package, "
+                "'url' is not meant to be the URL of the YunoHost package, "
                 "but rather the website or repo of the upstream app itself..."
             )
 
@@ -1022,12 +1022,12 @@ class Manifest(TestSuite):
             if "type" not in argument.keys():
                 yield Warning(
                     "You should specify the type of the argument '%s'. "
-                    "You can use : %s." % (argument["name"], ', '.join(recognized_types))
+                    "You can use: %s." % (argument["name"], ', '.join(recognized_types))
                 )
             elif argument["type"] not in recognized_types:
                 yield Warning(
                     "The type '%s' for argument '%s' is not recognized... "
-                    "it probably doesn't behave as you expect ? Choose among those instead : %s" % (argument["type"], argument["name"], ', '.join(recognized_types))
+                    "it probably doesn't behave as you expect? Choose among those instead: %s" % (argument["type"], argument["name"], ', '.join(recognized_types))
                 )
             elif argument["type"] == "boolean" and argument.get("default", True) not in [True, False]:
                 yield Warning(
@@ -1135,7 +1135,7 @@ class AppCatalog(TestSuite):
 
             if repo_url.lower() not in [repo_org.lower(), repo_brique.lower()]:
                 if repo_url.lower().startswith("https://github.com/YunoHost-Apps/"):
-                    yield Warning("The url for this app in the catalog should be %s" % repo_org)
+                    yield Warning("The URL for this app in the catalog should be %s" % repo_org)
                 else:
                     yield Warning("Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily")
 
@@ -1213,7 +1213,7 @@ class AppCatalog(TestSuite):
         score = sum([good_quality(infos) for d, infos in history])
         rel_score = int(100 * score / N)
         if rel_score > 90:
-            yield Success("The app is long-term good quality in the catalog !")
+            yield Success("The app is long-term good quality in the catalog!")
 
 ##################################
 #   _____           _       _    #
@@ -1337,14 +1337,14 @@ class Script(TestSuite):
             yield Warning(
                 "Argument --installed ain't needed anymore when using "
                 "'yunohost app list'. It directly returns the list of installed "
-                "apps.. Also beware that option -f is obsolete as well .. "
+                "apps.. Also beware that option -f is obsolete as well... "
                 "Use grep -q 'id: $appname' to check a specific app is installed"
             )
 
     @test()
     def normalize_url_path(self):
         if self.contains("ynh_normalize_url_path"):
-            yield Info("You probably don't need to call ynh_normalize_url_path ... this is only relevant for upgrades from super-old versions (like 3 years ago or so...)")
+            yield Info("You probably don't need to call 'ynh_normalize_url_path'... this is only relevant for upgrades from super-old versions (like 3 years ago or so...)")
 
     @test()
     def safe_rm(self):
@@ -1355,7 +1355,7 @@ class Script(TestSuite):
     def nginx_restart(self):
         if self.contains("systemctl restart nginx") or self.contains("service nginx restart"):
             yield Error(
-                "Restarting nginx is quite dangerous (especially for web installs) "
+                "Restarting NGINX is quite dangerous (especially for web installs) "
                 "and should be avoided at all cost. Use 'reload' instead."
             )
 
@@ -1387,7 +1387,7 @@ class Script(TestSuite):
         if self.containsregex(r"^\w+\=\$\{?[0-9]"):
             yield Critical(
                 "Do not fetch arguments from manifest using variable=$N (e.g."
-                " domain=$1 ...) Instead, use name=$YNH_APP_ARG_NAME"
+                " domain=$1...) Instead, use name=$YNH_APP_ARG_NAME"
             )
 
     @test(only=["install"])
@@ -1396,7 +1396,7 @@ class Script(TestSuite):
         or (os.path.exists(self.app_path + "/scripts/_common.sh") and "/etc/apt/sources.list" in open(self.app_path+"/scripts/_common.sh").read() and "ynh_add_repo" not in open(self.app_path+"/scripts/_common.sh").read()):
             yield Error(
                 "Manually messing with apt's sources.lists is strongly discouraged "
-                "and should be avoided. Please use ynh_install_extra_app_dependencies is you "
+                "and should be avoided. Please use 'ynh_install_extra_app_dependencies' if you "
                 "need to install dependencies from a custom apt repo."
             )
 
@@ -1438,7 +1438,7 @@ class Script(TestSuite):
     def chmod777(self):
         if self.containsregex(r"chmod .*777") or self.containsregex(r'chmod .*o\+w'):
             yield Warning(
-                "DO NOT use chmod 777 or chmod o+w that gives write permission to every users on the system !!! If you have permission issues, just make sure that the owner and/or group owner is right ..."
+                "DO NOT use chmod 777 or chmod o+w that gives write permission to every users on the system!!! If you have permission issues, just make sure that the owner and/or group owner is right..."
             )
 
     @test()
@@ -1463,8 +1463,8 @@ class Script(TestSuite):
             yield Info(
                 "We recommend to *not* use 'ynh_script_progression' in backup "
                 "scripts because no actual work happens when running the script "
-                " : yunohost only fetches the list of things to backup (apart "
-                "from the DB dumps which effectively happens during the script..). "
+                " : YunoHost only fetches the list of things to backup (apart "
+                "from the DB dumps which effectively happens during the script...). "
                 "Consider using a simple message like this instead: 'ynh_print_info \"Declaring files to be backed up...\"'"
             )
 
@@ -1496,12 +1496,12 @@ class Script(TestSuite):
             return
 
         if len(weights) > 3 and statistics.stdev(weights) > 50:
-            yield Info("To have a meaningful progress bar, try to keep the weights in the same range of values, for example [1,10], or [10,100] ... otherwise, if you have super-huge weight differentes, the progress bar rendering will be completely dominated by one or two steps... If these steps are really long, just try to indicated in the message that this will take a while.")
+            yield Info("To have a meaningful progress bar, try to keep the weights in the same range of values, for example [1,10], or [10,100]... otherwise, if you have super-huge weight differentes, the progress bar rendering will be completely dominated by one or two steps... If these steps are really long, just try to indicated in the message that this will take a while.")
 
     @test(only=["install", "_common.sh"])
     def php_deps(self):
         if self.containsregex("dependencies.*php-"):
-            yield Warning("You should avoid having dependencies like 'php-foobar'. Instead, specify the exact version you want like 'php7.0-foobar'. Otherwise, the *wrong* version of the dependency may be installed if sury is also installed. Note that for Stretch/Buster/Bullseye/... transition, Yunohost will automatically patch your file so there's no need to care about that.")
+            yield Warning("You should avoid having dependencies like 'php-foobar'. Instead, specify the exact version you want like 'php7.0-foobar'. Otherwise, the *wrong* version of the dependency may be installed if sury is also installed. Note that for Stretch/Buster/Bullseye/... transition, YunoHost will automatically patch your file so there's no need to care about that.")
 
     @test(only=["backup"])
     def systemd_during_backup(self):
@@ -1511,7 +1511,7 @@ class Script(TestSuite):
     @test(only=["backup"])
     def check_size_backup(self):
         if self.contains("CHECK_SIZE"):
-            yield Warning("There's no need to 'CHECK_SIZE' during backup ... This check is handled by the core automatically.")
+            yield Warning("There's no need to 'CHECK_SIZE' during backup... This check is handled by the core automatically.")
 
     @test()
     def helpers_sourcing_after_official(self):
