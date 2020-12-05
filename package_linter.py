@@ -764,7 +764,7 @@ class Configurations(TestSuite):
                 if any(not right_syntax(line) for line in more_set_headers_lines):
                     yield Warning(
                         "It looks like the syntax for the more_set_headers "
-                        "instruction is incorrect in the NGINX conf. (N.B. "
+                        "instruction is incorrect in the NGINX conf (N.B. "
                         ": it's different than the add_header syntax!)... "
                         "The syntax should look like: "
                         "more_set_headers \"Header-Name: value\""
