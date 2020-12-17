@@ -344,6 +344,7 @@ class App(TestSuite):
         # previously computed errors/warning/successes
         self.run_single_test(App.qualify_for_level_7)
         self.run_single_test(App.qualify_for_level_8)
+        self.run_single_test(App.qualify_for_level_9)
 
         if output == "json":
             print(json.dumps({
@@ -382,6 +383,11 @@ class App(TestSuite):
             _print(" The app is flagged as not maintained in the app catalog")
         elif "qualify_for_level_7" in successes and "is_long_term_good_quality" in successes:
             yield Success("The app is maintained and long-term good quality, and therefore qualifies for level 8!")
+
+    def qualify_for_level_9(self):
+
+        if self.app_catalog.catalog_infos.get("high_quality", False):
+            yield Success("The app is flagged as high-quality in the app catalog")
 
     #########################################
     #   _____                           _   #
