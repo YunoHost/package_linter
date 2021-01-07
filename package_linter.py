@@ -1366,6 +1366,11 @@ class Script(TestSuite):
             )
 
     @test()
+    def raw_systemctl_start(self):
+        if self.containsregex(r'systemctl start [^. ]+(\.service)?'):
+            yield Warning("Please do not use 'systemctl start' to start services. Instead, you should use ynh_systemd_action which will display the service log in case it fails to start. You can also use --line_match to wait until some specific word appear in the log, signaling the service indeed fully started.")
+
+    @test()
     def quiet_systemctl_enable(self):
 
         systemctl_enable = [line
