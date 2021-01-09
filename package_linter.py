@@ -556,6 +556,13 @@ class App(TestSuite):
             yield Warning("This app still has references to php5 (from the jessie era !!) which tends to indicate that it's not up to date with recent packaging practices.")
 
 
+    @test()
+    def conf_json_persistent_tweaking(self):
+        if os.system("grep -q -nr '/etc/ssowat/conf.json.persistent' %s/*/* 2>/dev/null" % self.path) == 0:
+            yield Error("Don't do black magic with /etc/ssowat/conf.json.persistent !")
+
+
+
 class Configurations(TestSuite):
 
     def __init__(self, app):
