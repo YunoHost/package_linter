@@ -436,8 +436,6 @@ class App(TestSuite):
                 % (id_, id_)
             )
 
-
-
     #######################################
     #  _    _      _                      #
     # | |  | |    | |                     #
@@ -542,13 +540,6 @@ class App(TestSuite):
                 "You used 'yunohost service add' in the install script, "
                 "but not 'yunohost service remove' in the remove script."
             )
-
-    @test()
-    def helper_consistency_firewall(app):
-        install_script = app.scripts["install"]
-        if install_script.contains("yunohost firewall allow"):
-            if not install_script.contains("--needs_exposed_ports"):
-                yield Warning("The install script expose a port on the outside with 'yunohost firewall allow' but doesn't use 'yunohost service add' with --needs_exposed_ports ... If your are ABSOLUTELY SURE that the service needs to be exposed on THE OUTSIDE, then add --needs_exposed_ports to 'yunohost service add' with the relevant port number. Otherwise, opening the port leads to a significant security risk and you should keep the damn port closed !")
 
     @test()
     def references_to_old_php_versions(app):
@@ -1417,6 +1408,14 @@ class Script(TestSuite):
                 "and should be avoided. Please use 'ynh_install_extra_app_dependencies' if you "
                 "need to install dependencies from a custom apt repo."
             )
+
+    @test()
+    def firewall_consistency(self):
+        if self.contains("yunohost firewall allow") and not self.contains("--needs_exposed_ports"):
+            yield Warning("You used 'yunohost firewall allow' to expose a port on the outside but did not use 'yunohost service add' with --needs_exposed_ports ... If your are ABSOLUTELY SURE that the service needs to be exposed on THE OUTSIDE, then add --needs_exposed_ports to 'yunohost service add' with the relevant port number. Otherwise, opening the port leads to a significant security risk and you should keep the damn port closed !")
+
+        if self.contains("Configuring firewall") and not self.contains('yunohost firewall allow'):
+            yield Warning("Some message is talking about 'Configuring firewall' but there's no mention of 'yunohost firewall allow' ... If you're only finding an available port for *internal reverse proxy*, this has nothing to do with 'Configuring the firewall', so the message should be changed to avoid confusion... ")
 
     @test()
     def exit_ynhdie(self):
