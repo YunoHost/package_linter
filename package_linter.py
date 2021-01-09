@@ -992,7 +992,7 @@ class Manifest(TestSuite):
     @test()
     def version_format(self):
 
-        if self.manifest.get("version", "")[-5:-1] != "~ynh":
+        if not re.match("^([0-9]|\.|-)+~ynh[0-9]+$", self.manifest.get("version", "")):
             yield Error(
                 "The 'version' field should match the format <upstreamversion>~ynh<packageversion>. "
                 "For example: 4.3-2~ynh3. It is composed of the upstream version number (in the "
