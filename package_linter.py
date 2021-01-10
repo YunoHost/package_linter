@@ -436,6 +436,16 @@ class App(TestSuite):
                 % (id_, id_)
             )
 
+    @test()
+    def placeholder_help_string(self):
+        if os.system("grep -q 'Use the help field' %s/manifest.json 2>/dev/null" % self.path) == 0:
+            yield Warning("Sounds like your manifest.json contains some default placeholder help string ('Use the help field to...') ... either replace it with an actually helpful explanation, or remove the help string entirely if you don't use it.")
+
+    @test()
+    def remaining_replacebyyourapp(self):
+        if os.system("grep -qr 'REPLACEBYYOURAPP' %s 2>/dev/null" % self.path) == 0:
+            yield Warning("You should replace all occurences of REPLACEBYYOURAPP.")
+
     #######################################
     #  _    _      _                      #
     # | |  | |    | |                     #
