@@ -443,7 +443,7 @@ class App(TestSuite):
 
     @test()
     def remaining_replacebyyourapp(self):
-        if os.system("grep -qr 'REPLACEBYYOURAPP' %s 2>/dev/null" % self.path) == 0:
+        if os.system("grep -I -qr 'REPLACEBYYOURAPP' %s 2>/dev/null" % self.path) == 0:
             yield Warning("You should replace all occurences of REPLACEBYYOURAPP.")
 
     #######################################
