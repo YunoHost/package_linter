@@ -1129,7 +1129,7 @@ class AppCatalog(TestSuite):
     def state_is_working(self):
 
         if self.catalog_infos and self.catalog_infos.get("state", "working") != "working":
-            yield Critical("The application is not flagged as working in YunoHost's apps catalog")
+            yield Error("The application is not flagged as working in YunoHost's apps catalog")
 
     @test()
     def has_category(self):
