@@ -180,8 +180,8 @@ class TestReport:
     def __init__(self, message):
         self.message = message
 
-    def display(self):
-        _print(self.style % self.message)
+    def display(self, prefix=""):
+        _print(prefix + self.style % self.message)
 
 class Warning(TestReport):
     style = c.WARNING + " ! %s " + c.END
@@ -190,7 +190,7 @@ class Error(TestReport):
     style = c.FAIL + " ✘ %s" + c.END
 
 class Info(TestReport):
-    style = " ⓘ  %s" + c.END
+    style = " - %s" + c.END
 
 class Success(TestReport):
     style = c.OKGREEN + " ☺  %s ♥" + c.END
@@ -198,20 +198,6 @@ class Success(TestReport):
 class Critical(TestReport):
     style = c.FAIL + " ✘✘✘ %s" + c.END
 
-def header(app):
-    _print("""
-    [{header}{bold}YunoHost App Package Linter{end}]
-
- App packaging documentation - https://yunohost.org/#/packaging_apps
- App package example         - https://github.com/YunoHost/example_ynh
- Official helpers            - https://yunohost.org/#/packaging_apps_helpers_en
- Experimental helpers        - https://github.com/YunoHost-Apps/Experimental_helpers
-
- If you believe this linter returns false negative (warnings / errors which shouldn't happen),
- please report them on https://github.com/YunoHost/package_linter/issues
-
-    Analyzing package {header}{app}{end}"""
-    .format(header=c.HEADER, bold=c.BOLD, end=c.END, app=app))
 
 
 output = "plain"
@@ -222,14 +208,8 @@ def _print(*args, **kwargs):
         print(*args, **kwargs)
 
 
-def print_header(str):
-    _print("\n [" + c.BOLD + c.HEADER + str.title() + c.END + "]\n")
-
-
 def report_warning_not_reliable(str):
     _print(c.MAYBE_FAIL + "?", str, c.END)
-
-
 
 
 def print_happy(str):
@@ -282,22 +262,62 @@ def test(**kwargs):
 class TestSuite():
 
     def run_tests(self):
+
+        reports = []
+
         for test, options in tests[self.__class__.__name__]:
             if "only" in options and self.name not in options["only"]:
                 continue
             if "ignore" in options and self.name in options["ignore"]:
                 continue
-            self.run_single_test(test)
+
+            reports += list(test(self))
+
+        def report_type(report):
+            return report.__class__.__name__.lower()
+
+        if output == "plain":
+
+            if any(report_type(r) in ["warning", "error", "critical"] for r in reports):
+                prefix = c.WARNING + '! '
+            elif any(report_type(r) in ["info"] for r in reports):
+                prefix = 'ⓘ '
+            else:
+                prefix = c.OKGREEN + '✔ '
+
+            _print(" " + c.BOLD + prefix + c.OKBLUE + self.test_suite_name + c.END)
+
+            if len(reports):
+                _print("")
+
+            for report in reports:
+                report.display(prefix="   ")
+
+            if len(reports):
+                _print("")
+
+        else:
+            for report in reports:
+                test_name = test.__qualname__
+                tests_reports[report_type(report)].append((test_name, report))
+
 
     def run_single_test(self, test):
 
         reports = list(test(self))
-        for report in reports:
-            if output == "plain":
+
+        if output == "plain":
+            for report in reports:
                 report.display()
-            report_type = report.__class__.__name__.lower()
-            test_name = test.__qualname__
-            tests_reports[report_type].append((test_name, report))
+        else:
+            def report_type(report):
+                return report.__class__.__name__.lower()
+            for report in reports:
+                test_name = test.__qualname__
+                tests_reports[report_type(report)].append((test_name, report))
+
+
+
 
 # ############################################################################
 #   Actual high-level checks
@@ -310,7 +330,7 @@ class App(TestSuite):
 
     def __init__(self, path):
 
-        print_header("LOADING APP")
+        _print("  Analyzing app %s ..." % path)
         self.path = path
         self.manifest_ = Manifest(self.path)
         self.manifest = self.manifest_.manifest
@@ -318,27 +338,26 @@ class App(TestSuite):
         self.configurations = Configurations(self)
         self.app_catalog = AppCatalog(self.manifest["id"])
 
+        self.test_suite_name = "General stuff, misc helper usage"
+
+        _print()
+
     def analyze(self):
 
-        print_header("MANIFEST")
         self.manifest_.run_tests()
 
         for script in [self.scripts[s] for s in scriptnames if self.scripts[s].exists]:
-            print_header(script.name.upper() + " SCRIPT")
             script.run_tests()
 
-        print_header("GENERAL STUFF, MISC HELPER USAGE")
         self.run_tests()
-
-        print_header("CONFIGURATIONS")
         self.configurations.run_tests()
-
-        print_header("APP CATALOG")
         self.app_catalog.run_tests()
 
         self.report()
 
     def report(self):
+
+        _print(" =======")
 
         # These are meant to be the last stuff running, they are based on
         # previously computed errors/warning/successes
@@ -569,6 +588,7 @@ class Configurations(TestSuite):
     def __init__(self, app):
 
         self.app = app
+        self.test_suite_name = "Configuration files"
 
     ############################
     #    _____             __  #
@@ -885,6 +905,7 @@ class Manifest(TestSuite):
     def __init__(self, path):
 
         self.path = path
+        self.test_suite_name = "manifest.json"
         manifest_path = os.path.join(path, 'manifest.json')
         assert os.path.exists(manifest_path), "manifest.json is missing"
 
@@ -1088,6 +1109,7 @@ class AppCatalog(TestSuite):
     def __init__(self, app_id):
 
         self.app_id = app_id
+        self.test_suite_name = "Catalog infos"
 
         self._fetch_app_repo()
 
@@ -1249,6 +1271,7 @@ class Script(TestSuite):
         if not self.exists:
             return
         self.lines = list(self.read_file())
+        self.test_suite_name = "scripts/" + self.name
 
     def read_file(self):
         with open(self.path) as f:
@@ -1262,6 +1285,7 @@ class Script(TestSuite):
         lines = '\n'.join(lines).replace("\\\n", "").split("\n")
 
         some_parsing_failed = False
+        some_parsing_failed_closing_quotation = False
 
         for line in lines:
 
@@ -1269,9 +1293,15 @@ class Script(TestSuite):
                 line = shlex.split(line, True)
                 yield line
             except Exception as e:
+
+                ignore_pattern = ["/etc/cron", "admin_panel=", "echo \"", "__PRE_TAG", "__URL_TAG", "maintenance.$app.conf", "mail_message=", "maintenance.$app.html", "> mail_to_send"]
+                if str(e) == "No closing quotation" and any(pattern in line for pattern in ignore_pattern):
+                    continue
+
                 if not some_parsing_failed:
                     _print("Some lines could not be parsed in script %s. (That's probably not really critical)" % self.name)
                     some_parsing_failed = True
+
                 report_warning_not_reliable("%s : %s" % (e, line))
 
     def occurences(self, command):
@@ -1565,7 +1595,19 @@ def main():
     global output
     output = "json" if "--json" in sys.argv else "plain"
 
-    header(app_path)
+
+    _print("""
+    [{blue}{bold}YunoHost App Package Linter{end}]
+
+ App packaging documentation - https://yunohost.org/#/packaging_apps
+ App package example         - https://github.com/YunoHost/example_ynh
+ Official helpers            - https://yunohost.org/#/packaging_apps_helpers_en
+ Experimental helpers        - https://github.com/YunoHost-Apps/Experimental_helpers
+
+ If you believe this linter returns false negative (warnings / errors which shouldn't happen),
+ please report them on https://github.com/YunoHost/package_linter/issues
+    """.format(blue=c.OKBLUE, bold=c.BOLD, end=c.END))
+
     app = App(app_path)
     app.analyze()
 
