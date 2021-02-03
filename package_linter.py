@@ -273,48 +273,45 @@ class TestSuite():
 
             reports += list(test(self))
 
+        # Display part
+
         def report_type(report):
             return report.__class__.__name__.lower()
 
-        if output == "plain":
-
-            if any(report_type(r) in ["warning", "error", "critical"] for r in reports):
-                prefix = c.WARNING + '! '
-            elif any(report_type(r) in ["info"] for r in reports):
-                prefix = 'ⓘ '
-            else:
-                prefix = c.OKGREEN + '✔ '
-
-            _print(" " + c.BOLD + prefix + c.OKBLUE + self.test_suite_name + c.END)
-
-            if len(reports):
-                _print("")
-
-            for report in reports:
-                report.display(prefix="   ")
-
-            if len(reports):
-                _print("")
-
+        if any(report_type(r) in ["warning", "error", "critical"] for r in reports):
+            prefix = c.WARNING + '! '
+        elif any(report_type(r) in ["info"] for r in reports):
+            prefix = 'ⓘ '
         else:
-            for report in reports:
-                test_name = test.__qualname__
-                tests_reports[report_type(report)].append((test_name, report))
+            prefix = c.OKGREEN + '✔ '
+
+        _print(" " + c.BOLD + prefix + c.OKBLUE + self.test_suite_name + c.END)
+
+        if len(reports):
+            _print("")
+
+        for report in reports:
+            report.display(prefix="   ")
+
+        if len(reports):
+            _print("")
+
+        for report in reports:
+            test_name = test.__qualname__
+            tests_reports[report_type(report)].append((test_name, report))
 
 
     def run_single_test(self, test):
 
         reports = list(test(self))
 
-        if output == "plain":
-            for report in reports:
-                report.display()
-        else:
-            def report_type(report):
-                return report.__class__.__name__.lower()
-            for report in reports:
-                test_name = test.__qualname__
-                tests_reports[report_type(report)].append((test_name, report))
+        def report_type(report):
+            return report.__class__.__name__.lower()
+
+        for report in reports:
+            report.display()
+            test_name = test.__qualname__
+            tests_reports[report_type(report)].append((test_name, report))
 
 
 
