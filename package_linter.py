@@ -1383,6 +1383,21 @@ class Script(TestSuite):
             )
 
     @test()
+    def set_is_public_setting(self):
+        if self.containsregex(r'ynh_app_setting_set .*is_public.*'):
+            yield Info("permission system: it should not be needed to save is_public with ynh_app_setting_set ... this setting should only be used during installation to initialize the permission. The admin is likely to manually tweak the permission using Yunohost's interface later.")
+
+    @test(ignore=["install", "_common.sh"])
+    def get_is_public_setting(self):
+        if self.contains('is_public=') or self.contains('$is_public'):
+            yield Info("permission system: there should be no need to fetch or use $is_public ... is_public should only be used during installation to initialize the permission. The admin is likely to manually tweak the permission using Yunohost's interface later.")
+
+    @test()
+    def set_legacy_permissions(self):
+        if self.containsregex(r'ynh_app_setting_set .*protected_') or self.containsregex(r'ynh_app_setting_set .*skipped_'):
+            yield Info("permission system: it looks like the app is still using the legacy permission system (unprotected/protected/skipped uris/regexes setting). Please check https://yunohost.org/packaging_apps_permissions for a documentation on how to migrate the app to the new permission system.")
+
+    @test()
     def normalize_url_path(self):
         if self.contains("ynh_normalize_url_path"):
             yield Info("You probably don't need to call 'ynh_normalize_url_path'... this is only relevant for upgrades from super-old versions (like 3 years ago or so...)")
