@@ -320,7 +320,7 @@ class TestSuite():
 #   Actual high-level checks
 # ############################################################################
 
-scriptnames = ["_common.sh", "install", "remove", "upgrade", "backup", "restore"]
+scriptnames = ["_common.sh", "install", "remove", "upgrade", "backup", "restore", "change_url"]
 
 
 class App(TestSuite):
@@ -531,6 +531,18 @@ class App(TestSuite):
             for name in ["upgrade", "restore"]:
                 if app.scripts[name].exists and not app.scripts[name].contains("ynh_install_app_dependencies"):
                     yield Warning("ynh_install_app_dependencies should also be in %s script" % name)
+
+    @test()
+    def consistency_changeurl_for_absolute_permissions_url(app):
+
+        if not app.scripts["change_url"].exists:
+            return
+
+        if app.scripts["install"].containsregex("ynh_app_setting_set.*ed_regex.*\$domain") and not app.scripts["change_url"].containsregex("ynh_app_setting_set.*ed_regex.*\$domain"):
+            yield Error("It looks like you added an absolute-url (regex?) legacy permission based on the domain, but change_url does not correctly propagate a possible domain change on that url")
+
+        if app.scripts["install"].containsregex("ynh_permission_create.*url.*\$domain") and not app.scripts["change_url"].containsregex("ynh_permission_create.*url.*\$domain"):
+            yield Error("It looks like you added an absolute-url permission based on the domain, but change_url does not correctly propagate a possible domain change on that url")
 
     @test()
     def helper_consistency_service_add(app):
