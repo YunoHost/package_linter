@@ -271,7 +271,11 @@ class TestSuite():
             if "ignore" in options and self.name in options["ignore"]:
                 continue
 
-            reports += list(test(self))
+            this_test_reports = list(test(self))
+            for report in this_test_reports:
+                report.test_name = test.__qualname__
+
+            reports += this_test_reports
 
         # Display part
 
@@ -297,8 +301,7 @@ class TestSuite():
             _print("")
 
         for report in reports:
-            test_name = test.__qualname__
-            tests_reports[report_type(report)].append((test_name, report))
+            tests_reports[report_type(report)].append((report.test_name, report))
 
 
     def run_single_test(self, test):
