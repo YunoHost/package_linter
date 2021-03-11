@@ -584,10 +584,11 @@ class App(TestSuite):
     @test()
     def app_data_in_unofficial_dir(self):
 
-        allowed_locations = ["yunohost.app", "yunohost.conf", "yunohost.backup", "yunohost.multimedia"]
+        allowed_locations = ["/home/yunohost.app", "/home/yunohost.conf", "/home/yunohost.backup", "/home/yunohost.multimedia"]
         cmd = "grep -IhEro '/home/yunohost[^/ ]*/' %s/scripts || true" % self.path
         home_locations = subprocess.check_output(cmd, shell=True).decode('utf-8').strip().split("\n")
-        forbidden_locations = set([location for location in home_locations if location and location not in allowed_locations])
+
+        forbidden_locations = set([location for location in home_locations if location and location.rstrip('/') not in allowed_locations])
 
         if forbidden_locations:
             yield Warning("The app seems to be storing data in the 'forbidden' locations %s. The recommended pratice is rather to store data in /home/yunohost.app/$app or /home/yunohost.multimedia (depending on the use case)" % ', '.join(forbidden_locations))
