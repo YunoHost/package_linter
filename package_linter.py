@@ -1341,7 +1341,7 @@ class Script(TestSuite):
     def error_handling(self):
 
         if self.name in ["backup", "remove", "_common.sh"]:
-            present = self.contains("ynh_abort_if_errors") or self.contains("set -eu")
+            present = self.contains("ynh_abort_if_errors") or self.contains("set -eu") or self.contains("set -u")
         else:
             present = self.contains("ynh_abort_if_errors")
 
