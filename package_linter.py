@@ -1090,6 +1090,17 @@ class Manifest(TestSuite):
                         )
 
     @test()
+    def obsolete_ask_strings(self):
+
+        ask_string_managed_by_the_core = [("domain", "domain"), ("path", "path"), ("admin", "user"), ("is_public", "boolean"), ("password", "password")]
+
+        for argument in self.manifest["arguments"].get("install", []):
+
+            if argument.get("ask") and (argument.get("name"), argument.get("type")) in ask_string_managed_by_the_core:
+                yield Info("Ask string for argument %s is superflous / will be ignored. Since 4.1, the core handles the ask string for some reccuring arg name/type for consistency and easier i18n. See https://github.com/YunoHost/example_ynh/pull/142" % argument.get("name"))
+
+
+    @test()
     def is_public_help(self):
         for argument in self.manifest["arguments"].get("install", []):
             if argument["name"] == "is_public" and "help" not in argument.keys():
