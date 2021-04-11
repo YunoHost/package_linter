@@ -1256,7 +1256,12 @@ class AppCatalog(TestSuite):
                 # Fetch apps.json content at this date
                 commit = git(["rev-list", "-1", "--before='%s'" % t.strftime("%b %d %Y"), "master"])
                 raw_json_at_this_date = git(["show", "%s:apps.json" % commit])
-                json_at_this_date = json.loads(raw_json_at_this_date)
+                try:
+                    json_at_this_date = json.loads(raw_json_at_this_date)
+                # This can happen in stupid cases where there was a temporary syntax error in the json..
+                except json.decoder.JSONDecodeError:
+                    print("Failed to parse apps.json history for at commit %s / %s ... ignoring " % (commit, t))
+                    continue
 
                 yield (t, json_at_this_date.get(self.app_id))
 
