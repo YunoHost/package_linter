@@ -19,7 +19,7 @@ reader = codecs.getreader("utf-8")
 #  Helper list
 # ############################################################################
 
-# Generated May 21st using:
+# Generated April 11th using:
 # cat /path/to/yunohost/data/helpers.d/* | grep  "^ynh_" | tr -d '(){ ' > helperlist
 # for HELPER in $(cat helperlist); do REQUIRE=$(grep -whB5 "^$HELPER" /path/to/yunohost/data/helpers.d/* | grep "Requires .* or higher\." | grep -o -E "[0-9].[0-9].[0-9]"); echo "'$HELPER': '$REQUIRE'",; done
 
