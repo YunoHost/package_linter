@@ -1260,7 +1260,7 @@ class AppCatalog(TestSuite):
                     json_at_this_date = json.loads(raw_json_at_this_date)
                 # This can happen in stupid cases where there was a temporary syntax error in the json..
                 except json.decoder.JSONDecodeError:
-                    print("Failed to parse apps.json history for at commit %s / %s ... ignoring " % (commit, t))
+                    _print("Failed to parse apps.json history for at commit %s / %s ... ignoring " % (commit, t))
                     continue
 
                 yield (t, json_at_this_date.get(self.app_id))
