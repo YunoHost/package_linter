@@ -435,6 +435,11 @@ class App(TestSuite):
             if not file_exists(app.path + "/" + filename):
                 yield Error("Providing %s is mandatory" % filename)
 
+        if file_exists(app.path + "/LICENSE"):
+            license_content = open(app.path + "/LICENSE").read()
+            if "File containing the license of your package" in license_content:
+                yield Warning("You should put an actual license in LICENSE...")
+
     @test()
     def change_url_script(app):
 
