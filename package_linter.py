@@ -579,7 +579,7 @@ class App(TestSuite):
             yield Warning("Found some inconsistencies in the 'yunohost service add' commands between install, upgrade and restore:\n%s" % details)
 
         if found_legacy_logtype_option:
-            yield Info("Using option '--log_type systemd' with 'yunohost service add' is not relevant anymore")
+            yield Warning("Using option '--log_type systemd' with 'yunohost service add' is not relevant anymore")
 
         if occurences["install"] and not app.scripts["remove"].contains("yunohost service remove"):
             yield Error(
@@ -651,7 +651,7 @@ class Configurations(TestSuite):
             yield Error("Do not force Level 5=1 in check_process...")
 
         if os.system("grep -q ' *Level [^5]=' '%s'" % check_process_file) == 0:
-            yield Info("Setting Level x=y in check_process is obsolete / not relevant anymore")
+            yield Warning("Setting Level x=y in check_process is obsolete / not relevant anymore")
 
     @test()
     def check_process_consistency(self):
@@ -726,7 +726,7 @@ class Configurations(TestSuite):
                 return
 
             if "SOURCE_SUM_PRG=md5sum" in content:
-                yield Info("%s: Using md5sum checksum is not so great for "
+                yield Warning("%s: Using md5sum checksum is not so great for "
                         "security. Consider using sha256sum instead." % filename)
 
 
@@ -1548,7 +1548,7 @@ class Script(TestSuite):
     @test()
     def sudo(self):
         if self.containsregex(r"sudo \w"):  # \w is here to not match sudo -u, legit use because ynh_exec_as not official yet...
-            yield Info(
+            yield Warning(
                 "You should not need to use 'sudo', the script is being run as root. "
                 "(If you need to run a command using a specific user, use 'ynh_exec_as' (or 'sudo -u'))"
             )
@@ -1579,7 +1579,7 @@ class Script(TestSuite):
     @test(only=["backup"])
     def progression_in_backup(self):
         if self.contains("ynh_script_progression"):
-            yield Info(
+            yield Warning(
                 "We recommend to *not* use 'ynh_script_progression' in backup "
                 "scripts because no actual work happens when running the script "
                 " : YunoHost only fetches the list of things to backup (apart "
