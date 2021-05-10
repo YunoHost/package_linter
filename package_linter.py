@@ -1448,8 +1448,8 @@ class Script(TestSuite):
 
     @test(only=["install", "upgrade"])
     def deprecated_replace_string(self):
-        cmd1 = "grep -Ec 'ynh_replace_string' '%s'" % self.path
-        cmd2 = "grep -Ec 'ynh_replace_string.*__\w+__' '%s'" % self.path
+        cmd1 = "grep -Ec 'ynh_replace_string' '%s' || true" % self.path
+        cmd2 = "grep -Ec 'ynh_replace_string.*__\w+__' '%s' || true" % self.path
 
         count1 = int(subprocess.check_output(cmd1, shell=True).decode('utf-8').strip())
         count2 = int(subprocess.check_output(cmd2, shell=True).decode('utf-8').strip())
