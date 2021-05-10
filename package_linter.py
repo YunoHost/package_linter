@@ -1428,6 +1428,9 @@ class Script(TestSuite):
                 "apps.. Also beware that option -f is obsolete as well... "
                 "Use grep -q 'id: $appname' to check a specific app is installed"
             )
+        if self.contains("--others_var"):
+            yield Info("Option --others_var is deprecated / irrelevant since 4.2, Yunohost now manages conf using ynh_add_config which automatically replace all __FOOBAR__ by $foobar")
+
 
     @test()
     def set_is_public_setting(self):
