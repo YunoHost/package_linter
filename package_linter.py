@@ -430,6 +430,7 @@ class App(TestSuite):
     #                                       #
     #########################################
 
+
     @test()
     def mandatory_scripts(app):
         filenames = ("manifest.json", "LICENSE", "README.md",
@@ -445,6 +446,13 @@ class App(TestSuite):
             license_content = open(app.path + "/LICENSE").read()
             if "File containing the license of your package" in license_content:
                 yield Warning("You should put an actual license in LICENSE...")
+
+    @test()
+    def doc_dir(app):
+        if not file_exists(app.path + "/doc"):
+            yield Info("""READMEs are to be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator.
+        - You are encouraged to create a doc/DISCLAIMER.md file, which should contain any important information to be presented to the admin before installation. Check https://github.com/YunoHost/example_ynh/blob/master/doc/DISCLAIMER.md for more details (it should be somewhat equivalent to the old 'Known limitations' and 'Specific features' section). (It's not mandatory to create this file if you're absolutely sure there's no relevant info to show to the user)
+        - If relevant for this apps, screenshots can be added in a doc/screenshots/ folder.""")
 
     @test()
     def change_url_script(app):
@@ -972,6 +980,13 @@ class Manifest(TestSuite):
 
         if missing_fields:
             yield Warning("The following mandatory fields are missing: %s" % missing_fields)
+
+    @test()
+    def upstream_fields(self):
+        if "upstream" not in self.manifest.keys():
+            yield Info("""READMEs are to be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator.
+        - You are encouraged to add an 'upstream' section in the manifest, filled with the website, demo, repo, license of the upstream app, as shown here: https://github.com/YunoHost/example_ynh/blob/7b72b7334964b504e8c901637c73ce908204d38b/manifest.json#L11-L18 . (Not all infos are mandatory, you can remove irrelevant entries)""")
+
 
     @test()
     def yunohost_version_requirement(self):
