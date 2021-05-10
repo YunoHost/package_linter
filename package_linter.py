@@ -1446,6 +1446,16 @@ class Script(TestSuite):
         if self.contains("--others_var"):
             yield Info("Option --others_var is deprecated / irrelevant since 4.2, Yunohost now manages conf using ynh_add_config which automatically replace all __FOOBAR__ by $foobar")
 
+    @test(only=["install", "upgrade"])
+    def deprecated_replace_string(self):
+        cmd1 = "grep -Ec 'ynh_replace_string' '%s'" % self.path
+        cmd2 = "grep -Ec 'ynh_replace_string.*__\w+__' '%s'" % self.path
+
+        count1 = int(subprocess.check_output(cmd1, shell=True).decode('utf-8').strip())
+        count2 = int(subprocess.check_output(cmd2, shell=True).decode('utf-8').strip())
+
+        if count2 > 0 or count1 >= 5:
+            yield Info("Please consider using 'ynh_add_config' to handle config files instead of gazillions of manual cp + 'ynh_replace_string' + chmod")
 
     @test()
     def set_is_public_setting(self):
@@ -1558,7 +1568,7 @@ class Script(TestSuite):
     @test()
     def sed(self):
         if self.containsregex(r"sed\s+(-i|--in-place)\s+(-r\s+)?s") or self.containsregex(r"sed\s+s\S*\s+(-i|--in-place)"):
-            yield Info("You should avoid using 'sed -i' for substitutions, please use 'ynh_replace_string' instead")
+            yield Info("You should avoid using 'sed -i' for substitutions, please use 'ynh_add_config' instead")
 
     @test()
     def sudo(self):
