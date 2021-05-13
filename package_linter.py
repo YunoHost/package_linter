@@ -449,7 +449,7 @@ class App(TestSuite):
 
     @test()
     def doc_dir(app):
-        if not file_exists(app.path + "/doc"):
+        if not os.path.exists(app.path + "/doc"):
             yield Info("""READMEs are to be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator.
         - You are encouraged to create a doc/DISCLAIMER.md file, which should contain any important information to be presented to the admin before installation. Check https://github.com/YunoHost/example_ynh/blob/master/doc/DISCLAIMER.md for more details (it should be somewhat equivalent to the old 'Known limitations' and 'Specific features' section). (It's not mandatory to create this file if you're absolutely sure there's no relevant info to show to the user)
         - If relevant for this apps, screenshots can be added in a doc/screenshots/ folder.""")
