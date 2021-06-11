@@ -598,8 +598,9 @@ class App(TestSuite):
     @test()
     def references_to_old_php_versions(app):
         if any(script.contains("/etc/php5") or script.contains("php5-fpm") for script in app.scripts.values() if script.exists):
-            yield Warning("This app still has references to php5 (from the jessie era !!) which tends to indicate that it's not up to date with recent packaging practices.")
-
+            yield Error("This app still has references to php5 (from the jessie era !!) which tends to indicate that it's not up to date with recent packaging practices.")
+        if any(script.contains("/etc/php/7.0") or script.contains("php7.0-fpm") for script in app.scripts.values() if script.exists):
+            yield Warning("This app still has references to php7.0 (from the stretch era !!) which tends to indicate that it's not up to date with recent packaging practices.")
 
     @test()
     def conf_json_persistent_tweaking(self):
@@ -1000,6 +1001,8 @@ class Manifest(TestSuite):
         yunohost_version_req = app.manifest.get("requirements", {}).get("yunohost", "").strip(">= ")
         if yunohost_version_req.startswith("2."):
             yield Critical("Your app only requires yunohost >= 2.x, which tends to indicate that your app may not be up to date with recommended packaging practices and helpers.")
+        elif yunohost_version_req.startswith("3.") and not yunohost_version_req.startswith("3.8"):
+            yield Warning("Your app only requires yunohost >= 3.x, which tends to indicate that your app may not be up to date with recommended packaging practices and helpers.")
 
     @test()
     def basic_fields_format(self):
