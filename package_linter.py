@@ -988,6 +988,13 @@ class Manifest(TestSuite):
             yield Info("""READMEs are to be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator.
         - You are encouraged to add an 'upstream' section in the manifest, filled with the website, demo, repo, license of the upstream app, as shown here: https://github.com/YunoHost/example_ynh/blob/7b72b7334964b504e8c901637c73ce908204d38b/manifest.json#L11-L18 . (Not all infos are mandatory, you can remove irrelevant entries)""")
 
+    @test()
+    def upstream_fields_pointing_to_yunohost_doc(self):
+        if "upstream" in self.manifest.keys():
+            if 'yunohost.org' in self.manifest['upstream'].get('admindoc', ''):
+                yield Info("The field 'admindoc' should point to the **official** admin doc, not the yunohost documentation. If there's no official admin doc, simply remove the admindoc key entirely.")
+            if 'yunohost.org' in self.manifest['upstream'].get('userdoc', ''):
+                yield Info("The field 'userdoc' should point to the **official** user doc, not the yunohost documentation. (The default auto-generated README already includes a link to the yunohost doc page for this app). If there's no official user doc, simply remove the userdoc key entirely.")
 
     @test()
     def yunohost_version_requirement(self):
