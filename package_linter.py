@@ -1454,7 +1454,7 @@ class Script(TestSuite):
                 "Use grep -q 'id: $appname' to check a specific app is installed"
             )
         if self.contains("--others_var"):
-            yield Info("Option --others_var is deprecated / irrelevant since 4.2, Yunohost now manages conf using ynh_add_config which automatically replace all __FOOBAR__ by $foobar")
+            yield Warning("Option --others_var is deprecated / irrelevant since 4.2, and will be removed in Bullseye. Yunohost now manages conf using ynh_add_config which automatically replace all __FOOBAR__ by $foobar")
 
     @test(only=["install", "upgrade"])
     def deprecated_replace_string(self):
@@ -1514,7 +1514,7 @@ class Script(TestSuite):
 
         if any("-q" not in cmd for cmd in systemctl_enable):
             message = "Please add --quiet to systemctl enable/disable commands to avoid unecessary warnings when the script runs"
-            yield Warning(message) if self.name in ["_common.sh", "install"] else Info(message)
+            yield Warning(message)
 
     @test()
     def quiet_wget(self):
@@ -1525,7 +1525,7 @@ class Script(TestSuite):
 
         if any(" -q " not in cmd and "--quiet" not in cmd and "2>" not in cmd for cmd in wget_cmds):
             message = "Please redirect wget's stderr to stdout with 2>&1 to avoid unecessary warnings when the script runs (yes, wget is annoying and displays a warning even when things are going okay >_> ...)"
-            yield Warning(message) if self.name in ["_common.sh", "install"] else Info(message)
+            yield Warning(message)
 
     @test(only=["install"])
     def argument_fetching(self):
@@ -1650,7 +1650,7 @@ class Script(TestSuite):
             return
 
         if len(weights) > 3 and statistics.stdev(weights) > 50:
-            yield Info("To have a meaningful progress bar, try to keep the weights in the same range of values, for example [1,10], or [10,100]... otherwise, if you have super-huge weight differentes, the progress bar rendering will be completely dominated by one or two steps... If these steps are really long, just try to indicated in the message that this will take a while.")
+            yield Warning("To have a meaningful progress bar, try to keep the weights in the same range of values, for example [1,10], or [10,100]... otherwise, if you have super-huge weight differentes, the progress bar rendering will be completely dominated by one or two steps... If these steps are really long, just try to indicated in the message that this will take a while.")
 
     @test(only=["install", "_common.sh"])
     def php_deps(self):
