@@ -887,7 +887,7 @@ class Configurations(TestSuite):
                         # means that the app is not using the standard nginx
                         # helper, and therefore it is likely to be replaced by
                         # something ending with / ...
-                        if not location.endswith("/") \
+                        if not location.strip("'").endswith("/") \
                            and (alias_path.endswith("/") or "__FINALPATH__" not in alias_path):
                             yield location
 
