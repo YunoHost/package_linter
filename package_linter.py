@@ -1455,6 +1455,8 @@ class Script(TestSuite):
             )
         if self.contains("--others_var"):
             yield Warning("Option --others_var is deprecated / irrelevant since 4.2, and will be removed in Bullseye. Yunohost now manages conf using ynh_add_config which automatically replace all __FOOBAR__ by $foobar")
+        if self.contains("ynh_webpath_available"):
+            yield Info("Calling 'ynh_webpath_available' is quite probably pointless: in the install script, just call ynh_webpath_register, and in the restore script, there's no need to check/register the webpath. (Also the helper always return exit code 0, so 'ynh_webpath_available || ynh_die' is useless :/")
 
     @test(only=["install", "upgrade"])
     def deprecated_replace_string(self):
