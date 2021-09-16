@@ -1457,6 +1457,8 @@ class Script(TestSuite):
             yield Warning("Option --others_var is deprecated / irrelevant since 4.2, and will be removed in Bullseye. Yunohost now manages conf using ynh_add_config which automatically replace all __FOOBAR__ by $foobar")
         if self.contains("ynh_webpath_available"):
             yield Info("Calling 'ynh_webpath_available' is quite probably pointless: in the install script, just call ynh_webpath_register, and in the restore script, there's no need to check/register the webpath. (Also the helper always return exit code 0, so 'ynh_webpath_available || ynh_die' is useless :/")
+        if self.contains("ynh_print_ON") or self.contains("ynh_print_OFF"):
+            yield Info("Please refrain from using ynh_print_ON/OFF ... YunoHost already integrates a mecanism to automatically redact variable with names ending with : pwd, pass, passwd, password, passphrase, key, token, and any variable with 'secret' in its name. Using ynh_print_ON/OFF is cumbersome and may have the unintended effect of defeating Yunohost's autoredacting mecanism ... If you noticed that Yunohost's mecanism doesn't work or cover your specific case, please contact the dev team about it.")
 
     @test(only=["install", "upgrade"])
     def deprecated_replace_string(self):
