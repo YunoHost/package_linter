@@ -1121,6 +1121,11 @@ class Manifest(TestSuite):
                 yield Warning(
                     "Default value for boolean-type arguments should be a boolean... (in particular, make sure it's not a string!)"
                 )
+            elif argument["type"] in ["domain", "user", "password"]:
+                if argument.get("default"):
+                    yield Info("Default value for argument %s is superflous, will be ignored" % argument["name"])
+                if argument.get("example"):
+                    yield Info("Example value for argument %s is superflous, will be ignored" % argument["name"])
 
             if "choices" in argument.keys():
                 choices = [c.lower() for c in argument["choices"]]
