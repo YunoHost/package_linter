@@ -398,10 +398,12 @@ class App(TestSuite):
             _print(" Uhoh there are some errors to be fixed :(")
         elif len(tests_reports["warning"]) > 3:
             _print(" Still some warnings to be fixed :s")
-        elif len(tests_reports["warning"]) > 0:
-            _print(" Only %s warning remaining! You can do it!" % len(tests_reports["warning"]))
+        elif len(tests_reports["warning"]) == 2:
+            _print(" Only 2 warnings remaining! You can do it!")
+        elif len(tests_reports["warning"]) == 1:
+            _print(" Only 1 warning remaining! You can do it!")
         else:
-            yield Success("Not even a warning! Congratz and thank you for keeping that package up to date with good practices! This app qualifies for level 7!")
+            yield Success("Not even a warning! Congratz and thank you for keeping this package up to date with good practices! This app qualifies for level 7!")
 
     def qualify_for_level_8(self):
 
@@ -452,14 +454,14 @@ class App(TestSuite):
         if not os.path.exists(app.path + "/doc"):
             yield Info("""READMEs are to be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator.
         - You are encouraged to create a doc/DISCLAIMER.md file, which should contain any important information to be presented to the admin before installation. Check https://github.com/YunoHost/example_ynh/blob/master/doc/DISCLAIMER.md for more details (it should be somewhat equivalent to the old 'Known limitations' and 'Specific features' section). (It's not mandatory to create this file if you're absolutely sure there's no relevant info to show to the user)
-        - If relevant for this apps, screenshots can be added in a doc/screenshots/ folder.""")
+        - If relevant for this app, screenshots can be added in a doc/screenshots/ folder.""")
 
     @test()
     def change_url_script(app):
 
         has_domain_arg = any(a["name"] == "domain" for a in app.manifest["arguments"].get("install", []))
         if has_domain_arg and not file_exists(app.path + "/scripts/change_url"):
-            yield Info("Consider adding a change_url script to support changing where the app is installed")
+            yield Info("Consider adding a change_url script to support changing where the app can be reached")
 
     @test()
     def badges_in_readme(app):
@@ -474,6 +476,7 @@ class App(TestSuite):
         if not "dash.yunohost.org/integration/%s.svg" % id_ in content:
             yield Warning(
                 "Please add a badge displaying the level of the app in the README.  "
+                "Proper READMEs can be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator"
                 "At least something like :\n   "
                 "[![Integration level](https://dash.yunohost.org/integration/%s.svg)](https://dash.yunohost.org/appci/app/%s)\n"
                 "  (but ideally you should check example_ynh for the full set of recommendations !)"
@@ -550,7 +553,7 @@ class App(TestSuite):
     @test()
     def helper_consistency_apt_deps(app):
         """
-        check if ynh_install_app_dependencies is present in install/upgrade/restore
+        Check if ynh_install_app_dependencies is present in install/upgrade/restore
         so dependencies are up to date after restoration or upgrade
         """
 
@@ -584,7 +587,7 @@ class App(TestSuite):
             details = [("   %s : " % script + ''.join("\n      " + cmd for cmd in occurences[script] or ["...None?..."]))
                        for script in occurences.keys()]
             details = '\n'.join(details)
-            yield Warning("Found some inconsistencies in the 'yunohost service add' commands between install, upgrade and restore:\n%s" % details)
+            yield Warning("Some inconsistencies were found in the 'yunohost service add' commands between install, upgrade and restore:\n%s" % details)
 
         if found_legacy_logtype_option:
             yield Warning("Using option '--log_type systemd' with 'yunohost service add' is not relevant anymore")
@@ -598,14 +601,14 @@ class App(TestSuite):
     @test()
     def references_to_old_php_versions(app):
         if any(script.contains("/etc/php5") or script.contains("php5-fpm") for script in app.scripts.values() if script.exists):
-            yield Error("This app still has references to php5 (from the jessie era !!) which tends to indicate that it's not up to date with recent packaging practices.")
+            yield Error("This app still has references to php5 (from the jessie era!!) which tends to indicate that it's not up to date with recent packaging practices.")
         if any(script.contains("/etc/php/7.0") or script.contains("php7.0-fpm") for script in app.scripts.values() if script.exists):
-            yield Warning("This app still has references to php7.0 (from the stretch era !!) which tends to indicate that it's not up to date with recent packaging practices.")
+            yield Warning("This app still has references to php7.0 (from the stretch era!!) which tends to indicate that it's not up to date with recent packaging practices.")
 
     @test()
     def conf_json_persistent_tweaking(self):
         if os.system("grep -q -nr '/etc/ssowat/conf.json.persistent' %s/*/* 2>/dev/null" % self.path) == 0:
-            yield Error("Don't do black magic with /etc/ssowat/conf.json.persistent !")
+            yield Error("Don't do black magic with /etc/ssowat/conf.json.persistent!")
 
     @test()
     def app_data_in_unofficial_dir(self):
@@ -674,23 +677,23 @@ class Configurations(TestSuite):
         has_is_public_arg = any(a["name"] == "is_public" for a in app.manifest["arguments"].get("install", []))
         if has_is_public_arg:
             if os.system(r"grep -q '^\s*setup_public=1' '%s'" % check_process_file) != 0:
-                yield Info("It looks like you forgot to enable setup_public test in check_process ?")
+                yield Info("It looks like you forgot to enable setup_public test in check_process?")
 
             if os.system(r"grep -q '^\s*setup_private=1' '%s'" % check_process_file) != 0:
-                yield Info("It looks like you forgot to enable setup_private test in check_process ?")
+                yield Info("It looks like you forgot to enable setup_private test in check_process?")
 
         has_path_arg = any(a["name"] == "path" for a in app.manifest["arguments"].get("install", []))
         if has_path_arg:
             if os.system(r"grep -q '^\s*setup_sub_dir=1' '%s'" % check_process_file) != 0:
-                yield Info("It looks like you forgot to enable setup_sub_dir test in check_process ?")
+                yield Info("It looks like you forgot to enable setup_sub_dir test in check_process?")
 
         if app.manifest.get("multi_instance") in [True, 1, "True", "true"]:
             if os.system(r"grep -q '^\s*multi_instance=1' '%s'" % check_process_file) != 0:
-                yield Info("It looks like you forgot to enable multi_instance test in check_process ?")
+                yield Info("It looks like you forgot to enable multi_instance test in check_process?")
 
         if app.scripts["backup"].exists:
             if os.system(r"grep -q '^\s*backup_restore=1' '%s'" % check_process_file) != 0:
-                yield Info("It looks like you forgot to enable backup_restore test in check_process ?")
+                yield Info("It looks like you forgot to enable backup_restore test in check_process?")
 
     @test()
     def misc_legacy_phpini(self):
@@ -716,7 +719,7 @@ class Configurations(TestSuite):
                 "Upstream app sources shouldn't be stored in this 'sources' folder of this git repository as a copy/paste\n"
                 "During installation, the package should download sources from upstream via 'ynh_setup_source'.\n"
                 "See the helper documentation. "
-                "Original discussion happened here : "
+                "Original discussion happened here: "
                 "https://github.com/YunoHost/issues/issues/201#issuecomment-391549262"
             )
 
@@ -731,7 +734,7 @@ class Configurations(TestSuite):
             try:
                 content = open(app.path + "/conf/" + filename).read()
             except Exception as e:
-                yield Warning("Can't open/read %s : %s" % (filename, e))
+                yield Warning("Can't open/read %s: %s" % (filename, e))
                 return
 
             if "SOURCE_SUM_PRG=md5sum" in content:
@@ -761,11 +764,11 @@ class Configurations(TestSuite):
 
             matches = re.findall(r"^ *(User|Group)=(\S+)", content, flags=re.MULTILINE)
             if not any(match[0] == "User" for match in matches):
-                yield Warning("You should specify a User= directive in the systemd config !")
+                yield Warning("You should specify a 'User=' directive in the systemd config !")
                 return
 
             if any(match[1] in ["root", "www-data"] for match in matches):
-                yield Warning("DO NOT run the app's systemd service as root or www-data ! Use a dedicated system user for this app ! If your app requires administrator priviledges, you should consider adding the user to the sudoers (and restrict the commands it can use !)")
+                yield Warning("DO NOT run the app's systemd service as root or www-data! Use a dedicated system user for this app! If your app requires administrator priviledges, you should consider adding the user to the sudoers (and restrict the commands it can use!)")
 
     @test()
     def php_config_specific_user(self):
@@ -784,11 +787,11 @@ class Configurations(TestSuite):
 
             matches = re.findall(r"^ *(user|group) = (\S+)", content, flags=re.MULTILINE)
             if not any(match[0] == "user" for match in matches):
-                yield Warning("You should at least specify a user = directive in your php conf file")
+                yield Warning("You should at least specify a 'user =' directive in your PHP conf file")
                 return
 
             if any(match[1] in ["root", "www-data"] for match in matches):
-                yield Warning("DO NOT run the app php worker as root or www-data ! Use a dedicated system user for this app !")
+                yield Warning("DO NOT run the app PHP worker as root or www-data! Use a dedicated system user for this app!")
 
     @test()
     def misc_nginx_add_header(self):
@@ -834,9 +837,9 @@ class Configurations(TestSuite):
 
                 if any(not right_syntax(line) for line in more_set_headers_lines):
                     yield Warning(
-                        "It looks like the syntax for the more_set_headers "
+                        "It looks like the syntax for the 'more_set_headers' "
                         "instruction is incorrect in the NGINX conf (N.B. "
-                        ": it's different than the add_header syntax!)... "
+                        ": it's different than the 'add_header' syntax!)... "
                         "The syntax should look like: "
                         "more_set_headers \"Header-Name: value\""
                     )
@@ -902,13 +905,13 @@ class Configurations(TestSuite):
                         _print("(Trying to auto install pyparsing...)")
                         subprocess.check_output("pip3 install pyparsing six", shell=True)
                         import pyparsing
-                        _print("Ok!")
+                        _print("OK!")
                         do_path_traversal_check = True
                     except Exception as e:
                         _print("Failed :[ : %s" % str(e))
 
             if not do_path_traversal_check:
-                _print("N.B.: The package linter need you to run 'pip3 install pyparsing six' if you want it to be able to check for path traversal issue in NGINX confs")
+                _print("N.B.: The package linter needs you to run 'pip3 install pyparsing six' if you want it to be able to check for path traversal issue in NGINX confs")
 
             if do_path_traversal_check:
                 from lib.nginxparser import nginxparser
@@ -961,7 +964,7 @@ class Manifest(TestSuite):
         try:
             self.manifest = json.loads(raw_manifest, object_pairs_hook=check_for_duplicate_keys)
         except Exception as e:
-            print(c.FAIL + "✘ Looks like there's a syntax issue in your manifest ?\n ---> %s" % e)
+            print(c.FAIL + "✘ Looks like there's a syntax issue in your manifest?\n ---> %s" % e)
             sys.exit(1)
 
 
@@ -992,9 +995,9 @@ class Manifest(TestSuite):
     def upstream_fields_pointing_to_yunohost_doc(self):
         if "upstream" in self.manifest.keys():
             if 'yunohost.org' in self.manifest['upstream'].get('admindoc', ''):
-                yield Info("The field 'admindoc' should point to the **official** admin doc, not the yunohost documentation. If there's no official admin doc, simply remove the admindoc key entirely.")
+                yield Info("The field 'admindoc' should point to the **official** admin doc, not the YunoHost documentation. If there's no official admin doc, simply remove the admindoc key entirely.")
             if 'yunohost.org' in self.manifest['upstream'].get('userdoc', ''):
-                yield Info("The field 'userdoc' should point to the **official** user doc, not the yunohost documentation. (The default auto-generated README already includes a link to the yunohost doc page for this app). If there's no official user doc, simply remove the userdoc key entirely.")
+                yield Info("The field 'userdoc' should point to the **official** user doc, not the YunoHost documentation. (The default auto-generated README already includes a link to the yunohost doc page for this app). If there's no official user doc, simply remove the userdoc key entirely.")
 
     @test()
     def yunohost_version_requirement(self):
@@ -1007,9 +1010,9 @@ class Manifest(TestSuite):
 
         yunohost_version_req = app.manifest.get("requirements", {}).get("yunohost", "").strip(">= ")
         if yunohost_version_req.startswith("2."):
-            yield Critical("Your app only requires yunohost >= 2.x, which tends to indicate that your app may not be up to date with recommended packaging practices and helpers.")
+            yield Critical("Your app only requires YunoHost >= 2.x, which tends to indicate that it may not be up to date with recommended packaging practices and helpers.")
         elif yunohost_version_req.startswith("3.") and not yunohost_version_req.startswith("3.8"):
-            yield Warning("Your app only requires yunohost >= 3.x, which tends to indicate that your app may not be up to date with recommended packaging practices and helpers.")
+            yield Warning("Your app only requires yunohost >= 3.x, which tends to indicate that it may not be up to date with recommended packaging practices and helpers.")
 
     @test()
     def basic_fields_format(self):
@@ -1087,7 +1090,7 @@ class Manifest(TestSuite):
     def multiinstance_format(self):
 
         if self.manifest["multi_instance"] not in [True, False, 0, 1]:
-            yield Error("\"multi_instance\" field should be boolean 'true' or 'false' and not string type")
+            yield Error("\"multi_instance\" field should be boolean 'true' or 'false', and not string type")
 
     @test()
     def url(self):
@@ -1123,9 +1126,9 @@ class Manifest(TestSuite):
                 )
             elif argument["type"] in ["domain", "user", "password"]:
                 if argument.get("default"):
-                    yield Info("Default value for argument %s is superflous, will be ignored" % argument["name"])
+                    yield Info("Default value for argument %s is superfluous, will be ignored" % argument["name"])
                 if argument.get("example"):
-                    yield Info("Example value for argument %s is superflous, will be ignored" % argument["name"])
+                    yield Info("Example value for argument %s is superfluous, will be ignored" % argument["name"])
 
             if "choices" in argument.keys():
                 choices = [c.lower() for c in argument["choices"]]
@@ -1144,7 +1147,7 @@ class Manifest(TestSuite):
         for argument in self.manifest["arguments"].get("install", []):
 
             if argument.get("ask") and (argument.get("name"), argument.get("type")) in ask_string_managed_by_the_core:
-                yield Info("Ask string for argument %s is superflous / will be ignored. Since 4.1, the core handles the ask string for some reccuring arg name/type for consistency and easier i18n. See https://github.com/YunoHost/example_ynh/pull/142" % argument.get("name"))
+                yield Info("'ask' string for argument %s is superfluous / will be ignored. Since 4.1, the core handles the 'ask' string for some recurring arg name/type for consistency and easier i18n. See https://github.com/YunoHost/example_ynh/pull/142" % argument.get("name"))
 
 
     @test()
@@ -1152,7 +1155,7 @@ class Manifest(TestSuite):
         for argument in self.manifest["arguments"].get("install", []):
             if argument["name"] == "is_public" and "help" not in argument.keys():
                 yield Info(
-                    "Consider adding an 'help' key for argument 'is_public' "
+                    "Consider adding a 'help' key for argument 'is_public' "
                     "to explain to the user what it means for *this* app "
                     "to be public or private :\n"
                     '    "help": {\n'
@@ -1259,7 +1262,7 @@ class AppCatalog(TestSuite):
 
         #
         # This analyzes the (git) history of apps.json in the past year and
-        # compute a score according to the number of period where the app was
+        # compute a score according to the time when the app was
         # known + flagged working + level >= 5
         #
 
@@ -1411,7 +1414,7 @@ class Script(TestSuite):
         if self.name in ["remove", "_common.sh"]:
             if present:
                 yield Error(
-                    "Do not use set -eu or ynh_abort_if_errors in the remove or _common.sh: "
+                    "Do not use 'set -eu' or 'ynh_abort_if_errors' in the remove or _common.sh scripts: "
                     "If a single instruction fails, it will stop the script and is "
                     "likely to leave the system in a broken state."
                 )
@@ -1459,11 +1462,11 @@ class Script(TestSuite):
                 "Use grep -q 'id: $appname' to check a specific app is installed"
             )
         if self.contains("--others_var"):
-            yield Warning("Option --others_var is deprecated / irrelevant since 4.2, and will be removed in Bullseye. Yunohost now manages conf using ynh_add_config which automatically replace all __FOOBAR__ by $foobar")
+            yield Warning("Option --others_var is deprecated / irrelevant since 4.2, and will be removed in Bullseye. YunoHost now manages conf using ynh_add_config which automatically replace all __FOOBAR__ by $foobar")
         if self.contains("ynh_webpath_available"):
             yield Info("Calling 'ynh_webpath_available' is quite probably pointless: in the install script, just call ynh_webpath_register, and in the restore script, there's no need to check/register the webpath. (Also the helper always return exit code 0, so 'ynh_webpath_available || ynh_die' is useless :/")
         if self.contains("ynh_print_ON") or self.contains("ynh_print_OFF"):
-            yield Info("Please refrain from using ynh_print_ON/OFF ... YunoHost already integrates a mecanism to automatically redact variable with names ending with : pwd, pass, passwd, password, passphrase, key, token, and any variable with 'secret' in its name. Using ynh_print_ON/OFF is cumbersome and may have the unintended effect of defeating Yunohost's autoredacting mecanism ... If you noticed that Yunohost's mecanism doesn't work or cover your specific case, please contact the dev team about it.")
+            yield Info("Please refrain from using 'ynh_print_ON/OFF' ... YunoHost already integrates a mecanism to automatically redact variables with names ending with : pwd, pass, passwd, password, passphrase, key, token, and any variable with 'secret' in its name. Using 'ynh_print_ON/OFF' is cumbersome and may have the unintended effect of defeating Yunohost's autoredacting mecanism ... If you noticed that Yunohost's mecanism doesn't work or cover your specific case, please contact the dev team about it.")
 
     @test(only=["install", "upgrade"])
     def deprecated_replace_string(self):
@@ -1479,12 +1482,12 @@ class Script(TestSuite):
     @test()
     def set_is_public_setting(self):
         if self.containsregex(r'ynh_app_setting_set .*is_public.*'):
-            yield Info("permission system: it should not be needed to save is_public with ynh_app_setting_set ... this setting should only be used during installation to initialize the permission. The admin is likely to manually tweak the permission using Yunohost's interface later.")
+            yield Info("permission system: it should not be needed to save is_public with ynh_app_setting_set ... this setting should only be used during installation to initialize the permission. The admin is likely to manually tweak the permission using YunoHost's interface later.")
 
     @test(ignore=["install", "_common.sh"])
     def get_is_public_setting(self):
         if self.contains('is_public=') or self.contains('$is_public'):
-            yield Info("permission system: there should be no need to fetch or use $is_public ... is_public should only be used during installation to initialize the permission. The admin is likely to manually tweak the permission using Yunohost's interface later.")
+            yield Info("permission system: there should be no need to fetch or use $is_public ... is_public should only be used during installation to initialize the permission. The admin is likely to manually tweak the permission using YunoHost's interface later.")
 
     @test()
     def set_legacy_permissions(self):
@@ -1512,7 +1515,7 @@ class Script(TestSuite):
     @test()
     def raw_systemctl_start(self):
         if self.containsregex(r'systemctl start \"?[^. ]+(\.service)?\"?\s'):
-            yield Warning("Please do not use 'systemctl start' to start services. Instead, you should use ynh_systemd_action which will display the service log in case it fails to start. You can also use --line_match to wait until some specific word appear in the log, signaling the service indeed fully started.")
+            yield Warning("Please do not use 'systemctl start' to start services. Instead, you should use 'ynh_systemd_action' which will display the service log in case it fails to start. You can also use '--line_match' to wait until some specific word appear in the log, signaling the service indeed fully started.")
 
     @test()
     def quiet_systemctl_enable(self):
@@ -1522,7 +1525,7 @@ class Script(TestSuite):
                             if re.search(r"systemctl.*(enable|disable)", line)]
 
         if any("-q" not in cmd for cmd in systemctl_enable):
-            message = "Please add --quiet to systemctl enable/disable commands to avoid unecessary warnings when the script runs"
+            message = "Please add --quiet to systemctl enable/disable commands to avoid unnecessary warnings when the script runs"
             yield Warning(message)
 
     @test()
@@ -1541,8 +1544,8 @@ class Script(TestSuite):
 
         if self.containsregex(r"^\w+\=\$\{?[0-9]"):
             yield Critical(
-                "Do not fetch arguments from manifest using variable=$N (e.g."
-                " domain=$1...) Instead, use name=$YNH_APP_ARG_NAME"
+                "Do not fetch arguments from manifest using 'variable=$N' (e.g."
+                " domain=$1...) Instead, use 'name=$YNH_APP_ARG_NAME'"
             )
 
     @test(only=["install"])
@@ -1558,7 +1561,7 @@ class Script(TestSuite):
     @test()
     def firewall_consistency(self):
         if self.contains("yunohost firewall allow") and not self.contains("--needs_exposed_ports"):
-            yield Warning("You used 'yunohost firewall allow' to expose a port on the outside but did not use 'yunohost service add' with --needs_exposed_ports ... If your are ABSOLUTELY SURE that the service needs to be exposed on THE OUTSIDE, then add --needs_exposed_ports to 'yunohost service add' with the relevant port number. Otherwise, opening the port leads to a significant security risk and you should keep the damn port closed !")
+            yield Warning("You used 'yunohost firewall allow' to expose a port on the outside but did not use 'yunohost service add' with '--needs_exposed_ports' ... If you are ABSOLUTELY SURE that the service needs to be exposed on THE OUTSIDE, then add '--needs_exposed_ports' to 'yunohost service add' with the relevant port number. Otherwise, opening the port leads to a significant security risk and you should keep the damn port closed !")
 
         if self.contains("Configuring firewall") and not self.contains('yunohost firewall allow'):
             yield Warning("Some message is talking about 'Configuring firewall' but there's no mention of 'yunohost firewall allow' ... If you're only finding an available port for *internal reverse proxy*, this has nothing to do with 'Configuring the firewall', so the message should be changed to avoid confusion... ")
@@ -1608,7 +1611,7 @@ class Script(TestSuite):
     def random(self):
         if self.contains("dd if=/dev/urandom") or self.contains("openssl rand"):
             yield Error(
-                "Instead of 'dd if=/dev/urandom' or 'openssl rand', you should use ynh_string_random"
+                "Instead of 'dd if=/dev/urandom' or 'openssl rand', you should use 'ynh_string_random'"
             )
 
     @test(only=["install"])
@@ -1626,7 +1629,7 @@ class Script(TestSuite):
             yield Warning(
                 "We recommend to *not* use 'ynh_script_progression' in backup "
                 "scripts because no actual work happens when running the script "
-                " : YunoHost only fetches the list of things to backup (apart "
+                ": YunoHost only fetches the list of things to backup (apart "
                 "from the DB dumps which effectively happens during the script...). "
                 "Consider using a simple message like this instead: 'ynh_print_info \"Declaring files to be backed up...\"'"
             )
@@ -1635,9 +1638,9 @@ class Script(TestSuite):
     @test()
     def progression_time(self):
 
-        # Usage of ynh_script_prorgression with --time or --weight=1 all over the place...
+        # Usage of ynh_script_progression with --time or --weight=1 all over the place...
         if self.containsregex(r"ynh_script_progression.*--time"):
-            yield Info("Using ynh_script_progression --time should only be for calibrating the weight (c.f. --weight). It's not meant to be kept for production versions.")
+            yield Info("Using 'ynh_script_progression --time' should only be for calibrating the weight (c.f. '--weight'). It's not meant to be kept for production versions.")
 
     @test(ignore=["_common.sh", "backup"])
     def progression_meaningful_weights(self):
@@ -1659,7 +1662,7 @@ class Script(TestSuite):
             return
 
         if len(weights) > 3 and statistics.stdev(weights) > 50:
-            yield Warning("To have a meaningful progress bar, try to keep the weights in the same range of values, for example [1,10], or [10,100]... otherwise, if you have super-huge weight differentes, the progress bar rendering will be completely dominated by one or two steps... If these steps are really long, just try to indicated in the message that this will take a while.")
+            yield Warning("To have a meaningful progress bar, try to keep the weights in the same range of values, for example [1,10], or [10,100]... otherwise, if you have super-huge weight differences, the progress bar rendering will be completely dominated by one or two steps... If these steps are really long, just try to indicated in the message that this will take a while.")
 
     @test(only=["install", "_common.sh"])
     def php_deps(self):
@@ -1669,7 +1672,7 @@ class Script(TestSuite):
     @test(only=["backup"])
     def systemd_during_backup(self):
         if self.containsregex("^ynh_systemd_action"):
-            yield Warning("Unless you really have a good reason to do so, starting/stopping services during backup has no benefit and leads to unecessary service interruptions when creating backups... As a 'reminder': apart from possibly database dumps (which usually do not require the service to be stopped) or other super-specific action, running the backup script is only a *declaration* of what needs to be backuped. The real copy and archive creation happens *after* the backup script is ran.")
+            yield Warning("Unless you really have a good reason to do so, starting/stopping services during backup has no benefit and leads to unecessary service interruptions when creating backups... As a 'reminder': apart from possibly database dumps (which usually do not require the service to be stopped) or other super-specific action, running the backup script is only a *declaration* of what needs to be backed up. The real copy and archive creation happens *after* the backup script is ran.")
 
     @test(only=["backup"])
     def check_size_backup(self):
@@ -1687,7 +1690,7 @@ class Script(TestSuite):
     @test(only=["backup", "restore"])
     def helpers_sourcing_backuprestore(self):
         if self.contains("source _common.sh") or self.contains("source ./_common.sh"):
-            yield Warning("In the context of backup and restore script, you should load _common.sh with \"source ../settings/scripts/_common.sh\"")
+            yield Warning("In the context of backup and restore scripts, you should load _common.sh with \"source ../settings/scripts/_common.sh\"")
 
 
 
