@@ -1492,7 +1492,7 @@ class Script(TestSuite):
     @test()
     def set_legacy_permissions(self):
         if self.containsregex(r'ynh_app_setting_set .*protected_') or self.containsregex(r'ynh_app_setting_set .*skipped_'):
-            yield Info("permission system: it looks like the app is still using the legacy permission system (unprotected/protected/skipped uris/regexes setting). Please check https://yunohost.org/packaging_apps_permissions for a documentation on how to migrate the app to the new permission system.")
+            yield Warning("permission system: it looks like the app is still using the legacy permission system (unprotected/protected/skipped uris/regexes setting). Please check https://yunohost.org/packaging_apps_permissions for a documentation on how to migrate the app to the new permission system.")
 
     @test()
     def normalize_url_path(self):
