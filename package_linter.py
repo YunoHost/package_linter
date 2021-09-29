@@ -1140,7 +1140,7 @@ class Manifest(TestSuite):
                         )
 
     @test()
-    def obsolete_ask_strings(self):
+    def obsolete_or_missing_ask_strings(self):
 
         ask_string_managed_by_the_core = [("domain", "domain"), ("path", "path"), ("admin", "user"), ("is_public", "boolean"), ("password", "password")]
 
@@ -1149,6 +1149,8 @@ class Manifest(TestSuite):
             if argument.get("ask") and (argument.get("name"), argument.get("type")) in ask_string_managed_by_the_core:
                 yield Info("'ask' string for argument %s is superfluous / will be ignored. Since 4.1, the core handles the 'ask' string for some recurring arg name/type for consistency and easier i18n. See https://github.com/YunoHost/example_ynh/pull/142" % argument.get("name"))
 
+            elif not argument.get("ask") and (argument.get("name"), argument.get("type")) not in ask_string_managed_by_the_core:
+                yield Warning("You should add 'ask' strings for argument %s" % argument.get("name"))
 
     @test()
     def is_public_help(self):
