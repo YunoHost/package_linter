@@ -787,8 +787,6 @@ class Configurations(TestSuite):
 
                 yield Info(f"You are encouraged to harden the security of the systemd configuration {filename}. You can have a look at https://github.com/YunoHost/example_ynh/blob/master/conf/systemd.service#L14-L42 for a baseline.")
 
-
-
     @test()
     def php_config_specific_user(self):
 
@@ -1619,6 +1617,13 @@ class Script(TestSuite):
             yield Warning(
                 "You should not need to use 'sudo', the script is being run as root. "
                 "(If you need to run a command using a specific user, use 'ynh_exec_as' (or 'sudo -u'))"
+            )
+
+    @test()
+    def chownroot(self):
+        if self.containsregex(r"^\s*chown.* root:?[^$]* .*final_path"):
+            yield Info(
+                "Using 'chown root $final_path' is usually symptomatic of misconfigured and wide-open 'other' permissions ... Usually ynh_setup_source should now set sane default permissions on $final_path (if the app requires Yunohost >= 4.2) ... Otherwise, consider using 'chown $app', 'chown nobody' or 'chmod' to limit access to $final_path ..."
             )
 
     @test()
