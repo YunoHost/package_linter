@@ -770,6 +770,25 @@ class Configurations(TestSuite):
             if any(match[1] in ["root", "www-data"] for match in matches):
                 yield Warning("DO NOT run the app's systemd service as root or www-data! Use a dedicated system user for this app! If your app requires administrator priviledges, you should consider adding the user to the sudoers (and restrict the commands it can use!)")
 
+
+    @test()
+    def systemd_config_harden_security(self):
+
+        app = self.app
+        for filename in os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []:
+            # Ignore subdirs or filename not containing nginx in the name
+            if not filename.endswith(".service"):
+                continue
+
+            if os.system(f"grep -q '^ *CapabilityBoundingSet=' '{app.path}/conf/{filename}'") != 0 \
+              or os.system(f"grep -q '^ *Protect.*=' '{app.path}/conf/{filename}'") != 0 \
+              or os.system(f"grep -q '^ *SystemCallFilter=' '{app.path}/conf/{filename}'") != 0 \
+              or os.system(f"grep -q '^ *PrivateTmp=' '{app.path}/conf/{filename}'") != 0:
+
+                yield Info(f"You are encouraged to harden the security of the systemd configuration {filename}. You can have a look at https://github.com/YunoHost/example_ynh/blob/master/conf/systemd.service#L14-L42 for a baseline.")
+
+
+
     @test()
     def php_config_specific_user(self):
 
