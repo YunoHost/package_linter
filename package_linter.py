@@ -396,7 +396,7 @@ class App(TestSuite):
             _print(" There are some critical issues in this app :(")
         elif tests_reports["error"]:
             _print(" Uhoh there are some errors to be fixed :(")
-        elif len(tests_reports["warning"]) > 3:
+        elif len(tests_reports["warning"]) >= 3:
             _print(" Still some warnings to be fixed :s")
         elif len(tests_reports["warning"]) == 2:
             _print(" Only 2 warnings remaining! You can do it!")
