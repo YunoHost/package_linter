@@ -616,7 +616,7 @@ class App(TestSuite):
     def app_data_in_unofficial_dir(self):
 
         allowed_locations = ["/home/yunohost.app", "/home/yunohost.conf", "/home/yunohost.backup", "/home/yunohost.multimedia"]
-        cmd = "grep -IhEro '/home/yunohost[^/ ]*/' %s/scripts || true" % self.path
+        cmd = "grep -IhEro '/home/yunohost[^/ ]*/|/home/\\$app' %s/scripts || true" % self.path
         home_locations = subprocess.check_output(cmd, shell=True).decode('utf-8').strip().split("\n")
 
         forbidden_locations = set([location for location in home_locations if location and location.rstrip('/') not in allowed_locations])
