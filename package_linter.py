@@ -599,7 +599,9 @@ class App(TestSuite):
             )
 
     @test()
-    def references_to_old_php_versions(app):
+    def references_to_superold_stuff(app):
+        if any(script.contains("jessie") for script in app.scripts.values() if script.exists):
+            yield Info("The app still contains references to jessie, which could probably be cleaned up...")
         if any(script.contains("/etc/php5") or script.contains("php5-fpm") for script in app.scripts.values() if script.exists):
             yield Error("This app still has references to php5 (from the jessie era!!) which tends to indicate that it's not up to date with recent packaging practices.")
         if any(script.contains("/etc/php/7.0") or script.contains("php7.0-fpm") for script in app.scripts.values() if script.exists):
