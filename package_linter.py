@@ -1488,6 +1488,8 @@ class Script(TestSuite):
             yield Info("Calling 'ynh_webpath_available' is quite probably pointless: in the install script, just call ynh_webpath_register, and in the restore script, there's no need to check/register the webpath. (Also the helper always return exit code 0, so 'ynh_webpath_available || ynh_die' is useless :/")
         if self.contains("ynh_print_ON") or self.contains("ynh_print_OFF"):
             yield Info("Please refrain from using 'ynh_print_ON/OFF' ... YunoHost already integrates a mecanism to automatically redact variables with names ending with : pwd, pass, passwd, password, passphrase, key, token, and any variable with 'secret' in its name. Using 'ynh_print_ON/OFF' is cumbersome and may have the unintended effect of defeating Yunohost's autoredacting mecanism ... If you noticed that Yunohost's mecanism doesn't work or cover your specific case, please contact the dev team about it.")
+        if self.contains("ynh_add_app_dependencies"):
+            yield Info("ynh_add_app_dependencies is supposed to be an internal helper and will soon be deprecated. Consider using ynh_install_app_dependencies or ynh_install_extra_app_dependencies instead.")
 
     @test(only=["install", "upgrade"])
     def deprecated_replace_string(self):
