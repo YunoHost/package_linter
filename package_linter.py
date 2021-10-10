@@ -904,7 +904,7 @@ class Configurations(TestSuite):
                         alias_path = alias[-1]
 
                         # Ugly hack to ignore cases where aliasing to a specific file (e.g. favicon.ico or foobar.html)
-                        if "." in alias_path[-5]:
+                        if "." in alias_path[-5:]:
                             continue
 
                         # For path traversal issues to occur, both of those are needed:
