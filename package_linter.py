@@ -549,7 +549,6 @@ class App(TestSuite):
                 message = "Using official helper %s implies requiring at least version %s, but manifest only requires %s" % (helper, helper_req, yunohost_version_req)
                 yield Error(message) if major_diff else (Info(message) if minor_diff else Warning(message))
 
-
     @test()
     def helper_consistency_apt_deps(app):
         """
@@ -562,6 +561,10 @@ class App(TestSuite):
             for name in ["upgrade", "restore"]:
                 if app.scripts[name].exists and not app.scripts[name].contains("ynh_install_app_dependencies"):
                     yield Warning("ynh_install_app_dependencies should also be in %s script" % name)
+
+        cmd = 'grep -IhEr "install_extra_app_dependencies" %s/scripts | grep -v "key" | grep -q "http://"' % app.path
+        if os.system(cmd) == 0:
+            yield Info("When installing dependencies from extra repository, please include a `--key` argument (yes, even if it's official debian repos such as backports - because systems like Raspbian do not ship Debian's key by default!")
 
     @test()
     def helper_consistency_service_add(app):
