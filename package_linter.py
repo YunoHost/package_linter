@@ -7,13 +7,10 @@ import re
 import json
 import shlex
 import urllib.request
-import codecs
 import subprocess
 import time
 import statistics
 from datetime import datetime
-
-reader = codecs.getreader("utf-8")
 
 # ############################################################################
 #  Helper list
