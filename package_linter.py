@@ -490,6 +490,16 @@ class App(TestSuite):
         if os.system("grep -I -qr 'REPLACEBYYOURAPP' %s 2>/dev/null" % self.path) == 0:
             yield Warning("You should replace all occurences of REPLACEBYYOURAPP.")
 
+    @test()
+    def bad_encoding(self):
+
+        cmd = "file --mime-encoding $(find %s/ -type f) | grep 'iso-8859-1'" % self.path
+        bad_encoding_files = subprocess.check_output(cmd, shell=True).decode('utf-8').strip().split("\n")
+        for file_ in bad_encoding_files:
+            file_ = file_.split()[0]
+            yield Info("%s appears to be encoded as latin-1 / iso-8859-1. Please consider converting it to utf-8 to avoid funky issues. Something like 'iconv -f iso-8859-1 -t utf-8 SOURCE DEST' should do the trick." % file_)
+
+
     #######################################
     #  _    _      _                      #
     # | |  | |    | |                     #
