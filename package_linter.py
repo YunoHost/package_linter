@@ -493,7 +493,7 @@ class App(TestSuite):
     @test()
     def bad_encoding(self):
 
-        cmd = "file --mime-encoding $(find %s/ -type f) | grep 'iso-8859-1' || true" % self.path
+        cmd = "file --mime-encoding $(find %s/ -type f) | grep 'iso-8859-1\|unknown-8bit' || true" % self.path
         bad_encoding_files = subprocess.check_output(cmd, shell=True).decode('utf-8').strip().split("\n")
         for file_ in bad_encoding_files:
             if not file_:
