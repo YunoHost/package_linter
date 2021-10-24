@@ -455,8 +455,9 @@ class App(TestSuite):
 
     @test()
     def disclaimer_wording(app):
-        if os.system(r"grep -nr -q 'Any known limitations, constrains or stuff not working, such as\|Other infos that people should be' %s/doc/" % app.path) == 0:
-            yield Info("In DISCLAIMER.md: 'Any known limitations [...] such as' and 'Other infos [...] such as' are supposed to be placeholder sentences meant to explain to packagers what is the expected content, but is not an appropriate wording for end users :/")
+        if os.path.exists(app.path + "/doc"):
+            if os.system(r"grep -nr -q 'Any known limitations, constrains or stuff not working, such as\|Other infos that people should be' %s/doc/" % app.path) == 0:
+                yield Info("In DISCLAIMER.md: 'Any known limitations [...] such as' and 'Other infos [...] such as' are supposed to be placeholder sentences meant to explain to packagers what is the expected content, but is not an appropriate wording for end users :/")
 
     @test()
     def change_url_script(app):
