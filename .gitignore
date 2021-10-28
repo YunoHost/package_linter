@@ -61,6 +61,11 @@ target/
 # YunoHost packages
 *_ynh
 
+#Generated files during linter execution
+.apps_git_clone_cache
+.spdx_licenses
+.apps/
+
 # Vim swap files
 # *~
 # *.swp
