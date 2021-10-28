@@ -332,6 +332,38 @@ class TestSuite:
             test_name = test.__qualname__
             tests_reports[report_type(report)].append((test_name, report))
 
+# Defined in packaging module
+# See https://github.com/pypa/packaging/blob/20cd09e00917adbc4afeaa753be831a6bc2740f7/packaging/version.py#L225
+VERSION_PATTERN = r"""
+    v?
+    (?:
+        (?:(?P<epoch>[0-9]+)!)?                           # epoch
+        (?P<release>[0-9]+(?:\.[0-9]+)*)                  # release segment
+        (?P<pre>                                          # pre-release
+            [-_\.]?
+            (?P<pre_l>(a|b|c|rc|alpha|beta|pre|preview))
+            [-_\.]?
+            (?P<pre_n>[0-9]+)?
+        )?
+        (?P<post>                                         # post release
+            (?:-(?P<post_n1>[0-9]+))
+            |
+            (?:
+                [-_\.]?
+                (?P<post_l>post|rev|r)
+                [-_\.]?
+                (?P<post_n2>[0-9]+)?
+            )
+        )?
+        (?P<dev>                                          # dev release
+            [-_\.]?
+            (?P<dev_l>dev)
+            [-_\.]?
+            (?P<dev_n>[0-9]+)?
+        )?
+    )
+    (?:\+(?P<local>[a-z0-9]+(?:[-_\.][a-z0-9]+)*))?       # local version
+"""
 
 # ############################################################################
 #   Actual high-level checks
@@ -1414,8 +1446,7 @@ class Manifest(TestSuite):
 
     @test()
     def version_format(self):
-
-        if not re.match("^([0-9]|\.|-)+~ynh[0-9]+$", self.manifest.get("version", "")):
+        if not re.match(r"^" + VERSION_PATTERN + r"~ynh[0-9]+$", self.manifest.get("version", ""), re.VERBOSE):
             yield Error(
                 "The 'version' field should match the format <upstreamversion>~ynh<packageversion>. "
                 "For example: 4.3-2~ynh3. It is composed of the upstream version number (in the "
