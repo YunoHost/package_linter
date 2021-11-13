@@ -2006,9 +2006,15 @@ class Script(TestSuite):
             )
 
     @test()
+    def bad_ynh_exec_syntax(self):
+        cmd = 'grep -q -IhEro "ynh_exec_(err|warn|warn_less|quiet|fully_quiet) (\\"|\')" %s' % self.path
+        if os.system(cmd) == 0:
+            yield Info("(Requires Yunohost 4.3) When using ynh_exec_*, please don't wrap your command between quotes (typically DONT write ynh_exec_warn_less 'foo --bar --baz')")
+
+    @test()
     def ynh_add_fpm_config_deprecated_package_option(self):
         if self.containsregex(r'ynh_add_fpm_config .*package=.*'):
-            yield Info("Since Yunohost 4.3, option --package for ynh_add_fpm_config is deprecated : please use 'ynh_install_app_dependencies' with **all** your apt dependencies instead (no need to define a special 'extra_php_dependencies'). YunoHost will automatically install any phpX.Y-fpm / phpX.Y-common if needed.")
+            yield Info("(Requires Yunohost 4.3) Option --package for ynh_add_fpm_config is deprecated : please use 'ynh_install_app_dependencies' with **all** your apt dependencies instead (no need to define a special 'extra_php_dependencies'). YunoHost will automatically install any phpX.Y-fpm / phpX.Y-common if needed.")
 
     @test()
     def set_is_public_setting(self):
