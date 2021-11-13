@@ -18,7 +18,7 @@ from datetime import datetime
 
 # Generated April 11th using:
 # cat /path/to/yunohost/data/helpers.d/* | grep  "^ynh_" | tr -d '(){ ' > helperlist
-# for HELPER in $(cat helperlist); do REQUIRE=$(grep -whB5 "^$HELPER" /path/to/yunohost/data/helpers.d/* | grep "Requires .* or higher\." | grep -o -E "[0-9].[0-9].[0-9]"); echo "'$HELPER': '$REQUIRE'",; done
+# for HELPER in $(cat helperlist); do REQUIRE=$(grep -whB5 "^$HELPER" /path/to/yunohost/data/helpers.d/* | grep "Requires .* or higher\." | grep -o -E "[0-9].[0-9].[0-9]"); echo "'$HELPER': '$REQUIRE'",; done | tr "'" '"'
 
 official_helpers = {
     "ynh_wait_dpkg_free": "3.3.1",
@@ -32,6 +32,7 @@ official_helpers = {
     "ynh_package_autopurge": "2.7.2",
     "ynh_package_install_from_equivs": "2.2.4",
     "ynh_install_app_dependencies": "2.6.4",
+    "ynh_add_sury": "",
     "ynh_add_app_dependencies": "3.8.1",
     "ynh_remove_app_dependencies": "2.6.4",
     "ynh_install_extra_app_dependencies": "3.8.1",
@@ -49,6 +50,13 @@ official_helpers = {
     "ynh_backup_archive_exists": "",
     "ynh_backup_before_upgrade": "2.7.2",
     "ynh_restore_upgradebackup": "2.7.2",
+    "ynh_app_config_get_one": "",
+    "ynh_app_config_get": "",
+    "ynh_app_config_show": "",
+    "ynh_app_config_validate": "",
+    "ynh_app_config_apply_one": "",
+    "ynh_app_config_apply": "",
+    "ynh_app_config_run": "",
     "ynh_add_fail2ban_config": "3.5.0",
     "ynh_remove_fail2ban_config": "3.5.0",
     "ynh_handle_getopts_args": "3.2.2",
@@ -56,7 +64,6 @@ official_helpers = {
     "ynh_require_ram": "3.8.1",
     "ynh_die": "2.4.0",
     "ynh_print_info": "3.2.0",
-    "ynh_no_log": "2.6.4",
     "ynh_print_log": "3.2.0",
     "ynh_print_warn": "3.2.0",
     "ynh_print_err": "3.2.0",
@@ -69,8 +76,6 @@ official_helpers = {
     "ynh_print_ON": "3.2.0",
     "ynh_script_progression": "3.5.0",
     "ynh_return": "3.6.0",
-    "ynh_debug": "3.5.0",
-    "ynh_debug_exec": "3.5.0",
     "ynh_use_logrotate": "2.6.4",
     "ynh_remove_logrotate": "2.6.4",
     "ynh_multimedia_build_main_dir": "4.2",
@@ -156,6 +161,8 @@ official_helpers = {
     "ynh_local_curl": "2.6.4",
     "ynh_add_config": "4.1.0",
     "ynh_replace_vars": "4.1.0",
+    "ynh_read_var_in_file": "",
+    "ynh_write_var_in_file": "",
     "ynh_render_template": "",
     "ynh_get_debian_release": "2.7.1",
     "ynh_mkdir_tmp": "",
