@@ -541,6 +541,19 @@ class App(TestSuite):
             )
 
     @test()
+    def config_panel(app):
+
+        if file_exists(app.path + "config_panel.json"):
+            yield Info(
+                "JSON config panels are not supported anymore, should be replaced by a toml version"
+            )
+
+        if file_exists(app.path + "config_panel.toml") and os.system("grep -q 'version = \"0.1\"' '%s'" % (app.path + "config_panel.toml")) == 0:
+            yield Info(
+                "Config panels version 0.1 are not supported anymore, should be adapted for version 1.0"
+            )
+
+    @test()
     def badges_in_readme(app):
 
         id_ = app.manifest["id"]
