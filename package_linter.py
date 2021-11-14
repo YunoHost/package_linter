@@ -1991,6 +1991,10 @@ class Script(TestSuite):
             yield Info(
                 "ynh_add_app_dependencies is supposed to be an internal helper and will soon be deprecated. Consider using ynh_install_app_dependencies or ynh_install_extra_app_dependencies instead."
             )
+        if self.contains("ynh_detect_arch"):
+            yield Info(
+                    "(Requires yunohost 4.3) Using ynh_detect_arch is deprecated, since Yunohost 4.3, an $YNH_ARCH variable is directly available in the global context. Its value directly corresponds to `dpkg --print-architecture` which returns a value among : amd64, i386, armhf, arm64 and armel (though armel is probably not used at all?)"
+            )
 
     @test(only=["install", "upgrade"])
     def deprecated_replace_string(self):
