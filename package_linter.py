@@ -1104,6 +1104,29 @@ class Configurations(TestSuite):
                 )
 
     @test()
+    def nginx_https_redirect(self):
+
+        app = self.app
+
+        for filename in (
+            os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []
+        ):
+            # Ignore subdirs or filename not containing nginx in the name
+            if (
+                not os.path.isfile(app.path + "/conf/" + filename)
+                or "nginx" not in filename
+            ):
+                continue
+
+            content = open(app.path + "/conf/" + filename).read()
+            if "if ($scheme = http)" in content and "rewrite ^ https" in content:
+                yield Info(
+                    "Since Yunohost 4.3, the http->https redirect is handled by the core, "
+                    "therefore having an if ($scheme = http) { rewrite ^ https://... } block "
+                    "in the nginx config file is deprecated. (This helps with supporting Yunohost-behind-reverse-proxy use case)"
+                )
+
+    @test()
     def misc_nginx_add_header(self):
 
         app = self.app
