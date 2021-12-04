@@ -2062,15 +2062,22 @@ class Script(TestSuite):
     @test()
     def set_is_public_setting(self):
         if self.containsregex(r"ynh_app_setting_set .*is_public.*"):
-            yield Info(
+            yield Warning(
                 "permission system: it should not be needed to save is_public with ynh_app_setting_set ... this setting should only be used during installation to initialize the permission. The admin is likely to manually tweak the permission using YunoHost's interface later."
             )
 
     @test(ignore=["install", "_common.sh"])
     def get_is_public_setting(self):
         if self.contains("is_public=") or self.contains("$is_public"):
-            yield Info(
+            yield Warning(
                 "permission system: there should be no need to fetch or use $is_public ... is_public should only be used during installation to initialize the permission. The admin is likely to manually tweak the permission using YunoHost's interface later."
+            )
+
+    @test(only=["upgrade"])
+    def temporarily_enable_visitors_during_upgrade(self):
+        if self.containsregex("ynh_permission_update.*add.*visitors") and self.containsregex("ynh_permission_update.*remove.*visitors"):
+            yield Info(
+                "permission system: since Yunohost 4.3, there should be no need to temporarily add 'visitors' to the main permission. ynh_local_curl will temporarily enable visitors access if needed"
             )
 
     @test()
