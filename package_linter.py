@@ -544,12 +544,12 @@ class App(TestSuite):
     def config_panel(app):
 
         if file_exists(app.path + "config_panel.json"):
-            yield Info(
+            yield Warning(
                 "JSON config panels are not supported anymore, should be replaced by a toml version"
             )
 
         if file_exists(app.path + "config_panel.toml") and os.system("grep -q 'version = \"0.1\"' '%s'" % (app.path + "config_panel.toml")) == 0:
-            yield Info(
+            yield Warning(
                 "Config panels version 0.1 are not supported anymore, should be adapted for version 1.0"
             )
 
@@ -673,16 +673,11 @@ class App(TestSuite):
             helper_req = official_helpers[helper]
             if not validate_version_requirement(helper_req):
                 major_diff = manifest_req[0] > int(helper_req[0])
-                minor_diff = helper_req.startswith(
-                    yunohost_version_req
-                )  # This is meant to cover the case where manifest says "3.8" vs. the helper requires "3.8.1"
                 message = (
                     "Using official helper %s implies requiring at least version %s, but manifest only requires %s"
                     % (helper, helper_req, yunohost_version_req)
                 )
-                yield Error(message) if major_diff else (
-                    Info(message) if minor_diff else Warning(message)
-                )
+                yield Error(message) if major_diff else Warning(message)
 
     @test()
     def helper_consistency_apt_deps(app):
@@ -707,7 +702,7 @@ class App(TestSuite):
             % app.path
         )
         if os.system(cmd) == 0:
-            yield Info(
+            yield Warning(
                 "When installing dependencies from extra repository, please include a `--key` argument (yes, even if it's official debian repos such as backports - because systems like Raspbian do not ship Debian's key by default!"
             )
 
@@ -781,7 +776,7 @@ class App(TestSuite):
             for script in app.scripts.values()
             if script.exists
         ):
-            yield Info(
+            yield Warning(
                 "The app still contains references to jessie, which could probably be cleaned up..."
             )
         if any(
