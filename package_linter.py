@@ -2312,9 +2312,11 @@ class Script(TestSuite):
     @test(only=["install", "_common.sh"])
     def php_deps(self):
         if self.containsregex("dependencies.*php-"):
-            yield Warning(
-                "You should avoid having dependencies like 'php-foobar'. Instead, specify the exact version you want like 'php7.0-foobar'. Otherwise, the *wrong* version of the dependency may be installed if sury is also installed. Note that for Stretch/Buster/Bullseye/... transition, YunoHost will automatically patch your file so there's no need to care about that."
-            )
+            # (Stupid hack because some apps like roundcube depend on php-pear and there's no phpx.y-pear >_> ...
+            if not self.contains("php-pear"):
+                yield Warning(
+                    "You should avoid having dependencies like 'php-foobar'. Instead, specify the exact version you want like 'php7.0-foobar'. Otherwise, the *wrong* version of the dependency may be installed if sury is also installed. Note that for Stretch/Buster/Bullseye/... transition, YunoHost will automatically patch your file so there's no need to care about that."
+                )
 
     @test(only=["backup"])
     def systemd_during_backup(self):
