@@ -817,7 +817,7 @@ class App(TestSuite):
     def bad_final_path_location(self):
         if os.system(f"grep -q -nr 'ynh_webpath_register' {self.path}/scripts/install 2>/dev/null") == 0 \
           and os.system(f"grep -q -nr 'final_path=/opt' {self.path}/scripts/install  {self.path}/scripts/_common.sh 2>/dev/null") == 0:
-            yield Warning("Web applications are not supposed to be installed in /opt/ ... They are supposed to be installed in /var/www/$app :/")
+            yield Info("Web applications are not supposed to be installed in /opt/ ... They are supposed to be installed in /var/www/$app :/")
 
 
     @test()
