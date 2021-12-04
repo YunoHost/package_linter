@@ -1834,7 +1834,7 @@ class AppCatalog(TestSuite):
 
         score = sum([good_quality(infos) for d, infos in history])
         rel_score = int(100 * score / N)
-        if rel_score > 90:
+        if rel_score > 80:
             yield Success("The app is long-term good quality in the catalog!")
 
 
