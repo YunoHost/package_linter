@@ -1033,15 +1033,23 @@ class Configurations(TestSuite):
                 yield Warning("Can't open/read %s : %s" % (filename, e))
                 return
 
+            if '[Unit]' not in content:
+                continue
+
+            if re.findall(r"^ *Type=oneshot", content, flags=re.MULTILINE):
+                Level = Info
+            else:
+                Level = Warning
+
             matches = re.findall(r"^ *(User|Group)=(\S+)", content, flags=re.MULTILINE)
             if not any(match[0] == "User" for match in matches):
-                yield Warning(
+                yield Level(
                     "You should specify a 'User=' directive in the systemd config !"
                 )
                 return
 
             if any(match[1] in ["root", "www-data"] for match in matches):
-                yield Warning(
+                yield Level(
                     "DO NOT run the app's systemd service as root or www-data! Use a dedicated system user for this app! If your app requires administrator priviledges, you should consider adding the user to the sudoers (and restrict the commands it can use!)"
                 )
 
