@@ -548,10 +548,15 @@ class App(TestSuite):
                 "JSON config panels are not supported anymore, should be replaced by a toml version"
             )
 
-        if file_exists(app.path + "config_panel.toml") and os.system("grep -q 'version = \"0.1\"' '%s'" % (app.path + "config_panel.toml")) == 0:
-            yield Warning(
-                "Config panels version 0.1 are not supported anymore, should be adapted for version 1.0"
-            )
+        if file_exists(app.path + "config_panel.toml"):
+            if os.system("grep -q 'version = \"0.1\"' '%s'" % (app.path + "config_panel.toml")) == 0:
+                yield Warning(
+                    "Config panels version 0.1 are not supported anymore, should be adapted for version 1.0"
+                )
+            elif os.path.exists(app.path + "/scripts/config") and os.system("grep -q 'YNH_CONFIG_\\|yunohost app action' '%s'" % (app.path + "/scripts/config")) == 0:
+                yield Error(
+                    "The config panel is set to version 1.x, but the config script is apparently still using some old code from 0.1 such as '$YNH_CONFIG_STUFF' or 'yunohost app action'"
+                )
 
     @test()
     def badges_in_readme(app):
