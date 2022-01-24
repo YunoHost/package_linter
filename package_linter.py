@@ -578,6 +578,16 @@ class App(TestSuite):
                 % (id_, id_)
             )
 
+        superoldstuff = ["%20%28Apps%29", "%20%28Community%29", "/jenkins/job", "ci-buster", "ci-stretch"]
+        if any(oldstuff in content for oldstuff in superoldstuff):
+            yield Warning(
+                "The README contains references to super-old build status (such as old jenkins job or ci-apps-arm or ci-stretch...) which are not relevant anymore. Please consider switching to the new auto-generated README format which contains the standard CI badge at the top."
+            )
+        elif "ci-apps-arm" in content:
+            yield Info(
+                "The README contains references to super-old build status (such as old jenkins job or ci-apps-arm or ci-stretch...) which are not relevant anymore. Please consider switching to the new auto-generated README format which contains the standard CI badge at the top."
+            )
+
     @test()
     def placeholder_help_string(self):
         if (
