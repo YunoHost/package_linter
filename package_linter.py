@@ -515,6 +515,12 @@ class App(TestSuite):
         - If relevant for this app, screenshots can be added in a doc/screenshots/ folder."""
             )
 
+        if os.path.exists(app.path + "/doc/screenshots"):
+            du_output = subprocess.check_output(["du", "-sb", app.path + "/doc/screenshots"], shell=False)
+            screenshots_size = int(du_output.split()[0])
+            if screenshots_size > 512000:
+                yield Info("Consider keeping the content of doc/screenshots under ~512Kb for better UI/UX once the screenshots will be integrated in the webadmin app's catalog (to be discussed with the team)")
+
     @test()
     def disclaimer_wording(app):
         if os.path.exists(app.path + "/doc"):
