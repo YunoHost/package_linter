@@ -1761,7 +1761,7 @@ class AppCatalog(TestSuite):
                         "The URL for this app in the catalog should be %s" % repo_org
                     )
                 else:
-                    yield Warning(
+                    yield Info(
                         "Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily"
                     )
 
@@ -1774,7 +1774,7 @@ class AppCatalog(TestSuite):
                 return urlopen(repo_brique)["code"] != 404
 
             if not is_in_github_org() and not is_in_brique_org():
-                yield Warning(
+                yield Info(
                     "Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily"
                 )
 
