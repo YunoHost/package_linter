@@ -606,6 +606,16 @@ class App(TestSuite):
                 "Sounds like your manifest.json contains some default placeholder help string ('Use the help field to...') ... either replace it with an actually helpful explanation, or remove the help string entirely if you don't use it."
             )
 
+        if (
+            os.system(
+                "grep -q 'Explain in *a few (10~15) words* the purpose of the app\|Expliquez en *quelques* (10~15) mots' %s/manifest.json 2>/dev/null" % self.path
+            )
+            == 0
+        ):
+            yield Warning(
+                "Sounds like your manifest.json contains the default description string ('Explain in *a few (10~15 words) [...]') ... Please replace it with an actual description."
+            )
+
     @test()
     def remaining_replacebyyourapp(self):
         if os.system("grep -I -qr 'REPLACEBYYOURAPP' %s 2>/dev/null" % self.path) == 0:
