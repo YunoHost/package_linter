@@ -1453,13 +1453,13 @@ class Manifest(TestSuite):
         yunohost_version_req = (
             app.manifest.get("requirements", {}).get("yunohost", "").strip(">= ")
         )
-        if yunohost_version_req.startswith("2."):
+        if yunohost_version_req.startswith("2.") or yunohost_version_req.startswith("3."):
             yield Critical(
-                "Your app only requires YunoHost >= 2.x, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
+                "Your app only requires YunoHost >= 2.x or 3.x, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
             )
         elif yunohost_version_req.startswith(
             "3."
-        ) and not yunohost_version_req.startswith("3.8"):
+        ) and not yunohost_version_req.startswith("4.0"):
             yield Warning(
                 "Your app only requires yunohost >= 3.x, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
             )
