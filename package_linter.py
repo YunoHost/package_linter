@@ -2080,6 +2080,13 @@ class Script(TestSuite):
                     "(Requires yunohost 4.3) Using ynh_detect_arch is deprecated, since Yunohost 4.3, an $YNH_ARCH variable is directly available in the global context. Its value directly corresponds to `dpkg --print-architecture` which returns a value among : amd64, i386, armhf, arm64 and armel (though armel is probably not used at all?)"
             )
 
+    @test(only=["install"])
+    def admin_has_to_finish_install(self):
+        cmd = 'grep -B10 -IhEr "send_readme_to_admin" %s | grep -q db_pwd' % self.path
+        if os.system(cmd) == 0:
+            yield Warning("It looks like this app requires the admin to finish the install by entering DB credentials. Unless it's absolutely not easily automatizable, this should be handled automatically by the app install script using curl calls, or (CLI tools provided by the upstream maybe ?).")
+
+
     @test(only=["install", "upgrade"])
     def deprecated_replace_string(self):
         cmd1 = "grep -Ec 'ynh_replace_string' '%s' || true" % self.path
