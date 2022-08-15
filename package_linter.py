@@ -1505,7 +1505,7 @@ class Manifest(TestSuite):
                 )
                 return
 
-        if "upstream" in self.manifest and self.manifest["upstream"] != self.manifest["license"]:
+        if "upstream" in self.manifest and "license" in self.manifest["upstream"] and self.manifest["upstream"]["license"] != self.manifest["license"]:
             yield Warning("The content of 'license' in the 'upstream' block should be the same as 'license' (yes sorry, this is duplicate info, this is transitional for the manifest v2 ...)")
 
     @test()
