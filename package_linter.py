@@ -1428,16 +1428,19 @@ class Manifest(TestSuite):
             )
 
     @test()
-    def upstream_fields_pointing_to_yunohost_doc(self):
+    def upstream_placeholders(self):
         if "upstream" in self.manifest.keys():
             if "yunohost.org" in self.manifest["upstream"].get("admindoc", ""):
-                yield Info(
+                yield Warning(
                     "The field 'admindoc' should point to the **official** admin doc, not the YunoHost documentation. If there's no official admin doc, simply remove the admindoc key entirely."
                 )
             if "yunohost.org" in self.manifest["upstream"].get("userdoc", ""):
-                yield Info(
+                yield Warning(
                     "The field 'userdoc' should point to the **official** user doc, not the YunoHost documentation. (The default auto-generated README already includes a link to the yunohost doc page for this app). If there's no official user doc, simply remove the userdoc key entirely."
                 )
+            if "example.com" in self.manifest["upstream"].get("demo", "") or "example.com" in self.manifest["upstream"].get("website"):
+                yield Warning("It seems like the upstream section still contains placeholder values such as 'example.com' ...")
+
 
     @test()
     def yunohost_version_requirement(self):
@@ -1501,6 +1504,9 @@ class Manifest(TestSuite):
                     % license
                 )
                 return
+
+        if "upstream" in self.manifest and self.manifest["upstream"] != self.manifest["license"]:
+            yield Warning("The content of 'license' in the 'upstream' block should be the same as 'license' (yes sorry, this is duplicate info, this is transitional for the manifest v2 ...)")
 
     @test()
     def description(self):
