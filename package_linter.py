@@ -2094,6 +2094,12 @@ class Script(TestSuite):
             yield Info("(Requires Yunohost 4.3) When using ynh_exec_*, please don't wrap your command between quotes (typically DONT write ynh_exec_warn_less 'foo --bar --baz')")
 
     @test()
+    def ynh_setup_source_keep_with_absolute_path(self):
+        cmd = 'grep -q -IhEro "ynh_setup_source.*keep.*final_path" %s' % self.path
+        if os.system(cmd) == 0:
+            yield Info("The --keep option of ynh_setup_source expects relative paths, not absolute path ... you do not need to prefix everything with '$final_path' in the --keep arg ...")
+
+    @test()
     def ynh_add_fpm_config_deprecated_package_option(self):
         if self.containsregex(r'ynh_add_fpm_config .*package=.*'):
             yield Info("(Requires Yunohost 4.3) Option --package for ynh_add_fpm_config is deprecated : please use 'ynh_install_app_dependencies' with **all** your apt dependencies instead (no need to define a special 'extra_php_dependencies'). YunoHost will automatically install any phpX.Y-fpm / phpX.Y-common if needed.")
