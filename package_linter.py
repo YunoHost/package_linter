@@ -2146,6 +2146,13 @@ class Script(TestSuite):
     @test()
     def set_legacy_permissions(self):
         if self.containsregex(
+            r"ynh_app_setting_set .*protected_uris"
+        ) or self.containsregex(r"ynh_app_setting_set .*skipped_uris"):
+            yield Error(
+                "permission system: it looks like the app is still using super-legacy (un)protected/skipped_uris settings. This is now completely deprecated. Please check https://yunohost.org/packaging_apps_permissions for a documentation on how to migrate the app to the new permission system."
+            )
+
+        elif self.containsregex(
             r"ynh_app_setting_set .*protected_"
         ) or self.containsregex(r"ynh_app_setting_set .*skipped_"):
             yield Warning(
