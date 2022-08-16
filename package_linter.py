@@ -2120,9 +2120,14 @@ class Script(TestSuite):
     @test()
     def set_is_public_setting(self):
         if self.containsregex(r"ynh_app_setting_set .*is_public.*"):
-            yield Warning(
-                "permission system: it should not be needed to save is_public with ynh_app_setting_set ... this setting should only be used during installation to initialize the permission. The admin is likely to manually tweak the permission using YunoHost's interface later."
-            )
+            if self.name == "upgrade":
+                yield Error(
+                    "permission system: it should not be needed to save is_public with ynh_app_setting_set ... this setting should only be used during installation to initialize the permission. The admin is likely to manually tweak the permission using YunoHost's interface later."
+                )
+            else:
+                yield Warning(
+                    "permission system: it should not be needed to save is_public with ynh_app_setting_set ... this setting should only be used during installation to initialize the permission. The admin is likely to manually tweak the permission using YunoHost's interface later."
+                )
 
     @test(ignore=["install", "_common.sh"])
     def get_is_public_setting(self):
