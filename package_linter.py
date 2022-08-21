@@ -1438,7 +1438,7 @@ class Manifest(TestSuite):
                 yield Warning(
                     "The field 'userdoc' should point to the **official** user doc, not the YunoHost documentation. (The default auto-generated README already includes a link to the yunohost doc page for this app). If there's no official user doc, simply remove the userdoc key entirely."
                 )
-            if "example.com" in self.manifest["upstream"].get("demo", "") or "example.com" in self.manifest["upstream"].get("website"):
+            if "example.com" in self.manifest["upstream"].get("demo", "") or "example.com" in self.manifest["upstream"].get("website", ""):
                 yield Warning("It seems like the upstream section still contains placeholder values such as 'example.com' ...")
 
 
