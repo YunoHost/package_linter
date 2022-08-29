@@ -635,7 +635,7 @@ class App(TestSuite):
             if not file_:
                 continue
             file_ = file_.split()[0]
-            yield Info(
+            yield Warning(
                 "%s appears to be encoded as latin-1 / iso-8859-1. Please consider converting it to utf-8 to avoid funky issues. Something like 'iconv -f iso-8859-1 -t utf-8 SOURCE > DEST' should do the trick."
                 % file_
             )
@@ -807,7 +807,7 @@ class App(TestSuite):
             for script in app.scripts.values()
             if script.exists
         ):
-            yield Warning(
+            yield Error(
                 "The app still contains references to jessie, which could probably be cleaned up..."
             )
         if any(
@@ -823,7 +823,7 @@ class App(TestSuite):
             for script in app.scripts.values()
             if script.exists
         ):
-            yield Warning(
+            yield Error(
                 "This app still has references to php7.0 (from the stretch era!!) which tends to indicate that it's not up to date with recent packaging practices."
             )
 
@@ -1037,7 +1037,7 @@ class Configurations(TestSuite):
                 return
 
             if "SOURCE_SUM_PRG=md5sum" in content:
-                yield Warning(
+                yield Error(
                     "%s: Using md5sum checksum is not so great for "
                     "security. Consider using sha256sum instead." % filename
                 )
@@ -1135,13 +1135,13 @@ class Configurations(TestSuite):
                 r"^ *(user|group) = (\S+)", content, flags=re.MULTILINE
             )
             if not any(match[0] == "user" for match in matches):
-                yield Warning(
+                yield Error(
                     "You should at least specify a 'user =' directive in your PHP conf file"
                 )
                 return
 
             if any(match[1] in ["root", "www-data"] for match in matches):
-                yield Warning(
+                yield Error(
                     "DO NOT run the app PHP worker as root or www-data! Use a dedicated system user for this app!"
                 )
 
@@ -1224,7 +1224,7 @@ class Configurations(TestSuite):
                     )
 
                 if any(not right_syntax(line) for line in more_set_headers_lines):
-                    yield Warning(
+                    yield Error(
                         "It looks like the syntax for the 'more_set_headers' "
                         "instruction is incorrect in the NGINX conf (N.B. "
                         ": it's different than the 'add_header' syntax!)... "
@@ -1415,7 +1415,7 @@ class Manifest(TestSuite):
         ]
 
         if missing_fields:
-            yield Warning(
+            yield Error(
                 "The following mandatory fields are missing: %s" % missing_fields
             )
 
@@ -1475,7 +1475,7 @@ class Manifest(TestSuite):
         if not re.match("^[a-z0-9]((_|-)?[a-z0-9])+$", self.manifest.get("id")):
             yield Error("The app id is not a valid app id")
         if len(self.manifest["name"]) > 22:
-            yield Warning("The app name is too long")
+            yield Error("The app name is too long")
 
     @test()
     def license(self):
@@ -1640,7 +1640,7 @@ class Manifest(TestSuite):
                 and (argument.get("name"), argument.get("type"))
                 in ask_string_managed_by_the_core
             ):
-                yield Info(
+                yield Warning(
                     "'ask' string for argument %s is superfluous / will be ignored. Since 4.1, the core handles the 'ask' string for some recurring arg name/type for consistency and easier i18n. See https://github.com/YunoHost/example_ynh/pull/142"
                     % argument.get("name")
                 )
@@ -2007,7 +2007,7 @@ class Script(TestSuite):
             or self.contains("apt install")
             or self.contains("apt-get install")
         ):
-            yield Warning(
+            yield Error(
                 "You should not use `ynh_package_install` or `apt-get install`, "
                 "use `ynh_install_app_dependencies` instead"
             )
@@ -2017,7 +2017,7 @@ class Script(TestSuite):
             or self.contains("apt remove")
             or self.contains("apt-get remove")
         ):
-            yield Warning(
+            yield Error(
                 "You should not use `ynh_package_remove` or `apt-get remove`, "
                 "use `ynh_remove_app_dependencies` instead"
             )
@@ -2047,32 +2047,32 @@ class Script(TestSuite):
         if self.contains("yunohost app addaccess") or self.contains(
             "yunohost app removeaccess"
         ):
-            yield Warning(
+            yield Error(
                 "'yunohost app addaccess/removeacces' is obsolete. You should use the new permission system to manage accesses."
             )
         if self.contains("yunohost app list -i") or self.contains(
             "yunohost app list --installed"
         ):
-            yield Warning(
+            yield Error(
                 "Argument --installed ain't needed anymore when using "
                 "'yunohost app list'. It directly returns the list of installed "
                 "apps.. Also beware that option -f is obsolete as well... "
                 "Use grep -q 'id: $appname' to check a specific app is installed"
             )
         if self.contains("--others_var"):
-            yield Warning(
+            yield Error(
                 "Option --others_var is deprecated / irrelevant since 4.2, and will be removed in Bullseye. YunoHost now manages conf using ynh_add_config which automatically replace all __FOOBAR__ by $foobar"
             )
         if self.contains("ynh_webpath_available"):
-            yield Info(
+            yield Warning(
                 "Calling 'ynh_webpath_available' is quite probably pointless: in the install script, just call ynh_webpath_register, and in the restore script, there's no need to check/register the webpath. (Also the helper always return exit code 0, so 'ynh_webpath_available || ynh_die' is useless :/"
             )
         if self.contains("ynh_print_ON") or self.contains("ynh_print_OFF"):
-            yield Info(
+            yield Error(
                 "Please refrain from using 'ynh_print_ON/OFF' ... YunoHost already integrates a mecanism to automatically redact variables with names ending with : pwd, pass, passwd, password, passphrase, key, token, and any variable with 'secret' in its name. Using 'ynh_print_ON/OFF' is cumbersome and may have the unintended effect of defeating Yunohost's autoredacting mecanism ... If you noticed that Yunohost's mecanism doesn't work or cover your specific case, please contact the dev team about it."
             )
         if self.contains("ynh_add_app_dependencies"):
-            yield Info(
+            yield Error(
                 "ynh_add_app_dependencies is supposed to be an internal helper and will soon be deprecated. Consider using ynh_install_app_dependencies or ynh_install_extra_app_dependencies instead."
             )
         if self.contains("ynh_detect_arch"):
@@ -2104,7 +2104,7 @@ class Script(TestSuite):
     def bad_ynh_exec_syntax(self):
         cmd = 'grep -q -IhEro "ynh_exec_(err|warn|warn_less|quiet|fully_quiet) (\\"|\')" %s' % self.path
         if os.system(cmd) == 0:
-            yield Info("(Requires Yunohost 4.3) When using ynh_exec_*, please don't wrap your command between quotes (typically DONT write ynh_exec_warn_less 'foo --bar --baz')")
+            yield Warning("(Requires Yunohost 4.3) When using ynh_exec_*, please don't wrap your command between quotes (typically DONT write ynh_exec_warn_less 'foo --bar --baz')")
 
     @test()
     def ynh_setup_source_keep_with_absolute_path(self):
@@ -2115,7 +2115,7 @@ class Script(TestSuite):
     @test()
     def ynh_add_fpm_config_deprecated_package_option(self):
         if self.containsregex(r'ynh_add_fpm_config .*package=.*'):
-            yield Info("(Requires Yunohost 4.3) Option --package for ynh_add_fpm_config is deprecated : please use 'ynh_install_app_dependencies' with **all** your apt dependencies instead (no need to define a special 'extra_php_dependencies'). YunoHost will automatically install any phpX.Y-fpm / phpX.Y-common if needed.")
+            yield Warning("(Requires Yunohost 4.3) Option --package for ynh_add_fpm_config is deprecated : please use 'ynh_install_app_dependencies' with **all** your apt dependencies instead (no need to define a special 'extra_php_dependencies'). YunoHost will automatically install any phpX.Y-fpm / phpX.Y-common if needed.")
 
     @test()
     def set_is_public_setting(self):
@@ -2311,7 +2311,9 @@ class Script(TestSuite):
 
     @test()
     def chownroot(self):
-        if self.containsregex(r"^\s*chown.* root:?[^$]* .*final_path"):
+        if self.containsregex(r"^\s*chown.* root:?[^$]* .*final_path") \
+            and not self.contains('chown root:root "$final_path"'):
+            # (Mywebapp has a special case because of SFTP é_è)
             yield Info(
                 "Using 'chown root $final_path' is usually symptomatic of misconfigured and wide-open 'other' permissions ... Usually ynh_setup_source should now set sane default permissions on $final_path (if the app requires Yunohost >= 4.2) ... Otherwise, consider using 'chown $app', 'chown nobody' or 'chmod' to limit access to $final_path ..."
             )
