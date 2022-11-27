@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
+import toml
 import sys
 import os
 import re
@@ -176,6 +177,34 @@ official_helpers = {
     "ynh_compare_current_package_version": "3.8.0",
 }
 
+deprecated_helpers_in_v2 = [
+    ("ynh_clean_setup", "(?)"),
+    ("ynh_abort_if_errors", "nothing, handled by the core, just get rid of it"),
+    ("ynh_backup_before_upgrade", "nothing, handled by the core, just get rid of it"),
+    ("ynh_restore_upgradebackup", "nothing, handled by the core, just get rid of it"),
+    ("ynh_system_user_create", "the system_user resource"),
+    ("ynh_system_user_delete", "the system_user resource"),
+    ("ynh_webpath_register", "the permission resource"),
+    ("ynh_webpath_available", "the permission resource"),
+    ("ynh_permission_update", "the permission resource"),
+    ("ynh_permission_create", "the permission resource"),
+    ("ynh_permission_exists", "the permission resource"),
+    ("ynh_legacy_permissions_exists", "the permission resource"),
+    ("ynh_legacy_permissions_delete_all", "the permission resource"),
+    ("ynh_install_app_dependencies", "the apt resource"),
+    ("ynh_install_extra_app_dependencies", "the apt source"),
+    ("ynh_remove_app_dependencies", "the apt resource"),
+    ("ynh_psql_test_if_first_run", "the database resource"),
+    ("ynh_mysql_setup_db", "the database resource"),
+    ("ynh_psql_setup_db", "the database resource"),
+    ("ynh_mysql_remove_db", "the database resource"),
+    ("ynh_psql_remove_db", "the database resource"),
+    ("ynh_find_port", "the port resource"),
+    ("ynh_send_readme_to_admin", "the doc/notifications/post_install.md or post_upgrade.md mechanism")
+]
+
+# Default to 1, set to 2 automatically if a toml manifest is found
+app_packaging_format = None
 
 # ############################################################################
 #   Utilities
@@ -488,7 +517,6 @@ class App(TestSuite):
     @test()
     def mandatory_scripts(app):
         filenames = (
-            "manifest.json",
             "LICENSE",
             "README.md",
             "scripts/install",
@@ -509,6 +537,7 @@ class App(TestSuite):
 
     @test()
     def doc_dir(app):
+
         if not os.path.exists(app.path + "/doc"):
             yield Info(
                 """READMEs are to be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator.
@@ -521,6 +550,41 @@ class App(TestSuite):
             screenshots_size = int(du_output.split()[0])
             if screenshots_size > 512000:
                 yield Info("Consider keeping the content of doc/screenshots under ~512Kb for better UI/UX once the screenshots will be integrated in the webadmin app's catalog (to be discussed with the team)")
+
+    @test()
+    def doc_dir_v2(app):
+
+        if app_packaging_format <= 1:
+            return
+
+        if not os.path.exists(app.path + "/doc/DESCRIPTION.md"):
+            yield Error("A DESCRIPTION.md is now mandatory in packaging v2 and is meant to contains an extensive description of what the app is and does. Consider also adding a '/doc/screenshots/' folder with a few screenshots of what the app looks like.")
+        elif os.system(fr'grep -inrq "Some long and extensive description\|lorem ipsum dolor sit amet\|Ut enim ad minim veniam" {app.path}/doc/DESCRIPTION.md') == 0:
+            yield Error("It looks like DESCRIPTION.md just contains placeholder texts")
+
+        if os.path.exists(app.path + "/doc/DISCLAIMER.md"):
+            yield Warning("""The whole thing about doc/DISCLAIMER.md is refactored again in v2 (sorry about that :/) to improve the UX - basically people shouldnt have to actively go read the READMEs to get those infos
+
+    You are encouraged to split its infos into:
+
+    - Integration-related infos (eg. LDAP/SSO support, arch support, resource usage, ...)
+        -> neant to go in the 'integration' section of the manifest.toml
+
+    - Antifeatures-related infos (eg. alpha/deprecated software, arbitrary limiations, ...)
+        -> these are now formalized using the 'antifeatures' mechanism in the app catalog directly : cf https://github.com/YunoHost/apps/blob/master/antifeatures.yml and the 'antifeatures' key in apps.json
+
+    - Important infos that the admin should be made aware of *before* or *after* the install
+        -> infos *before* the install are meant to go in 'doc/notifications/pre_install.md'
+        -> infos *after* the install are meant to go in 'doc/notifications/post_install.md' (mostly meant to replace ynh_send_readme_to_admin, typically tips about how to login for the first time on the app / finish the install, ...).
+        -> these will be shown to the admin before/after the install (and the post_install notif will also be available in the app info page)
+        -> note that in these files, the __FOOBAR__ syntax is supported and replaced with the corresponding 'foobar' setting.
+
+    - General admin-related infos (eg. how to access the admin interface of the app, how to install plugin, etc)
+        -> meant to go in 'doc/ADMIN.md' which shall be made available in the app info page in the webadmin after installation.
+        -> if relevant, you can also create custom doc page, just create 'doc/WHATEVER.MD' and this will correspond to a specific documentation tab in the webadmin.
+        -> note that in these files, the __FOOBAR__ syntax is supported and replaced with the corresponding 'foobar' setting.
+""")
+
 
     @test()
     def disclaimer_wording(app):
@@ -539,9 +603,16 @@ class App(TestSuite):
     @test()
     def change_url_script(app):
 
-        has_domain_arg = any(
-            a["name"] == "domain" for a in app.manifest["arguments"].get("install", [])
-        )
+        if app_packaging_format <= 1:
+            args = app.manifest["arguments"].get("install", [])
+        else:
+            keyandargs = app.manifest["install"]
+            for key, infos in keyandargs.items():
+                infos["name"] = key
+            args = keyandargs.values()
+
+        has_domain_arg = any(a["name"] == "domain" for a in args)
+
         if has_domain_arg and not file_exists(app.path + "/scripts/change_url"):
             yield Info(
                 "Consider adding a change_url script to support changing where the app can be reached"
@@ -677,9 +748,14 @@ class App(TestSuite):
         )
         custom_helpers = [c.split("__")[0] for c in custom_helpers]
 
-        yunohost_version_req = (
-            app.manifest.get("requirements", {}).get("yunohost", "").strip(">= ")
-        )
+        if app_packaging_format <= 1:
+            yunohost_version_req = (
+                app.manifest.get("requirements", {}).get("yunohost", "").strip(">= ")
+            )
+        else:
+            yunohost_version_req = (
+                app.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
+            )
 
         cmd = "grep -IhEro 'ynh_\w+' '%s/scripts'" % app.path
         helpers_used = (
@@ -710,6 +786,23 @@ class App(TestSuite):
                     % (helper, helper_req, yunohost_version_req)
                 )
                 yield Error(message) if major_diff else Warning(message)
+
+    @test()
+    def helpers_deprecated_in_v2(app):
+
+        if app_packaging_format <= 1:
+            return
+
+        cmd = f"grep -IhEro 'ynh_\w+' '{app.path}/scripts/install' '{app.path}/scripts/remove' '{app.path}/scripts/upgrade' '{app.path}/scripts/backup' '{app.path}/scripts/restore'"
+        helpers_used = (
+            subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
+        )
+        helpers_used = sorted(set(helpers_used))
+
+        deprecated_helpers_in_v2_ = {k: v for k, v in deprecated_helpers_in_v2}
+
+        for helper in [h for h in helpers_used if h in deprecated_helpers_in_v2_.keys()]:
+            yield Warning(f"Using helper {helper} is deprecated when using packaging v2 ... It is replaced by: {deprecated_helpers_in_v2_[helper]}")
 
     @test()
     def helper_consistency_apt_deps(app):
@@ -929,13 +1022,20 @@ class Configurations(TestSuite):
 
         app = self.app
 
+        if app_packaging_format <= 1:
+            args = app.manifest["arguments"].get("install", [])
+        else:
+            keyandargs = app.manifest["install"]
+            for key, infos in keyandargs.items():
+                infos["name"] = key
+            args = keyandargs.values()
+
         check_process_file = app.path + "/check_process"
         if not file_exists(check_process_file):
             return
 
         has_is_public_arg = any(
-            a["name"] == "is_public"
-            for a in app.manifest["arguments"].get("install", [])
+            a["name"] == "is_public" for a in args
         )
         if has_is_public_arg:
             if (
@@ -955,7 +1055,7 @@ class Configurations(TestSuite):
                 )
 
         has_path_arg = any(
-            a["name"] == "path" for a in app.manifest["arguments"].get("install", [])
+            a["name"] == "path" for a in args
         )
         if has_path_arg:
             if (
@@ -966,7 +1066,7 @@ class Configurations(TestSuite):
                     "It looks like you forgot to enable setup_sub_dir test in check_process?"
                 )
 
-        if app.manifest.get("multi_instance") in [True, 1, "True", "true"]:
+        if app.manifest.get("multi_instance") in [True, 1, "True", "true"] or app.manifest.get("integration", {}).get("multi_instance") == True:
             if (
                 os.system(r"grep -q '^\s*multi_instance=1' '%s'" % check_process_file)
                 != 0
@@ -1359,9 +1459,16 @@ class Manifest(TestSuite):
     def __init__(self, path):
 
         self.path = path
-        self.test_suite_name = "manifest.json"
-        manifest_path = os.path.join(path, "manifest.json")
-        assert os.path.exists(manifest_path), "manifest.json is missing"
+        self.test_suite_name = "manifest"
+
+        global app_packaging_format
+        manifest_path = os.path.join(path, "manifest.toml")
+        if os.path.exists(manifest_path):
+            app_packaging_format = 2
+        else:
+            app_packaging_format = 1
+            manifest_path = os.path.join(path, "manifest.json")
+            assert os.path.exists(manifest_path), "manifest.json is missing"
 
         # Taken from https://stackoverflow.com/a/49518779
         def check_for_duplicate_keys(ordered_pairs):
@@ -1373,12 +1480,14 @@ class Manifest(TestSuite):
                     dict_out[key] = val
             return dict_out
 
-        manifest_path = os.path.join(path, "manifest.json")
-        raw_manifest = open(manifest_path, encoding="utf-8").read()
+        self.raw_manifest = open(manifest_path, encoding="utf-8").read()
         try:
-            self.manifest = json.loads(
-                raw_manifest, object_pairs_hook=check_for_duplicate_keys
-            )
+            if app_packaging_format == 1:
+                self.manifest = json.loads(
+                    self.raw_manifest, object_pairs_hook=check_for_duplicate_keys
+                )
+            else:
+                self.manifest = toml.loads(self.raw_manifest)
         except Exception as e:
             print(
                 c.FAIL
@@ -1389,18 +1498,31 @@ class Manifest(TestSuite):
     @test()
     def mandatory_fields(self):
 
-        fields = (
-            "name",
-            "id",
+        base_fields = [
             "packaging_format",
+            "id",
+            "name",
             "description",
             "version",
-            "maintainer",
-            "requirements",
-            "multi_instance",
-            "services",
-            "arguments",
-        )
+        ]
+
+        if app_packaging_format == 1:
+            fields = base_fields + [
+                "maintainer",
+                "requirements",
+                "multi_instance",
+                "services",
+                "arguments",
+            ]
+        else:
+            fields = base_fields + [
+                "maintainers",
+                "upstream",
+                "integration",
+                "install",
+                "resources",
+            ]
+
         missing_fields = [
             field for field in fields if field not in self.manifest.keys()
         ]
@@ -1410,15 +1532,21 @@ class Manifest(TestSuite):
                 "The following mandatory fields are missing: %s" % missing_fields
             )
 
-        fields = ("license", "url")
-        missing_fields = [
-            field for field in fields if field not in self.manifest.keys()
-        ]
+        if app_packaging_format == 1:
+            fields = ("license", "url")
+            missing_fields = [
+                field for field in fields if field not in self.manifest.keys()
+            ]
 
-        if missing_fields:
-            yield Error(
-                "The following mandatory fields are missing: %s" % missing_fields
-            )
+            if missing_fields:
+                yield Error(
+                    "The following mandatory fields are missing: %s" % missing_fields
+                )
+        else:
+            if "license" not in self.manifest.get("upstream"):
+                yield Error(
+                    "The license key in the upstream section is missing"
+                )
 
     @test()
     def upstream_fields(self):
@@ -1442,9 +1570,16 @@ class Manifest(TestSuite):
             if "example.com" in self.manifest["upstream"].get("demo", "") or "example.com" in self.manifest["upstream"].get("website", ""):
                 yield Warning("It seems like the upstream section still contains placeholder values such as 'example.com' ...")
 
+    @test()
+    def FIXMEs(self):
+        if "FIXME" in self.raw_manifest:
+            yield Warning("There are still some FIXMEs remaining in the manifest")
 
     @test()
     def yunohost_version_requirement(self):
+
+        if app_packaging_format >= 2:
+            return
 
         if not self.manifest.get("requirements", {}).get("yunohost", ""):
             yield Critical(
@@ -1454,9 +1589,14 @@ class Manifest(TestSuite):
     @test()
     def yunohost_version_requirement_superold(app):
 
-        yunohost_version_req = (
-            app.manifest.get("requirements", {}).get("yunohost", "").strip(">= ")
-        )
+        if app_packaging_format >= 2:
+            yunohost_version_req = (
+                app.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
+            )
+        else:
+            yunohost_version_req = (
+                app.manifest.get("requirements", {}).get("yunohost", "").strip(">= ")
+            )
         if yunohost_version_req.startswith("2.") or yunohost_version_req.startswith("3."):
             yield Critical(
                 "Your app only requires YunoHost >= 2.x or 3.x, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
@@ -1471,21 +1611,61 @@ class Manifest(TestSuite):
     @test()
     def basic_fields_format(self):
 
-        if self.manifest.get("packaging_format") != 1:
-            yield Error("packaging_format should be 1")
+        if self.manifest.get("packaging_format") != app_packaging_format:
+            yield Error(f"packaging_format should be {app_packaging_format}")
         if not re.match("^[a-z0-9]((_|-)?[a-z0-9])+$", self.manifest.get("id")):
             yield Error("The app id is not a valid app id")
         if len(self.manifest["name"]) > 22:
             yield Error("The app name is too long")
 
+        if app_packaging_format <= 1:
+            if self.manifest.get("url", "").endswith("_ynh"):
+                yield Info(
+                    "'url' is not meant to be the URL of the YunoHost package, "
+                    "but rather the website or repo of the upstream app itself..."
+                )
+            if self.manifest["multi_instance"] not in [True, False, 0, 1]:
+                yield Error(
+                    "\"multi_instance\" field should be boolean 'true' or 'false', and not string type"
+                )
+            return
+
+        keys = {
+            "yunohost": (lambda v: isinstance(v, str) and re.fullmatch(r"^>=\s*[\d\.]+\d$", v), "Expected something like '>= 4.5.6'"),
+            "architectures": (lambda v: v == "all" or (isinstance(v, list) and all(subv in ["i386", "amd64", "armhf", "arm64"] for subv in v)), "'all' or a list of values in ['i386', 'amd64', 'armhf', 'arm64']"),
+            "multi_instance": (lambda v: isinstance(v, bool), "Expected a boolean (true or false, no quotes!)"),
+            "ldap": (lambda v: isinstance(v, bool) or v == "not_relevant", "Expected a boolean (true or false, no quotes!) or 'not_relevant'"),
+            "sso": (lambda v: isinstance(v, bool) or v == "not_relevant", "Expected a boolean (true or false, no quotes!) or 'not_relevant'"),
+            "disk": (lambda v: isinstance(v, str), "Expected a string"),
+            "ram": (lambda v: isinstance(v, dict) and isinstance(v.get("build"), str) and isinstance(v.get("runtime"), str), "Expected to find ram.build and ram.runtime with string values"),
+        }
+
+        for key, validator in keys.items():
+            if key not in self.manifest.get("integration", {}):
+                yield Error(f"Missing key in the integration section: {key}")
+            value = self.manifest["integration"][key]
+            if not validator[0](value):
+                yield Error(f"Error found with key {key} in the 'integration' section: {validator[1]}, got: {value}")
+
+        if not self.manifest.get("upstream", {}).get("license"):
+            yield Error("Missing 'license' key in the upstream section")
+
+
     @test()
     def license(self):
 
-        if "license" not in self.manifest:
-            return
+        if app_packaging_format <= 1:
+            if "license" not in self.manifest:
+                return
 
-        # Turns out there may be multiple licenses... (c.f. Seafile)
-        licenses = self.manifest["license"].split(",")
+            if "upstream" in self.manifest and "license" in self.manifest["upstream"] and self.manifest["upstream"]["license"] != self.manifest["license"]:
+                yield Warning("The content of 'license' in the 'upstream' block should be the same as 'license' (yes sorry, this is duplicate info, this is transitional for the manifest v2 ...)")
+
+            # Turns out there may be multiple licenses... (c.f. Seafile)
+            licenses = self.manifest["license"].split(",")
+        else:
+            # Turns out there may be multiple licenses... (c.f. Seafile)
+            licenses = self.manifest.get("upstream", {}).get("license", "").split(",")
 
         for license in licenses:
 
@@ -1506,8 +1686,6 @@ class Manifest(TestSuite):
                 )
                 return
 
-        if "upstream" in self.manifest and "license" in self.manifest["upstream"] and self.manifest["upstream"]["license"] != self.manifest["license"]:
-            yield Warning("The content of 'license' in the 'upstream' block should be the same as 'license' (yes sorry, this is duplicate info, this is transitional for the manifest v2 ...)")
 
     @test()
     def description(self):
@@ -1548,35 +1726,42 @@ class Manifest(TestSuite):
             )
 
     @test()
-    def multiinstance_format(self):
-
-        if self.manifest["multi_instance"] not in [True, False, 0, 1]:
-            yield Error(
-                "\"multi_instance\" field should be boolean 'true' or 'false', and not string type"
-            )
-
-    @test()
-    def url(self):
-        if self.manifest.get("url", "").endswith("_ynh"):
-            yield Info(
-                "'url' is not meant to be the URL of the YunoHost package, "
-                "but rather the website or repo of the upstream app itself..."
-            )
-
-    @test()
     def install_args(self):
 
         recognized_types = (
-            "domain",
+            "string",
+            "text",
+            "select",
+            "tags",
+            "email",
+            "url",
+            "date",
+            "time",
+            "color",
+            "password",
             "path",
             "boolean",
-            "password",
+            "domain",
             "user",
-            "string",
+            "group",
+            "number",
+            "range",
             "display_text",
+            "alert",
+            "markdown",
+            "file",
+            "app",
         )
 
-        for argument in self.manifest["arguments"].get("install", []):
+        if app_packaging_format <= 1:
+            args = self.manifest["arguments"].get("install", [])
+        else:
+            keyandargs = self.manifest["install"]
+            for key, infos in keyandargs.items():
+                infos["name"] = key
+            args = keyandargs.values()
+
+        for argument in args:
             if not isinstance(argument.get("optional", False), bool):
                 yield Warning(
                     "The key 'optional' value for setting %s should be a boolean (true or false)"
@@ -1592,6 +1777,10 @@ class Manifest(TestSuite):
                     "The type '%s' for argument '%s' is not recognized... "
                     "it probably doesn't behave as you expect? Choose among those instead: %s"
                     % (argument["type"], argument["name"], ", ".join(recognized_types))
+                )
+            elif argument["type"] == "display_text":
+                yield Info(
+                    "Question type 'display_text' is deprecated. You might want to use 'markdown' or 'alert' instead."
                 )
             elif argument["type"] == "boolean" and argument.get(
                 "default", True
@@ -1632,9 +1821,18 @@ class Manifest(TestSuite):
             ("admin", "user"),
             ("is_public", "boolean"),
             ("password", "password"),
+            ("init_main_permission", "group"),
         ]
 
-        for argument in self.manifest["arguments"].get("install", []):
+        if app_packaging_format <= 1:
+            args = self.manifest["arguments"].get("install", [])
+        else:
+            keyandargs = self.manifest["install"]
+            for key, infos in keyandargs.items():
+                infos["name"] = key
+            args = keyandargs.values()
+
+        for argument in args:
 
             if (
                 argument.get("ask")
@@ -1655,20 +1853,6 @@ class Manifest(TestSuite):
                     "You should add 'ask' strings for argument %s"
                     % argument.get("name")
                 )
-
-    @test()
-    def is_public_help(self):
-        for argument in self.manifest["arguments"].get("install", []):
-            if argument["name"] == "is_public" and "help" not in argument.keys():
-                yield Info(
-                    "Consider adding a 'help' key for argument 'is_public' "
-                    "to explain to the user what it means for *this* app "
-                    "to be public or private :\n"
-                    '    "help": {\n'
-                    '       "en": "Some explanation"\n'
-                    "    }"
-                )
-
 
 ########################################
 #  _____       _        _              #
@@ -1917,7 +2101,6 @@ class Script(TestSuite):
         lines = "\n".join(lines).replace("\\\n", "").split("\n")
 
         some_parsing_failed = False
-        some_parsing_failed_closing_quotation = False
 
         for line in lines:
 
@@ -1976,6 +2159,14 @@ class Script(TestSuite):
 
     @test()
     def error_handling(self):
+
+        if app_packaging_format == 2:
+            if self.contains("ynh_abort_if_errors") \
+            or self.contains("set -eu") \
+            or self.contains("set -u"):
+                yield Error("ynh_abort_if_errors or set -eu is now handled by YunoHost core in packaging v2, you should not have to add it to your script !")
+
+            return
 
         if self.name in ["backup", "remove", "_common.sh"]:
             present = (
