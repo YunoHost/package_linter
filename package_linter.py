@@ -551,10 +551,10 @@ class App(TestSuite):
             if screenshots_size > 512000:
                 yield Warning("Consider keeping the content of doc/screenshots under ~512Kb for better UI/UX once the screenshots will be integrated in the webadmin app's catalog (to be discussed with the team)")
 
-        for path in os.listdir(app.path + "/doc/screenshots"):
-            if all(not path.lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]):
-                yield Warning("In the doc/screenshots folder, only .jpg, .jpeg, .png, .webp and .gif are accepted")
-                break
+            for path in os.listdir(app.path + "/doc/screenshots"):
+                if all(not path.lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]):
+                    yield Warning("In the doc/screenshots folder, only .jpg, .jpeg, .png, .webp and .gif are accepted")
+                    break
 
     @test()
     def doc_dir_v2(app):
@@ -627,13 +627,13 @@ class App(TestSuite):
     def config_panel(app):
 
         if file_exists(app.path + "config_panel.json"):
-            yield Warning(
+            yield Error(
                 "JSON config panels are not supported anymore, should be replaced by a toml version"
             )
 
         if file_exists(app.path + "config_panel.toml"):
             if os.system("grep -q 'version = \"0.1\"' '%s'" % (app.path + "config_panel.toml")) == 0:
-                yield Warning(
+                yield Error(
                     "Config panels version 0.1 are not supported anymore, should be adapted for version 1.0"
                 )
             elif os.path.exists(app.path + "/scripts/config") and os.system("grep -q 'YNH_CONFIG_\\|yunohost app action' '%s'" % (app.path + "/scripts/config")) == 0:
@@ -652,7 +652,7 @@ class App(TestSuite):
         content = open(app.path + "/README.md").read()
 
         if not "dash.yunohost.org/integration/%s.svg" % id_ in content:
-            yield Warning(
+            yield Error(
                 "Please add a badge displaying the level of the app in the README.  "
                 "Proper READMEs can be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator"
                 "At least something like :\n   "
@@ -661,13 +661,9 @@ class App(TestSuite):
                 % (id_, id_)
             )
 
-        superoldstuff = ["%20%28Apps%29", "%20%28Community%29", "/jenkins/job", "ci-buster", "ci-stretch"]
+        superoldstuff = ["%20%28Apps%29", "%20%28Community%29", "/jenkins/job", "ci-buster", "ci-stretch", "ci-apps-arm"]
         if any(oldstuff in content for oldstuff in superoldstuff):
-            yield Warning(
-                "The README contains references to super-old build status (such as old jenkins job or ci-apps-arm or ci-stretch...) which are not relevant anymore. Please consider switching to the new auto-generated README format which contains the standard CI badge at the top."
-            )
-        elif "ci-apps-arm" in content:
-            yield Info(
+            yield Error(
                 "The README contains references to super-old build status (such as old jenkins job or ci-apps-arm or ci-stretch...) which are not relevant anymore. Please consider switching to the new auto-generated README format which contains the standard CI badge at the top."
             )
 
@@ -689,14 +685,14 @@ class App(TestSuite):
             )
             == 0
         ):
-            yield Warning(
+            yield Error(
                 "Sounds like your manifest.json contains the default description string ('Explain in *a few (10~15 words) [...]') ... Please replace it with an actual description."
             )
 
     @test()
     def remaining_replacebyyourapp(self):
         if os.system("grep -I -qr 'REPLACEBYYOURAPP' %s 2>/dev/null" % self.path) == 0:
-            yield Warning("You should replace all occurences of REPLACEBYYOURAPP.")
+            yield Error("You should replace all occurences of REPLACEBYYOURAPP.")
 
     @test()
     def bad_encoding(self):
@@ -1016,8 +1012,7 @@ class Configurations(TestSuite):
 
         if os.system("grep -q 'Level 5=1' '%s'" % check_process_file) == 0:
             yield Error("Do not force Level 5=1 in check_process...")
-
-        if os.system("grep -q ' *Level [^5]=' '%s'" % check_process_file) == 0:
+        elif os.system("grep -qE ' *Level \d=' '%s'" % check_process_file) == 0:
             yield Warning(
                 "Setting Level x=y in check_process is obsolete / not relevant anymore"
             )
@@ -1099,6 +1094,22 @@ class Configurations(TestSuite):
                 "Using a separate php-fpm.ini file is deprecated. "
                 "Please merge your php-fpm directives directly in the pool file. "
                 "(c.f. https://github.com/YunoHost-Apps/nextcloud_ynh/issues/138 )"
+            )
+
+    @test()
+    def encourage_extra_php_conf(self):
+
+        app = self.app
+
+        if file_exists(app.path + "/conf/php-fpm.conf"):
+            yield Info(
+                "For the php configuration, consider getting rid of php-fpm.conf "
+                "and using the --usage and --footprint option of ynh_add_fpm_config. "
+                "This will use an auto-generated php conf file."
+                "Additionally you can provide a conf/extra_php-fpm.conf for custom PHP settings "
+                "that will automatically be appended to the autogenerated conf. "
+                " (Feel free to discuss this on the chat with other people, the whole thing "
+                "with --usage/--footprint is legitimately a bit unclear ;))"
             )
 
     @test()
@@ -1565,7 +1576,7 @@ class Manifest(TestSuite):
     def upstream_placeholders(self):
         if "upstream" in self.manifest.keys():
             if "yunohost.org" in self.manifest["upstream"].get("admindoc", ""):
-                yield Warning(
+                yield Error(
                     "The field 'admindoc' should point to the **official** admin doc, not the YunoHost documentation. If there's no official admin doc, simply remove the admindoc key entirely."
                 )
             if "yunohost.org" in self.manifest["upstream"].get("userdoc", ""):
@@ -1573,7 +1584,7 @@ class Manifest(TestSuite):
                     "The field 'userdoc' should point to the **official** user doc, not the YunoHost documentation. (The default auto-generated README already includes a link to the yunohost doc page for this app). If there's no official user doc, simply remove the userdoc key entirely."
                 )
             if "example.com" in self.manifest["upstream"].get("demo", "") or "example.com" in self.manifest["upstream"].get("website", ""):
-                yield Warning("It seems like the upstream section still contains placeholder values such as 'example.com' ...")
+                yield Error("It seems like the upstream section still contains placeholder values such as 'example.com' ...")
 
     @test()
     def FIXMEs(self):
@@ -1606,11 +1617,13 @@ class Manifest(TestSuite):
             yield Critical(
                 "Your app only requires YunoHost >= 2.x or 3.x, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
             )
-        elif yunohost_version_req.startswith(
-            "3."
-        ) and not yunohost_version_req.startswith("4.0"):
+        elif yunohost_version_req.startswith("4.0"):
+            yield Error(
+                "Your app only requires yunohost >= 4.0, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
+            )
+        elif yunohost_version_req.startswith("4.1"):
             yield Warning(
-                "Your app only requires yunohost >= 3.x, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
+                "Your app only requires yunohost >= 4.1, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
             )
 
     @test()
@@ -1620,6 +1633,8 @@ class Manifest(TestSuite):
             yield Error(f"packaging_format should be {app_packaging_format}")
         if not re.match("^[a-z0-9]((_|-)?[a-z0-9])+$", self.manifest.get("id")):
             yield Error("The app id is not a valid app id")
+        elif self.manifest.get("id").endswith("_ynh"):
+            yield Warning("The app id is not supposed to end with _ynh :| ...")
         if len(self.manifest["name"]) > 22:
             yield Error("The app name is too long")
 
@@ -1708,7 +1723,7 @@ class Manifest(TestSuite):
             )
 
         if "for yunohost" in descr.lower():
-            yield Warning(
+            yield Error(
                 "The 'description' should explain what the app actually does. "
                 "No need to say that it is 'for YunoHost' - this is a YunoHost app "
                 "so of course we know it is for YunoHost ;-)."
@@ -2471,7 +2486,7 @@ class Script(TestSuite):
     @test()
     def old_regenconf(self):
         if self.contains("yunohost service regen-conf"):
-            yield Warning(
+            yield Error(
                 "'yunohost service regen-conf' has been replaced by 'yunohost tools regen-conf'."
             )
 
@@ -2604,7 +2619,7 @@ class Script(TestSuite):
     @test(only=["backup"])
     def check_size_backup(self):
         if self.contains("CHECK_SIZE"):
-            yield Warning(
+            yield Error(
                 "There's no need to 'CHECK_SIZE' during backup... This check is handled by the core automatically."
             )
 
@@ -2628,7 +2643,7 @@ class Script(TestSuite):
     @test(only=["backup", "restore"])
     def helpers_sourcing_backuprestore(self):
         if self.contains("source _common.sh") or self.contains("source ./_common.sh"):
-            yield Warning(
+            yield Error(
                 'In the context of backup and restore scripts, you should load _common.sh with "source ../settings/scripts/_common.sh"'
             )
 
