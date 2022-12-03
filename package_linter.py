@@ -549,7 +549,12 @@ class App(TestSuite):
             du_output = subprocess.check_output(["du", "-sb", app.path + "/doc/screenshots"], shell=False)
             screenshots_size = int(du_output.split()[0])
             if screenshots_size > 512000:
-                yield Info("Consider keeping the content of doc/screenshots under ~512Kb for better UI/UX once the screenshots will be integrated in the webadmin app's catalog (to be discussed with the team)")
+                yield Warning("Consider keeping the content of doc/screenshots under ~512Kb for better UI/UX once the screenshots will be integrated in the webadmin app's catalog (to be discussed with the team)")
+
+        for path in os.listdir(app.path + "/doc/screenshots"):
+            if all(not path.lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]):
+                yield Warning("In the doc/screenshots folder, only .jpg, .jpeg, .png, .webp and .gif are accepted")
+                break
 
     @test()
     def doc_dir_v2(app):
