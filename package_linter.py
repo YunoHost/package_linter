@@ -712,8 +712,8 @@ class App(TestSuite):
             if not file_:
                 continue
             file_ = file_.split()[0]
-            yield Warning(
-                "%s appears to be encoded as latin-1 / iso-8859-1. Please consider converting it to utf-8 to avoid funky issues. Something like 'iconv -f iso-8859-1 -t utf-8 SOURCE > DEST' should do the trick."
+            yield Error(
+                "%s appears to be encoded as latin-1 / iso-8859-1. Please convert it to utf-8 to avoid funky issues. Something like 'iconv -f iso-8859-1 -t utf-8 SOURCE > DEST' should do the trick."
                 % file_
             )
 
