@@ -2493,7 +2493,7 @@ class Script(TestSuite):
             )
 
     @test()
-    def ssowatconf(self):
+    def ssowatconf_or_nginx_reload(self):
         # Dirty hack to check only the 10 last lines for ssowatconf
         # (the "bad" practice being using this at the very end of the script, but some apps legitimately need this in the middle of the script)
         oldlines = list(self.lines)
@@ -2502,6 +2502,13 @@ class Script(TestSuite):
             yield Warning(
                 "You probably don't need to run 'yunohost app ssowatconf' in the app self. It's supposed to be ran automatically after the script."
             )
+
+        if app_packaging_format >= 2 and self.name not in ["change_url", "restore"]:
+            if self.contains("ynh_systemd_action --service_name=nginx --action=reload"):
+                yield Warning(
+                    "You should not need to reload nginx at the end of the script ... it's already taken care of by ynh_add_nginx_config"
+                )
+
         self.lines = oldlines
 
     @test()
