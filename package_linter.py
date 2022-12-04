@@ -552,6 +552,8 @@ class App(TestSuite):
                 yield Warning("Consider keeping the content of doc/screenshots under ~512Kb for better UI/UX once the screenshots will be integrated in the webadmin app's catalog (to be discussed with the team)")
 
             for path in os.listdir(app.path + "/doc/screenshots"):
+                if path == ".gitkeep":
+                    continue
                 if all(not path.lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]):
                     yield Warning("In the doc/screenshots folder, only .jpg, .jpeg, .png, .webp and .gif are accepted")
                     break
@@ -1228,7 +1230,7 @@ class Configurations(TestSuite):
             ):
 
                 yield Info(
-                    f"You are encouraged to harden the security of the systemd configuration {filename}. You can have a look at https://github.com/YunoHost/example_ynh/blob/master/conf/systemd.service#L14-L42 for a baseline."
+                    f"You are encouraged to harden the security of the systemd configuration {filename}. You can have a look at https://github.com/YunoHost/example_ynh/blob/master/conf/systemd.service#L14-L46 for a baseline."
                 )
 
     @test()
