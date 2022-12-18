@@ -1581,6 +1581,10 @@ class Manifest(TestSuite):
                 yield Error(
                     "The field 'admindoc' should point to the **official** admin doc, not the YunoHost documentation. If there's no official admin doc, simply remove the admindoc key entirely."
                 )
+            if "github.com" in self.manifest["upstream"].get("website", ""):
+                yield Warning(
+                    "The field 'website' is not meant to point to a code repository ... this is to be handled by the 'code' key ... If the app has no proper website, just remove the 'website' key entirely"
+                )
             if "yunohost.org" in self.manifest["upstream"].get("userdoc", ""):
                 yield Warning(
                     "The field 'userdoc' should point to the **official** user doc, not the YunoHost documentation. (The default auto-generated README already includes a link to the yunohost doc page for this app). If there's no official user doc, simply remove the userdoc key entirely."
