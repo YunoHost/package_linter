@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
-import toml
 import sys
 import os
 import re
@@ -1505,6 +1504,7 @@ class Manifest(TestSuite):
                     self.raw_manifest, object_pairs_hook=check_for_duplicate_keys
                 )
             else:
+                import toml
                 self.manifest = toml.loads(self.raw_manifest)
         except Exception as e:
             print(
