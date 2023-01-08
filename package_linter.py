@@ -487,9 +487,10 @@ class App(TestSuite):
 
         # Level 8 = qualifies for level 7 + maintained + long term good quality
         catalog_infos = self.app_catalog.catalog_infos
-        is_maintained = catalog_infos and catalog_infos.get("maintained", True) is True
-        if not is_maintained:
-            _print(" The app is flagged as not maintained in the app catalog")
+        antifeatures = catalog_infos and catalog_infos.get("antifeatures", [])
+
+        if any(af in antifeatures for af in ['package-not-maintained', 'deprecated-software', 'alpha-software', 'replaced-by-another-app']):
+            _print(" In the catalog, the app is flagged as not maintained / deprecated / alpha or replaced by another app")
         elif (
             "qualify_for_level_7" in successes
             and "is_long_term_good_quality" in successes
