@@ -2661,6 +2661,13 @@ class Script(TestSuite):
                 'In the context of backup and restore scripts, you should load _common.sh with "source ../settings/scripts/_common.sh"'
             )
 
+    @test(only=["_common.sh"])
+    def no_progress_in_common(self):
+        if self.contains("ynh_script_progression"):
+            yield Info(
+                "You should not use `ynh_script_progression` in _common.sh because it will produce warnings when trying to install the application."
+            )
+
 
 def main():
     if len(sys.argv) < 2:
