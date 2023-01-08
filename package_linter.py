@@ -2663,8 +2663,8 @@ class Script(TestSuite):
     @test(only=["_common.sh"])
     def no_progress_in_common(self):
         if self.contains("ynh_script_progression"):
-            yield Error(
-                "You should not use `ynh_script_progression` in _common.sh because it will not work."
+            yield Info(
+                "You should not use `ynh_script_progression` in _common.sh because it will produce warnings when trying to install the application."
             )
 
 
