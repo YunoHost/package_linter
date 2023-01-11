@@ -803,7 +803,7 @@ class App(TestSuite):
         if app_packaging_format <= 1:
             return
 
-        cmd = f"grep -IhEro 'ynh_\w+' '{app.path}/scripts/install' '{app.path}/scripts/remove' '{app.path}/scripts/upgrade' '{app.path}/scripts/backup' '{app.path}/scripts/restore'"
+        cmd = f"grep -IhEro 'ynh_\w+' '{app.path}/scripts/install' '{app.path}/scripts/remove' '{app.path}/scripts/upgrade' '{app.path}/scripts/backup' '{app.path}/scripts/restore' || true"
         helpers_used = (
             subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         )
