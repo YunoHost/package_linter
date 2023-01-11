@@ -539,11 +539,22 @@ class App(TestSuite):
     def doc_dir(app):
 
         if not os.path.exists(app.path + "/doc"):
-            yield Info(
-                """READMEs are to be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator.
-        - You are encouraged to create a doc/DISCLAIMER.md file, which should contain any important information to be presented to the admin before installation. Check https://github.com/YunoHost/example_ynh/blob/master/doc/DISCLAIMER.md for more details (it should be somewhat equivalent to the old 'Known limitations' and 'Specific features' section). (It's not mandatory to create this file if you're absolutely sure there's no relevant info to show to the user)
-        - If relevant for this app, screenshots can be added in a doc/screenshots/ folder."""
-            )
+            if app_packaging_format <= 1:
+                yield Info(
+"""READMEs are to be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator.
+    - You are encouraged to create a doc/DISCLAIMER.md file, which should contain any important information to be presented to the admin before installation. Check https://github.com/YunoHost/example_ynh/blob/master/doc/DISCLAIMER.md for more details (it should be somewhat equivalent to the old 'Known limitations' and 'Specific features' section). (It's not mandatory to create this file if you're absolutely sure there's no relevant info to show to the user)
+    - If relevant for this app, screenshots can be added in a doc/screenshots/ folder."""
+                )
+            elif app_packaging_format >= 2:
+                yield Error(
+"""Having a doc/ folder is now mandatory in packaging v2 and is expected to contain :
+    - (recommended) doc/DESCRIPTION.md : a long description of the app, typically around 5~20 lines, for example to list features
+    - (recommended) doc/screenshots/ : a folder containing at least one .png (or .jpg) screenshot of the app
+    - (if relevant) doc/ADMIN.md : an admin doc page meant to provide general info about adminstrating this app, will be available in yunohost's webadmin
+    - (if relevant) doc/SOME_OTHER_PAGE.md : an arbitrarily named admin doc page meant to provide info on a specific topic, will be available in yunohost's webadmin
+    - (if relevant) doc/PRE_INSTALL.md, POST_INSTALL.md : important informations to display to the user before/after the install (similar mechanism exists for upgrade)
+"""
+                )
 
         if os.path.exists(app.path + "/doc/screenshots"):
             du_output = subprocess.check_output(["du", "-sb", app.path + "/doc/screenshots"], shell=False)
@@ -564,7 +575,7 @@ class App(TestSuite):
         if app_packaging_format <= 1:
             return
 
-        if not os.path.exists(app.path + "/doc/DESCRIPTION.md"):
+        if os.path.exists(app.path + "/doc") and not os.path.exists(app.path + "/doc/DESCRIPTION.md"):
             yield Error("A DESCRIPTION.md is now mandatory in packaging v2 and is meant to contains an extensive description of what the app is and does. Consider also adding a '/doc/screenshots/' folder with a few screenshots of what the app looks like.")
         elif os.system(fr'grep -inrq "Some long and extensive description\|lorem ipsum dolor sit amet\|Ut enim ad minim veniam" {app.path}/doc/DESCRIPTION.md') == 0:
             yield Error("It looks like DESCRIPTION.md just contains placeholder texts")
@@ -653,14 +664,10 @@ class App(TestSuite):
 
         content = open(app.path + "/README.md").read()
 
-        if not "dash.yunohost.org/integration/%s.svg" % id_ in content:
+        if not "This README was automatically generated" in content or not "dash.yunohost.org/integration/%s.svg" % id_ in content:
             yield Error(
-                "Please add a badge displaying the level of the app in the README.  "
-                "Proper READMEs can be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator"
-                "At least something like :\n   "
-                "[![Integration level](https://dash.yunohost.org/integration/%s.svg)](https://dash.yunohost.org/appci/app/%s)\n"
-                "  (but ideally you should check example_ynh for the full set of recommendations !)"
-                % (id_, id_)
+                "It looks like the README was not generated automatically by https://github.com/YunoHost/apps/tree/master/tools/README-generator. "
+                "Note that nowadays you are not suppose to edit README.md, the yunohost bot will usually automatically update it if your app is hosted in the YunoHost-Apps org ... or you can also generate it by running the README-generator yourself."
             )
 
         superoldstuff = ["%20%28Apps%29", "%20%28Community%29", "/jenkins/job", "ci-buster", "ci-stretch", "ci-apps-arm"]
