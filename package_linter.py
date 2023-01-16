@@ -999,16 +999,23 @@ class Configurations(TestSuite):
     ############################
 
     @test()
-    def check_process_exists(self):
+    def tests_toml_exists(self):
 
         app = self.app
 
-        check_process_file = app.path + "/check_process"
 
-        if not file_exists(check_process_file):
-            yield Warning(
-                "You should add a 'check_process' file to properly interface with the continuous integration system"
-            )
+        if app_packaging_format <= 1:
+            check_process_file = app.path + "/check_process"
+            if not file_exists(check_process_file):
+                yield Warning(
+                    "You should add a 'check_process' file to properly interface with the continuous integration system"
+                )
+        else:
+            tests_toml_file = app.path + "/tests.toml"
+            if not file_exists(tests_toml_file):
+                yield Error(
+                    "The 'check_process' file that interfaces with the app CI has now been replaced with 'tests.toml' format and is now mandatory for apps v2."
+                )
 
     @test()
     def check_process_syntax(self):
