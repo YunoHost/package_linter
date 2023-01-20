@@ -12,6 +12,12 @@ import time
 import statistics
 from datetime import datetime
 
+try:
+    import toml
+except:
+    os.system('pip3 install toml')
+    import toml
+
 # ############################################################################
 #  Helper list
 # ############################################################################
@@ -1519,7 +1525,6 @@ class Manifest(TestSuite):
                     self.raw_manifest, object_pairs_hook=check_for_duplicate_keys
                 )
             else:
-                import toml
                 self.manifest = toml.loads(self.raw_manifest)
         except Exception as e:
             print(
@@ -1917,9 +1922,9 @@ class AppCatalog(TestSuite):
         self._fetch_app_repo()
 
         try:
-            self.app_list = json.loads(open("./.apps/apps.json").read())
+            self.app_list = toml.loads(open("./.apps/apps.toml").read())
         except Exception:
-            _print("Failed to read apps.json :/")
+            _print("Failed to read apps.toml :/")
             sys.exit(-1)
 
         self.catalog_infos = self.app_list.get(app_id, {})
@@ -2073,18 +2078,26 @@ class AppCatalog(TestSuite):
                         "master",
                     ]
                 )
-                raw_json_at_this_date = git(["show", "%s:apps.json" % commit])
+                if os.system(f"git -C ./.apps  cat-file -e {commit}:apps.json") == 0:
+                    raw_catalog_at_this_date = git(["show", f"{commit}:apps.json"])
+                    loader = json
+
+                elif os.system(f"git -C ./.apps  cat-file -e {commit}:apps.toml") == 0:
+                    raw_catalog_at_this_date = git(["show", f"{commit}:apps.toml"])
+                    loader = toml
+                else:
+                    raise Exception("No apps.json/toml at this point in history?")
+
                 try:
-                    json_at_this_date = json.loads(raw_json_at_this_date)
+                    catalog_at_this_date = loader.loads(raw_catalog_at_this_date)
                 # This can happen in stupid cases where there was a temporary syntax error in the json..
                 except json.decoder.JSONDecodeError:
                     _print(
-                        "Failed to parse apps.json history for at commit %s / %s ... ignoring "
+                        "Failed to parse apps.json/toml history for at commit %s / %s ... ignoring "
                         % (commit, t)
                     )
                     continue
-
-                yield (t, json_at_this_date.get(self.app_id))
+                yield (t, catalog_at_this_date.get(self.app_id))
 
         # We'll check the history for last 12 months (*2 points per month)
         N = 12 * 2
