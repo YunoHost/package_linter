@@ -2078,7 +2078,7 @@ class AppCatalog(TestSuite):
                         "master",
                     ]
                 )
-                if os.system(f"git -C ./.apps  cat-file -e {commit}:apps.json") == 0:
+                if os.system(f"git -C ./.apps  cat-file -e {commit}:apps.json 2>/dev/null") == 0:
                     raw_catalog_at_this_date = git(["show", f"{commit}:apps.json"])
                     loader = json
 
