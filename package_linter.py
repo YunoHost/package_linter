@@ -2361,7 +2361,7 @@ class Script(TestSuite):
     @test()
     def ynh_add_fpm_config_deprecated_package_option(self):
         if self.containsregex(r'ynh_add_fpm_config .*package=.*'):
-            yield Warning("(Requires Yunohost 4.3) Option --package for ynh_add_fpm_config is deprecated : please use 'ynh_install_app_dependencies' with **all** your apt dependencies instead (no need to define a special 'extra_php_dependencies'). YunoHost will automatically install any phpX.Y-fpm / phpX.Y-common if needed.")
+            yield Error("(Requires Yunohost 4.3) Option --package for ynh_add_fpm_config is deprecated : please use 'ynh_install_app_dependencies' with **all** your apt dependencies instead (no need to define a special 'extra_php_dependencies'). YunoHost will automatically install any phpX.Y-fpm / phpX.Y-common if needed.")
 
     @test()
     def set_is_public_setting(self):
