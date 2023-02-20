@@ -1900,6 +1900,39 @@ class Manifest(TestSuite):
                     % argument.get("name")
                 )
 
+    @test()
+    def resource_consistency(self):
+
+        if app_packaging_format <= 1:
+            return
+
+        resources = self.manifest["resources"]
+
+        if "database" in list(resources.keys()):
+            if "apt" not in list(resources.keys()):
+                yield Warning(
+                    "Having an 'apt' resource is mandatory when using a 'database' resource, to also install postgresql/mysql if needed"
+                )
+            else:
+                if list(resources.keys()).index("database") < list(
+                    resources.keys()
+                ).index("apt"):
+                    yield Warning(
+                        "The 'apt' resource should be placed before the 'database' resource, to install postgresql/mysql if needed *before* provisioning the database"
+                    )
+
+                dbtype = resources["database"]["type"]
+                apt_packages = resources["apt"].get("packages", "").split(", ")
+                if dbtype == "mysql" and "mariadb-server" not in apt_packages:
+                    yield Warning(
+                        "When using a mysql database, you should add mariadb-server in apt dependencies. Even though it's currently installed by default in YunoHost installations, it might not be in the future !"
+                    )
+                if dbtype == "postgresql" and "postgresql" not in apt_packages:
+                    yield Warning(
+                        "When using a postgresql database, you should add postgresql in apt dependencies."
+                    )
+
+
 ########################################
 #  _____       _        _              #
 # /  __ \     | |      | |             #
