@@ -611,7 +611,7 @@ class App(TestSuite):
 
 
     @test()
-    def disclaimer_wording(app):
+    def disclaimer_wording_or_placeholder(app):
         if os.path.exists(app.path + "/doc"):
             if (
                 os.system(
@@ -623,6 +623,17 @@ class App(TestSuite):
                 yield Info(
                     "In DISCLAIMER.md: 'Any known limitations [...] such as' and 'Other infos [...] such as' are supposed to be placeholder sentences meant to explain to packagers what is the expected content, but is not an appropriate wording for end users :/"
                 )
+            if (
+                os.system(
+                    r"grep -nr -q 'This is a dummy\|Ceci est une fausse' %s/doc/"
+                    % app.path
+                )
+                == 0
+            ):
+                yield Warning(
+                    "The doc/ folder seems to still contain some dummy, placeholder messages in the .md markdown files. If those files are not useful in the context of your app, simply remove them."
+                )
+
 
     @test()
     def change_url_script(app):
