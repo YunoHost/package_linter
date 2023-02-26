@@ -1933,7 +1933,7 @@ class Manifest(TestSuite):
                     )
 
                 dbtype = resources["database"]["type"]
-                apt_packages = resources["apt"].get("packages", "").split(", ")
+                apt_packages = [p.strip(',') for p in resources["apt"].get("packages", "").split(" ")]
                 if dbtype == "mysql" and "mariadb-server" not in apt_packages:
                     yield Warning(
                         "When using a mysql database, you should add mariadb-server in apt dependencies. Even though it's currently installed by default in YunoHost installations, it might not be in the future !"
