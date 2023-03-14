@@ -205,7 +205,7 @@ deprecated_helpers_in_v2 = [
     ("ynh_mysql_remove_db", "the database resource"),
     ("ynh_psql_remove_db", "the database resource"),
     ("ynh_find_port", "the port resource"),
-    ("ynh_send_readme_to_admin", "the doc/notifications/post_install.md or post_upgrade.md mechanism")
+    ("ynh_send_readme_to_admin", "the doc/POST_INSTALL.md or POST_UPGRADE.md mechanism")
 ]
 
 # Default to 1, set to 2 automatically if a toml manifest is found
@@ -598,8 +598,8 @@ class App(TestSuite):
         -> these are now formalized using the 'antifeatures' mechanism in the app catalog directly : cf https://github.com/YunoHost/apps/blob/master/antifeatures.yml and the 'antifeatures' key in apps.json
 
     - Important infos that the admin should be made aware of *before* or *after* the install
-        -> infos *before* the install are meant to go in 'doc/notifications/pre_install.md'
-        -> infos *after* the install are meant to go in 'doc/notifications/post_install.md' (mostly meant to replace ynh_send_readme_to_admin, typically tips about how to login for the first time on the app / finish the install, ...).
+        -> infos *before* the install are meant to go in 'doc/PRE_INSTALL.md'
+        -> infos *after* the install are meant to go in 'doc/POST_INSTALL.md' (mostly meant to replace ynh_send_readme_to_admin, typically tips about how to login for the first time on the app / finish the install, ...).
         -> these will be shown to the admin before/after the install (and the post_install notif will also be available in the app info page)
         -> note that in these files, the __FOOBAR__ syntax is supported and replaced with the corresponding 'foobar' setting.
 
