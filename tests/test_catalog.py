@@ -7,7 +7,7 @@ import sys
 import time
 from datetime import datetime
 
-import toml
+import tomllib
 from lib.lib_package_linter import (
     Critical,
     Error,
@@ -42,7 +42,7 @@ class AppCatalog(TestSuite):
         self._fetch_app_repo()
 
         try:
-            self.app_list = toml.loads(open("./.apps/apps.toml").read())
+            self.app_list = tomllib.loads(open("./.apps/apps.toml").read())
         except Exception:
             _print("Failed to read apps.toml :/")
             sys.exit(-1)
@@ -205,7 +205,7 @@ class AppCatalog(TestSuite):
 
                 elif os.system(f"git -C ./.apps  cat-file -e {commit}:apps.toml") == 0:
                     raw_catalog_at_this_date = git(["show", f"{commit}:apps.toml"])
-                    loader = toml
+                    loader = tomllib
                 else:
                     raise Exception("No apps.json/toml at this point in history?")
 
