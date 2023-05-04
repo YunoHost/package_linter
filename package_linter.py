@@ -1222,7 +1222,7 @@ class Configurations(TestSuite):
             else:
                 Level = Warning
 
-            matches = re.findall(r"^ *(User|Group)=(\S+)", content, flags=re.MULTILINE)
+            matches = re.findall(r"^ *(User)=(\S+)", content, flags=re.MULTILINE)
             if not any(match[0] == "User" for match in matches):
                 yield Level(
                     "You should specify a 'User=' directive in the systemd config !"
