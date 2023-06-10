@@ -1700,6 +1700,7 @@ class Manifest(TestSuite):
         for key, validator in keys.items():
             if key not in self.manifest.get("integration", {}):
                 yield Error(f"Missing key in the integration section: {key}")
+                continue
             value = self.manifest["integration"][key]
             if not validator[0](value):
                 yield Error(f"Error found with key {key} in the 'integration' section: {validator[1]}, got: {value}")
