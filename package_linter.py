@@ -2420,6 +2420,11 @@ class Script(TestSuite):
                     "permission system: it should not be needed to save is_public with ynh_app_setting_set ... this setting should only be used during installation to initialize the permission. The admin is likely to manually tweak the permission using YunoHost's interface later."
                 )
 
+    @test(only=["_common.sh"])
+    def default_php_version_in_common(self):
+        if self.contains("YNH_DEFAULT_PHP_VERSION"):
+            yield Warning("Do not use YNH_DEFAULT_PHP_VERSION in _common.sh ... _common.sh is usually sourced *before* the helpers, which define the version of YNH_DEFAULT_PHP_VERSION (hence it gets replaced with empty string). Instead, please explicitly state the PHP version in the package, e.g. dependencies='php8.2-cli php8.2-imagemagick'")
+
     @test(ignore=["install", "_common.sh"])
     def get_is_public_setting(self):
         if self.contains("is_public=") or self.contains("$is_public"):
