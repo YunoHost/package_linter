@@ -1296,6 +1296,16 @@ class Configurations(TestSuite):
                 )
 
     @test()
+    def nginx_http_host(self):
+
+        app = self.app
+
+        if os.path.exists(app.path + "/conf/nginx.conf"):
+            content = open(app.path + "/conf/nginx.conf").read()
+            if "$http_host" in content:
+                yield Info("In nginx.conf : please don't use $http_host but $host instead. C.f. https://github.com/yandex/gixy/blob/master/docs/en/plugins/hostspoofing.md")
+
+    @test()
     def nginx_https_redirect(self):
 
         app = self.app
