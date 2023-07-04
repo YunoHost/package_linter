@@ -1312,7 +1312,8 @@ class Configurations(TestSuite):
 
             content = open(app.path + "/conf/" + filename).read()
             if "if ($scheme = http)" in content and "rewrite ^ https" in content:
-                yield Info(
+                level = Info if app_packaging_format <= 1 else Warning
+                yield level(
                     "Since Yunohost 4.3, the http->https redirect is handled by the core, "
                     "therefore having an if ($scheme = http) { rewrite ^ https://... } block "
                     "in the nginx config file is deprecated. (This helps with supporting Yunohost-behind-reverse-proxy use case)"
