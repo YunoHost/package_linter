@@ -22,7 +22,7 @@ except:
 try:
     import jsonschema
 except:
-    os.system('pip3 install toml')
+    os.system('pip3 install jsonschema')
     import jsonschema
 
 
