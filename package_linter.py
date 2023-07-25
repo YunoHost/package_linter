@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
+import copy
 import sys
 import os
 import re
@@ -17,6 +18,13 @@ try:
 except:
     os.system('pip3 install toml')
     import toml
+
+try:
+    import jsonschema
+except:
+    os.system('pip3 install toml')
+    import jsonschema
+
 
 # ############################################################################
 #  Helper list
@@ -296,6 +304,17 @@ def spdx_licenses():
     content = urlopen(url)["content"]
     open(cachefile, "w").write(content)
     return content
+
+
+def manifest_v2_schema():
+    cachefile = ".manifest.v2.schema.json"
+    if os.path.exists(cachefile) and time.time() - os.path.getmtime(cachefile) < 3600:
+        return json.loads(open(cachefile).read())
+
+    url = "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/manifest.v2.schema.json"
+    content = urlopen(url)["content"]
+    open(cachefile, "w").write(content)
+    return json.loads(content)
 
 
 tests = {}
@@ -641,7 +660,7 @@ class App(TestSuite):
         if app_packaging_format <= 1:
             args = app.manifest["arguments"].get("install", [])
         else:
-            keyandargs = app.manifest["install"]
+            keyandargs = copy.deepcopy(app.manifest["install"])
             for key, infos in keyandargs.items():
                 infos["name"] = key
             args = keyandargs.values()
@@ -1058,7 +1077,7 @@ class Configurations(TestSuite):
         if app_packaging_format <= 1:
             args = app.manifest["arguments"].get("install", [])
         else:
-            keyandargs = app.manifest["install"]
+            keyandargs = copy.deepcopy(app.manifest["install"])
             for key, infos in keyandargs.items():
                 infos["name"] = key
             args = keyandargs.values()
@@ -1825,7 +1844,7 @@ class Manifest(TestSuite):
         if app_packaging_format <= 1:
             args = self.manifest["arguments"].get("install", [])
         else:
-            keyandargs = self.manifest["install"]
+            keyandargs = copy.deepcopy(self.manifest["install"])
             for key, infos in keyandargs.items():
                 infos["name"] = key
             args = keyandargs.values()
@@ -1896,7 +1915,7 @@ class Manifest(TestSuite):
         if app_packaging_format <= 1:
             args = self.manifest["arguments"].get("install", [])
         else:
-            keyandargs = self.manifest["install"]
+            keyandargs = copy.deepcopy(self.manifest["install"])
             for key, infos in keyandargs.items():
                 infos["name"] = key
             args = keyandargs.values()
@@ -1954,6 +1973,17 @@ class Manifest(TestSuite):
                     yield Warning(
                         "When using a postgresql database, you should add postgresql in apt dependencies."
                     )
+
+        @test()
+        def manifest_schema(self):
+
+            v = jsonschema.Draft7Validator(manifest_v2_schema())
+
+            if app_packaging_format <= 1:
+                return
+
+            for error in v.iter_errors(self.manifest):
+                yield Info("Error validating manifest using schema: in key " +' > '.join(error.path) + "\n       " + error.message)
 
 
 ########################################
