@@ -1978,7 +1978,7 @@ class Manifest(TestSuite):
         if (
             isinstance(main_perm.get('url'), str)
             and "init_main_permission" not in self.manifest['install']
-            and not isinstance(main_perm.get('allowed'), str)
+            and not main_perm.get('allowed')
         ):
             yield Warning(
                 "You should add a 'init_main_permission' question, or define `allowed` for main permission to have the app ready to be accessed right after installation."
