@@ -1974,10 +1974,11 @@ class Manifest(TestSuite):
                         "When using a postgresql database, you should add postgresql in apt dependencies."
                     )
 
+        main_perm = self.manifest["resources"].get('permissions', {}).get('main', {})
         if (
-            isinstance(self.manifest["resources"].get('permissions', {}).get('main', {}).get('url'), str)
+            isinstance(main_perm.get('url'), str)
             and "init_main_permission" not in self.manifest['install']
-            and not isinstance(self.manifest["resources"].get('permissions', {}).get('main', {}).get('allowed'), str)
+            and not isinstance(main_perm.get('allowed'), str)
         ):
             yield Warning(
                 "You should add a 'init_main_permission' question, or define `allowed` for main permission to have the app ready to be accessed right after installation."
