@@ -1942,6 +1942,15 @@ class Manifest(TestSuite):
                     % argument.get("name")
                 )
 
+            elif (
+                argument.get("name") == "domain"
+                and not any([a.get("name") == "init_main_permission" for a in args])
+            ):
+                yield Warning(
+                    "You should add a 'init_main_permission' question to have the app ready to be accessed right after installation."
+                )
+
+
     @test()
     def resource_consistency(self):
 
