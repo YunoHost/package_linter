@@ -1942,15 +1942,6 @@ class Manifest(TestSuite):
                     % argument.get("name")
                 )
 
-            elif (
-                argument.get("name") == "domain"
-                and not any([a.get("name") == "init_main_permission" for a in args])
-            ):
-                yield Warning(
-                    "You should add a 'init_main_permission' question to have the app ready to be accessed right after installation."
-                )
-
-
     @test()
     def resource_consistency(self):
 
@@ -1982,6 +1973,16 @@ class Manifest(TestSuite):
                     yield Warning(
                         "When using a postgresql database, you should add postgresql in apt dependencies."
                     )
+
+        if (
+            isinstance(self.manifest["resources"].get('permissions', {}).get('main', {}).get('url'), str)
+            and "init_main_permission" not in self.manifest['install']
+            and not isinstance(self.manifest["resources"].get('permissions', {}).get('main', {}).get('allowed'), str)
+        ):
+            yield Warning(
+                "You should add a 'init_main_permission' question, or define `allowed` for main permission to have the app ready to be accessed right after installation."
+            )
+
 
         @test()
         def manifest_schema(self):
