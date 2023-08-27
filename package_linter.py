@@ -2600,7 +2600,7 @@ class Script(TestSuite):
         if self.contains("yunohost firewall allow") and not self.contains(
             "--needs_exposed_ports"
         ):
-            yield Warning(
+            yield Info(
                 "You used 'yunohost firewall allow' to expose a port on the outside but did not use 'yunohost service add' with '--needs_exposed_ports' ... If you are ABSOLUTELY SURE that the service needs to be exposed on THE OUTSIDE, then add '--needs_exposed_ports' to 'yunohost service add' with the relevant port number. Otherwise, opening the port leads to a significant security risk and you should keep the damn port closed !"
             )
 
