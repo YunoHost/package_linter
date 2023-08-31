@@ -1309,7 +1309,7 @@ class Configurations(TestSuite):
                 )
                 return
 
-            if any(match[1] in ["root", "www-data"] for match in matches):
+            if any(match[1] == "root" or match == ("user", "www-data") for match in matches):
                 yield Error(
                     "DO NOT run the app PHP worker as root or www-data! Use a dedicated system user for this app!"
                 )
