@@ -14,10 +14,13 @@ import statistics
 from datetime import datetime
 
 try:
-    import toml
-except:
-    os.system('pip3 install toml')
-    import toml
+    import tomllib  # New in Python 3.11
+except ImportError:
+    try:
+        import tomli as tomllib
+    except ImportError:
+        os.system('pip3 install tomli')
+        import tomli as tomllib
 
 try:
     import jsonschema
@@ -1566,7 +1569,7 @@ class Manifest(TestSuite):
                     self.raw_manifest, object_pairs_hook=check_for_duplicate_keys
                 )
             else:
-                self.manifest = toml.loads(self.raw_manifest)
+                self.manifest = tomllib.loads(self.raw_manifest)
         except Exception as e:
             print(
                 c.FAIL
@@ -2023,7 +2026,7 @@ class AppCatalog(TestSuite):
         self._fetch_app_repo()
 
         try:
-            self.app_list = toml.loads(open("./.apps/apps.toml").read())
+            self.app_list = tomllib.loads(open("./.apps/apps.toml").read())
         except Exception:
             _print("Failed to read apps.toml :/")
             sys.exit(-1)
@@ -2185,7 +2188,7 @@ class AppCatalog(TestSuite):
 
                 elif os.system(f"git -C ./.apps  cat-file -e {commit}:apps.toml") == 0:
                     raw_catalog_at_this_date = git(["show", f"{commit}:apps.toml"])
-                    loader = toml
+                    loader = tomllib
                 else:
                     raise Exception("No apps.json/toml at this point in history?")
 
