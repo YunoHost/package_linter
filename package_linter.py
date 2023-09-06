@@ -1967,7 +1967,7 @@ class Manifest(TestSuite):
 
                 apt_packages = resources["apt"].get("packages", [])
                 if isinstance(apt_packages, str):
-                    apt_packages = [value.strip() for value in apt_packages.split(",")]
+                    apt_packages = [value.strip() for value in re.split(' |,',apt_packages)]
 
                 if dbtype == "mysql" and "mariadb-server" not in apt_packages:
                     yield Warning(
