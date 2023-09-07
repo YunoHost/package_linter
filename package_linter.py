@@ -15,13 +15,13 @@ from datetime import datetime
 
 try:
     import toml
-except:
+except Exception:
     os.system('pip3 install toml')
     import toml
 
 try:
     import jsonschema
-except:
+except Exception:
     os.system('pip3 install jsonschema')
     import jsonschema
 
@@ -393,6 +393,7 @@ class TestSuite:
             test_name = test.__qualname__
             tests_reports[report_type(report)].append((test_name, report))
 
+
 # Defined in packaging module
 # See https://github.com/pypa/packaging/blob/20cd09e00917adbc4afeaa753be831a6bc2740f7/packaging/version.py#L225
 VERSION_PATTERN = r"""
@@ -628,7 +629,6 @@ class App(TestSuite):
         -> note that in these files, the __FOOBAR__ syntax is supported and replaced with the corresponding 'foobar' setting.
 """)
 
-
     @test()
     def disclaimer_wording_or_placeholder(app):
         if os.path.exists(app.path + "/doc"):
@@ -652,7 +652,6 @@ class App(TestSuite):
                 yield Warning(
                     "The doc/ folder seems to still contain some dummy, placeholder messages in the .md markdown files. If those files are not useful in the context of your app, simply remove them."
                 )
-
 
     @test()
     def change_url_script(app):
@@ -700,7 +699,7 @@ class App(TestSuite):
 
         content = open(app.path + "/README.md").read()
 
-        if not "This README was automatically generated" in content or not "dash.yunohost.org/integration/%s.svg" % id_ in content:
+        if "This README was automatically generated" not in content or not "dash.yunohost.org/integration/%s.svg" % id_ in content:
             yield Warning(
                 "It looks like the README was not generated automatically by https://github.com/YunoHost/apps/tree/master/tools/README-generator. "
                 "Note that nowadays you are not suppose to edit README.md, the yunohost bot will usually automatically update it if your app is hosted in the YunoHost-Apps org ... or you can also generate it by running the README-generator yourself."
@@ -726,7 +725,7 @@ class App(TestSuite):
 
         if (
             os.system(
-                "grep -q 'Explain in *a few (10~15) words* the purpose of the app\|Expliquez en *quelques* (10~15) mots' %s/manifest.json 2>/dev/null" % self.path
+                "grep -q 'Explain in *a few (10~15) words* the purpose of the app\\|Expliquez en *quelques* (10~15) mots' %s/manifest.json 2>/dev/null" % self.path
             )
             == 0
         ):
@@ -743,7 +742,7 @@ class App(TestSuite):
     def bad_encoding(self):
 
         cmd = (
-            "file --mime-encoding $(find %s/ -type f) | grep 'iso-8859-1\|unknown-8bit' || true"
+            "file --mime-encoding $(find %s/ -type f) | grep 'iso-8859-1\\|unknown-8bit' || true"
             % self.path
         )
         bad_encoding_files = (
@@ -772,7 +771,7 @@ class App(TestSuite):
     @test()
     def helpers_now_official(app):
 
-        cmd = "grep -IhEro 'ynh_\w+ *\( *\)' '%s/scripts' | tr -d '() '" % app.path
+        cmd = "grep -IhEro 'ynh_\\w+ *\\( *\\)' '%s/scripts' | tr -d '() '" % app.path
         custom_helpers = (
             subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         )
@@ -788,7 +787,7 @@ class App(TestSuite):
     @test()
     def helpers_version_requirement(app):
 
-        cmd = "grep -IhEro 'ynh_\w+ *\( *\)' '%s/scripts' | tr -d '() '" % app.path
+        cmd = "grep -IhEro 'ynh_\\w+ *\\( *\\)' '%s/scripts' | tr -d '() '" % app.path
         custom_helpers = (
             subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         )
@@ -803,7 +802,7 @@ class App(TestSuite):
                 app.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
             )
 
-        cmd = "grep -IhEro 'ynh_\w+' '%s/scripts'" % app.path
+        cmd = "grep -IhEro 'ynh_\\w+' '%s/scripts'" % app.path
         helpers_used = (
             subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         )
@@ -839,7 +838,7 @@ class App(TestSuite):
         if app_packaging_format <= 1:
             return
 
-        cmd = f"grep -IhEro 'ynh_\w+' '{app.path}/scripts/install' '{app.path}/scripts/remove' '{app.path}/scripts/upgrade' '{app.path}/scripts/backup' '{app.path}/scripts/restore' || true"
+        cmd = f"grep -IhEro 'ynh_\\w+' '{app.path}/scripts/install' '{app.path}/scripts/remove' '{app.path}/scripts/upgrade' '{app.path}/scripts/backup' '{app.path}/scripts/restore' || true"
         helpers_used = (
             subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         )
@@ -978,13 +977,11 @@ class App(TestSuite):
         ):
             yield Error("Don't do black magic with /etc/ssowat/conf.json.persistent!")
 
-
     @test()
     def bad_final_path_location(self):
         if os.system(f"grep -q -nr 'ynh_webpath_register' {self.path}/scripts/install 2>/dev/null") == 0 \
           and os.system(f"grep -q -nr 'final_path=/opt' {self.path}/scripts/install  {self.path}/scripts/_common.sh 2>/dev/null") == 0:
             yield Info("Web applications are not supposed to be installed in /opt/ ... They are supposed to be installed in /var/www/$app :/")
-
 
     @test()
     def app_data_in_unofficial_dir(self):
@@ -1039,7 +1036,6 @@ class Configurations(TestSuite):
 
         app = self.app
 
-
         if app_packaging_format <= 1:
             check_process_file = app.path + "/check_process"
             if not file_exists(check_process_file):
@@ -1064,7 +1060,7 @@ class Configurations(TestSuite):
 
         if os.system("grep -q 'Level 5=1' '%s'" % check_process_file) == 0:
             yield Error("Do not force Level 5=1 in check_process...")
-        elif os.system("grep -qE ' *Level \d=' '%s'" % check_process_file) == 0:
+        elif os.system("grep -qE ' *Level \\d=' '%s'" % check_process_file) == 0:
             yield Warning(
                 "Setting Level x=y in check_process is obsolete / not relevant anymore"
             )
@@ -1118,7 +1114,7 @@ class Configurations(TestSuite):
                     "It looks like you forgot to enable setup_sub_dir test in check_process?"
                 )
 
-        if app.manifest.get("multi_instance") in [True, 1, "True", "true"] or app.manifest.get("integration", {}).get("multi_instance") == True:
+        if app.manifest.get("multi_instance") in [True, 1, "True", "true"] or app.manifest.get("integration", {}).get("multi_instance") is True:
             if (
                 os.system(r"grep -q '^\s*multi_instance=1' '%s'" % check_process_file)
                 != 0
@@ -1396,7 +1392,7 @@ class Configurations(TestSuite):
             if "location" in content and "more_set_headers" in content:
 
                 lines = content.split("\n")
-                more_set_headers_lines = [l for l in lines if "more_set_headers" in l]
+                more_set_headers_lines = [zzz for zzz in lines if "more_set_headers" in zzz]
 
                 def right_syntax(line):
                     return re.search(
@@ -1425,7 +1421,6 @@ class Configurations(TestSuite):
                 or "nginx" not in filename
             ):
                 continue
-            content = open(app.path + "/conf/" + filename).read()
 
             #
             # Path traversal issues
@@ -1483,7 +1478,7 @@ class Configurations(TestSuite):
                 import pyparsing, six
 
                 do_path_traversal_check = True
-            except:
+            except Exception:
                 # If inside a venv, try to magically install pyparsing
                 if "VIRTUAL_ENV" in os.environ:
                     try:
@@ -1738,7 +1733,6 @@ class Manifest(TestSuite):
         if not self.manifest.get("upstream", {}).get("license"):
             yield Error("Missing 'license' key in the upstream section")
 
-
     @test()
     def license(self):
 
@@ -1773,7 +1767,6 @@ class Manifest(TestSuite):
                     % license
                 )
                 return
-
 
     @test()
     def description(self):
@@ -1988,7 +1981,6 @@ class Manifest(TestSuite):
                 "You should add a 'init_main_permission' question, or define `allowed` for main permission to have the app ready to be accessed right after installation."
             )
 
-
         @test()
         def manifest_schema(self):
 
@@ -1998,7 +1990,7 @@ class Manifest(TestSuite):
                 return
 
             for error in v.iter_errors(self.manifest):
-                yield Info("Error validating manifest using schema: in key " +' > '.join(error.path) + "\n       " + error.message)
+                yield Info("Error validating manifest using schema: in key " + ' > '.join(error.path) + "\n       " + error.message)
 
 
 ########################################
@@ -2099,10 +2091,6 @@ class AppCatalog(TestSuite):
         if self.catalog_infos:
             repo_url = self.catalog_infos["url"]
 
-            all_urls = [
-                infos.get("url", "").lower() for infos in self.app_list.values()
-            ]
-
             if repo_url.lower() not in [repo_org.lower(), repo_brique.lower()]:
                 if repo_url.lower().startswith("https://github.com/YunoHost-Apps/"):
                     yield Warning(
@@ -2168,7 +2156,7 @@ class AppCatalog(TestSuite):
 
         def get_history(N):
 
-            for t in list(_time_points_until_today())[(-1 * N) :]:
+            for t in list(_time_points_until_today())[(-1 * N):]:
 
                 # Fetch apps.json content at this date
                 commit = git(
@@ -2317,8 +2305,8 @@ class Script(TestSuite):
 
         if app_packaging_format == 2:
             if self.contains("ynh_abort_if_errors") \
-            or self.contains("set -eu") \
-            or self.contains("set -u"):
+              or self.contains("set -eu") \
+              or self.contains("set -u"):
                 yield Error("ynh_abort_if_errors or set -eu is now handled by YunoHost core in packaging v2, you should not have to add it to your script !")
 
             return
@@ -2433,11 +2421,10 @@ class Script(TestSuite):
         if os.system(cmd) == 0:
             yield Warning("It looks like this app requires the admin to finish the install by entering DB credentials. Unless it's absolutely not easily automatizable, this should be handled automatically by the app install script using curl calls, or (CLI tools provided by the upstream maybe ?).")
 
-
     @test(only=["install", "upgrade"])
     def deprecated_replace_string(self):
         cmd1 = "grep -Ec 'ynh_replace_string' '%s' || true" % self.path
-        cmd2 = "grep -Ec 'ynh_replace_string.*__\w+__' '%s' || true" % self.path
+        cmd2 = "grep -Ec 'ynh_replace_string.*__\\w+__' '%s' || true" % self.path
 
         count1 = int(subprocess.check_output(cmd1, shell=True).decode("utf-8").strip())
         count2 = int(subprocess.check_output(cmd2, shell=True).decode("utf-8").strip())
@@ -2671,7 +2658,7 @@ class Script(TestSuite):
     @test()
     def chownroot(self):
         if self.containsregex(r"^\s*chown.* root:?[^$]* .*final_path") \
-            and not self.contains('chown root:root "$final_path"'):
+          and not self.contains('chown root:root "$final_path"'):
             # (Mywebapp has a special case because of SFTP é_è)
             yield Info(
                 "Using 'chown root $final_path' is usually symptomatic of misconfigured and wide-open 'other' permissions ... Usually ynh_setup_source should now set sane default permissions on $final_path (if the app requires Yunohost >= 4.2) ... Otherwise, consider using 'chown $app', 'chown nobody' or 'chmod' to limit access to $final_path ..."
@@ -2729,7 +2716,7 @@ class Script(TestSuite):
             if match:
                 try:
                     return int(match.groups()[0])
-                except:
+                except Exception:
                     return -1
             else:
                 return 1

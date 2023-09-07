@@ -12,6 +12,7 @@ import six
 
 logger = logging.getLogger(__name__)
 
+
 class RawNginxParser(object):
     # pylint: disable=expression-not-assigned
     # pylint: disable=pointless-statement
@@ -27,8 +28,8 @@ class RawNginxParser(object):
     dquoted = QuotedString('"', multiline=True, unquoteResults=False, escChar='\\')
     squoted = QuotedString("'", multiline=True, unquoteResults=False, escChar='\\')
     quoted = dquoted | squoted
-    head_tokenchars = Regex(r"(\$\{)|[^{};\s'\"]") # if (last_space)
-    tail_tokenchars = Regex(r"(\$\{)|[^{;\s]") # else
+    head_tokenchars = Regex(r"(\$\{)|[^{};\s'\"]")  # if (last_space)
+    tail_tokenchars = Regex(r"(\$\{)|[^{;\s]")  # else
     tokenchars = Combine(head_tokenchars + ZeroOrMore(tail_tokenchars))
     paren_quote_extend = Combine(quoted + Literal(')') + ZeroOrMore(tail_tokenchars))
     # note: ')' allows extension, but then we fall into else, not last_space.
@@ -63,6 +64,7 @@ class RawNginxParser(object):
         """Returns the parsed tree as a list."""
         return self.parse().asList()
 
+
 class RawNginxDumper(object):
     # pylint: disable=too-few-public-methods
     """A class that dumps nginx configuration from the provided tree."""
@@ -78,19 +80,19 @@ class RawNginxDumper(object):
                 continue
             item = copy.deepcopy(b0)
             if spacey(item[0]):
-                yield item.pop(0) # indentation
+                yield item.pop(0)  # indentation
                 if not item:
                     continue
 
-            if isinstance(item[0], list): # block
+            if isinstance(item[0], list):  # block
                 yield "".join(item.pop(0)) + '{'
                 for parameter in item.pop(0):
-                    for line in self.__iter__([parameter]): # negate "for b0 in blocks"
+                    for line in self.__iter__([parameter]):  # negate "for b0 in blocks"
                         yield line
                 yield '}'
-            else: # not a block - list of strings
+            else:  # not a block - list of strings
                 semicolon = ";"
-                if isinstance(item[0], six.string_types) and item[0].strip() == '#': # comment
+                if isinstance(item[0], six.string_types) and item[0].strip() == '#':  # comment
                     semicolon = ""
                 yield "".join(item) + semicolon
 
@@ -147,7 +149,8 @@ def dump(blocks, _file):
     return _file.write(dumps(blocks))
 
 
-spacey = lambda x: (isinstance(x, six.string_types) and x.isspace()) or x == ''
+def spacey(x): return (isinstance(x, six.string_types) and x.isspace()) or x == ''
+
 
 class UnspacedList(list):
     """Wrap a list [of lists], making any whitespace entries magically invisible"""
@@ -186,7 +189,6 @@ class UnspacedList(list):
                 inbound = UnspacedList(inbound)
             return (inbound, inbound.spaced)
 
-
     def insert(self, i, x):
         item, spaced_item = self._coerce(x)
         slicepos = self._spaced_position(i) if i < len(self) else len(self.spaced)
@@ -209,19 +211,23 @@ class UnspacedList(list):
         self.dirty = True
 
     def __add__(self, other):
-        l = copy.deepcopy(self)
-        l.extend(other)
-        l.dirty = True
-        return l
+        zzz = copy.deepcopy(self)
+        zzz.extend(other)
+        zzz.dirty = True
+        return zzz
 
     def pop(self, _i=None):
         raise NotImplementedError("UnspacedList.pop() not yet implemented")
+
     def remove(self, _):
         raise NotImplementedError("UnspacedList.remove() not yet implemented")
+
     def reverse(self):
         raise NotImplementedError("UnspacedList.reverse() not yet implemented")
+
     def sort(self, _cmp=None, _key=None, _Rev=None):
         raise NotImplementedError("UnspacedList.sort() not yet implemented")
+
     def __setslice__(self, _i, _j, _newslice):
         raise NotImplementedError("Slice operations on UnspacedLists not yet implemented")
 
@@ -241,9 +247,9 @@ class UnspacedList(list):
 
     def __deepcopy__(self, memo):
         new_spaced = copy.deepcopy(self.spaced, memo=memo)
-        l = UnspacedList(new_spaced)
-        l.dirty = self.dirty
-        return l
+        zzz = UnspacedList(new_spaced)
+        zzz.dirty = self.dirty
+        return zzz
 
     def is_dirty(self):
         """Recurse through the parse tree to figure out if any sublists are dirty"""
