@@ -1967,10 +1967,11 @@ class Manifest(TestSuite):
 
                 apt_packages = resources["apt"].get("packages", [])
                 if isinstance(apt_packages, str):
-                    yield Warning(
-                        "The packages list should be a TOML list, like [ 'package1', 'package2' ]. Using a string separated with commas/spaces will be deprecated in the future."
-                    )
                     apt_packages = [value.strip() for value in re.split(' |,',apt_packages)]
+                    if self.manifest["packaging_format"] > 2:
+                        yield Error(
+                            "The `resources.apt.packages` list should be a TOML list, like [ 'package1', 'package2' ]. Try replacing your entry with:packages = \n" + str(apt_packages)
+                        )
 
                 if dbtype == "mysql" and "mariadb-server" not in apt_packages:
                     yield Warning(
