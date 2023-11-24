@@ -559,14 +559,14 @@ class App(TestSuite):
         if file_exists(app.path + "/LICENSE"):
             license_content = open(app.path + "/LICENSE").read()
             if "File containing the license of your package" in license_content:
-                yield Warning("You should put an actual license in LICENSE...")
+                yield Error("You should put an actual license in LICENSE...")
 
     @test()
     def doc_dir(app):
 
         if not os.path.exists(app.path + "/doc"):
             if app_packaging_format <= 1:
-                yield Info(
+                yield Warning(
 """READMEs are to be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator.
     - You are encouraged to create a doc/DISCLAIMER.md file, which should contain any important information to be presented to the admin before installation. Check https://github.com/YunoHost/example_ynh/blob/master/doc/DISCLAIMER.md for more details (it should be somewhat equivalent to the old 'Known limitations' and 'Specific features' section). (It's not mandatory to create this file if you're absolutely sure there's no relevant info to show to the user)
     - If relevant for this app, screenshots can be added in a doc/screenshots/ folder."""
@@ -639,7 +639,7 @@ class App(TestSuite):
                 )
                 == 0
             ):
-                yield Info(
+                yield Warning(
                     "In DISCLAIMER.md: 'Any known limitations [...] such as' and 'Other infos [...] such as' are supposed to be placeholder sentences meant to explain to packagers what is the expected content, but is not an appropriate wording for end users :/"
                 )
             if (
@@ -965,6 +965,14 @@ class App(TestSuite):
             yield Error(
                 "This app still has references to php7.0 (from the stretch era!!) which tends to indicate that it's not up to date with recent packaging practices."
             )
+        if any(
+            script.contains("/etc/php/7.3") or script.contains("php7.3-fpm")
+            for script in app.scripts.values()
+            if script.exists
+        ):
+            yield Error(
+                "This app still has references to php7.3 (from the buster era!!) which tends to indicate that it's not up to date with recent packaging practices."
+            )
 
     @test()
     def conf_json_persistent_tweaking(self):
@@ -1061,7 +1069,7 @@ class Configurations(TestSuite):
         if os.system("grep -q 'Level 5=1' '%s'" % check_process_file) == 0:
             yield Error("Do not force Level 5=1 in check_process...")
         elif os.system("grep -qE ' *Level \\d=' '%s'" % check_process_file) == 0:
-            yield Warning(
+            yield Error(
                 "Setting Level x=y in check_process is obsolete / not relevant anymore"
             )
 
@@ -1625,7 +1633,7 @@ class Manifest(TestSuite):
     @test()
     def upstream_fields(self):
         if "upstream" not in self.manifest.keys():
-            yield Info(
+            yield Warning(
                 """READMEs are to be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator.
         - You are encouraged to add an 'upstream' section in the manifest, filled with the website, demo, repo, license of the upstream app, as shown here: https://github.com/YunoHost/example_ynh/blob/7b72b7334964b504e8c901637c73ce908204d38b/manifest.json#L11-L18 . (Not all infos are mandatory, you can remove irrelevant entries)"""
             )
@@ -1679,14 +1687,14 @@ class Manifest(TestSuite):
             yield Critical(
                 "Your app only requires YunoHost >= 2.x or 3.x, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
             )
-        elif yunohost_version_req.startswith("4.0"):
-            yield Error(
-                "Your app only requires yunohost >= 4.0, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
+        elif yunohost_version_req.startswith("4.0") or yunohost_version_req.startswith("4.1") or yunohost_version_req.startswith("4.2"):
+            yield Critical(
+                "Your app only requires yunohost >= 4.0, 4.1 or 4.2, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
             )
-        elif yunohost_version_req.startswith("4.1"):
-            yield Warning(
-                "Your app only requires yunohost >= 4.1, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
-            )
+        #elif yunohost_version_req.startswith("4.3"):
+        #    yield Warning(
+        #        "Your app only requires yunohost >= 4.3, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
+        #    )
 
     @test()
     def basic_fields_format(self):
@@ -2411,7 +2419,7 @@ class Script(TestSuite):
                 "ynh_add_app_dependencies is supposed to be an internal helper and will soon be deprecated. Consider using ynh_install_app_dependencies or ynh_install_extra_app_dependencies instead."
             )
         if self.contains("ynh_detect_arch"):
-            yield Info(
+            yield Warning(
                     "(Requires yunohost 4.3) Using ynh_detect_arch is deprecated, since Yunohost 4.3, an $YNH_ARCH variable is directly available in the global context. Its value directly corresponds to `dpkg --print-architecture` which returns a value among : amd64, i386, armhf, arm64 and armel (though armel is probably not used at all?)"
             )
 
@@ -2478,7 +2486,7 @@ class Script(TestSuite):
     @test(only=["upgrade"])
     def temporarily_enable_visitors_during_upgrade(self):
         if self.containsregex("ynh_permission_update.*add.*visitors") and self.containsregex("ynh_permission_update.*remove.*visitors"):
-            yield Info(
+            yield Warning(
                 "permission system: since Yunohost 4.3, there should be no need to temporarily add 'visitors' to the main permission. ynh_local_curl will temporarily enable visitors access if needed"
             )
 
@@ -2501,7 +2509,7 @@ class Script(TestSuite):
     @test()
     def normalize_url_path(self):
         if self.contains("ynh_normalize_url_path"):
-            yield Info(
+            yield Warning(
                 "You probably don't need to call 'ynh_normalize_url_path'... this is only relevant for upgrades from super-old versions (like 3 years ago or so...)"
             )
 
@@ -2660,7 +2668,7 @@ class Script(TestSuite):
         if self.containsregex(r"^\s*chown.* root:?[^$]* .*final_path") \
           and not self.contains('chown root:root "$final_path"'):
             # (Mywebapp has a special case because of SFTP é_è)
-            yield Info(
+            yield Warning(
                 "Using 'chown root $final_path' is usually symptomatic of misconfigured and wide-open 'other' permissions ... Usually ynh_setup_source should now set sane default permissions on $final_path (if the app requires Yunohost >= 4.2) ... Otherwise, consider using 'chown $app', 'chown nobody' or 'chmod' to limit access to $final_path ..."
             )
 
@@ -2784,7 +2792,7 @@ class Script(TestSuite):
     @test(only=["_common.sh"])
     def no_progress_in_common(self):
         if self.contains("ynh_script_progression"):
-            yield Info(
+            yield Warning(
                 "You should not use `ynh_script_progression` in _common.sh because it will produce warnings when trying to install the application."
             )
 
