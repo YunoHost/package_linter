@@ -1423,6 +1423,27 @@ class Configurations(TestSuite):
                     )
 
     @test()
+    def misc_nginx_check_regex_in_location(self):
+        app = self.app
+        for filename in (
+            os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []
+        ):
+            # Ignore subdirs or filename not containing nginx in the name
+            if (
+                not os.path.isfile(app.path + "/conf/" + filename)
+                or "nginx" not in filename
+            ):
+                continue
+
+            cmd = 'grep -q -IhEro "location ~ __PATH__\" %s' % filename
+
+            if os.system(cmd) != 0:
+                yield Warning(
+                    "When using regexp in the nignx location field (location ~ __PATH__), start the path with ^ (location ~ ^__PATH__)."
+                )
+
+
+    @test()
     def misc_nginx_path_traversal(self):
 
         app = self.app
