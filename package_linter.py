@@ -2549,6 +2549,14 @@ class Script(TestSuite):
             )
 
     @test()
+    def bad_line_match(self):
+
+        if self.containsregex(r'--line_match=Started$') or self.containsregex(r'--line_match=Stopped$'):
+            yield Warning(
+                'Using --line_match="Started" or "Stopped" in ynh_systemd_action is counter productive because it will match the systemd message and not the actual app message ... Please check the log of the service to find an actual, relevant message to match, or remove the --line_match option entirely'
+            )
+
+    @test()
     def quiet_systemctl_enable(self):
 
         systemctl_enable = [
