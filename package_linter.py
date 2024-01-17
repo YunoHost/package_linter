@@ -2004,7 +2004,12 @@ class Manifest(TestSuite):
                 return
 
             for error in v.iter_errors(self.manifest):
-                yield Info("Error validating manifest using schema: in key " + ' > '.join(error.path) + "\n       " + error.message)
+                try:
+                    error_path = ' > '.join(error.path)
+                except:
+                    error_path = str(error.path)
+
+                yield Info("Error validating manifest using schema: in key " + error_path + "\n       " + error.message)
 
 
 ########################################
