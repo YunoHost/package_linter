@@ -1550,10 +1550,11 @@ class Configurations(TestSuite):
                     and not line.strip().startswith(comment)
                 ):
                     yield Info(
-                        f"{filename}:{number}: Binding to '0.0.0.0' or '::' can result in "
-                        "a security issue as the SSO can be bypassed by knowing a public "
-                        "IP (typically an IPv6) and the app port. Please be sure that this "
-                        "behavior is intentional. Maybe use '127.0.0.1' or '::1' instead."
+                        f"{filename}:{number}: Binding to '0.0.0.0' or '::' can result "
+                        "in a security issue as the reverse proxy and the SSO can be "
+                        "bypassed by knowing a public IP (typically an IPv6) and the "
+                        "app port. lease be sure that this behavior is intentional. "
+                        "Maybe use '127.0.0.1' or '::1' instead."
                     )
 
 #############################################
