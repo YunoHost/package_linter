@@ -1531,6 +1531,31 @@ class Configurations(TestSuite):
                         % location
                     )
 
+    @test()
+    def bind_public_ip(self):
+        app = self.app
+        for filename in (
+            os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []
+        ):
+            try:
+                content = open(app.path + "/conf/" + filename).read()
+            except Exception as e:
+                yield Warning("Can't open/read %s: %s" % (filename, e))
+                return
+
+            for line in content.split("\n"):
+                comment = ["#", "//", ";"]
+                if (
+                    "0.0.0.0" in line
+                    or "::" in line
+                    and not line.strip().startswith(comment)
+                ):
+                    yield Info(
+                        "%s: Binding to '0.0.0.0' or '::' can result in a security issue as "
+                        "the SSO can be bypassed by knowing a public IP (typically an IPv6) "
+                        "and the app port. Please be sure that this behavior is intentional.\n"
+                        "Maybe use '127.0.0.1' or '::1' instead." % filename
+                    )
 
 #############################################
 #   __  __             _  __          _     #
