@@ -1549,13 +1549,15 @@ class Configurations(TestSuite):
                     ( "0.0.0.0" in line or "::" in line )
                     and not line.strip().startswith(comment)
                 ):
-                    yield Info(
-                        f"{filename}:{number}: Binding to '0.0.0.0' or '::' can result "
-                        "in a security issue as the reverse proxy and the SSO can be "
-                        "bypassed by knowing a public IP (typically an IPv6) and the "
-                        "app port. lease be sure that this behavior is intentional. "
-                        "Maybe use '127.0.0.1' or '::1' instead."
-                    )
+                    for ip in re.split("[ \t,='\"(){}\[\]]", line):
+                        if ip == "::" or "0.0.0.0" in ip:
+                            yield Info(
+                                f"{filename}:{number}: Binding to '0.0.0.0' or '::' can result "
+                                "in a security issue as the reverse proxy and the SSO can be "
+                                "bypassed by knowing a public IP (typically an IPv6) and the "
+                                "app port. lease be sure that this behavior is intentional. "
+                                "Maybe use '127.0.0.1' or '::1' instead."
+                            )
 
 #############################################
 #   __  __             _  __          _     #
