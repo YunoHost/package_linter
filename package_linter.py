@@ -1550,7 +1550,7 @@ class Configurations(TestSuite):
                     and not line.strip().startswith(comment)
                 ):
                     for ip in re.split("[ \t,='\"(){}\[\]]", line):
-                        if ip == "::" or "0.0.0.0" in ip:
+                        if ip == "::" or ( "0.0.0.0" in ip and ip.startswith("0.0.0.0") ):
                             yield Info(
                                 f"{filename}:{number}: Binding to '0.0.0.0' or '::' can result "
                                 "in a security issue as the reverse proxy and the SSO can be "
