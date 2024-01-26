@@ -541,6 +541,14 @@ class App(TestSuite):
     #########################################
 
     @test()
+    def v1packaging(app):
+        if app_packaging_format <= 1:
+            if datetime.today() >= datetime(2025, 2, 1):
+                yield Error("This app is still using packaging v1 which is now hard-deprecated. Packaging v2 was released more than two years ago. You should really have a look at https://yunohost.org/en/packaging_v2.")
+            elif datetime.today() >= datetime(2024, 2, 1):
+                yield Warning("This app is still using packaging v1 which is now softly-deprecated. Packaging v2 was released more than one year ago and is now used by 75% of the app catalog with many other v1->v2 app transition ongoing. We encourage you to convert this app to packaging v2 following the recommendations described in https://yunohost.org/en/packaging_v2. This warning will turn into an error on February 1st, 2025.")
+
+    @test()
     def mandatory_scripts(app):
         filenames = (
             "LICENSE",
