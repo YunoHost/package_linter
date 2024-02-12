@@ -1421,13 +1421,15 @@ class Configurations(TestSuite):
                         r"more_set_headers [\"\'][\w-]+\s?: .*[\"\'];", line
                     )
 
-                if any(not right_syntax(line) for line in more_set_headers_lines):
+                lines = [line.strip() for line in more_set_headers_lines if not right_syntax(line)]
+                if lines:
                     yield Error(
                         "It looks like the syntax for the 'more_set_headers' "
                         "instruction is incorrect in the NGINX conf (N.B. "
                         ": it's different than the 'add_header' syntax!)... "
                         "The syntax should look like: "
                         'more_set_headers "Header-Name: value"'
+                        f"\nOffending line(s) [{lines}]"
                     )
 
     @test()
