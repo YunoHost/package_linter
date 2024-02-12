@@ -1429,7 +1429,7 @@ class Configurations(TestSuite):
                         ": it's different than the 'add_header' syntax!)... "
                         "The syntax should look like: "
                         'more_set_headers "Header-Name: value"'
-                        f"Offending line(s) [{lines}]"
+                        f"\nOffending line(s) [{lines}]"
                     )
 
     @test()
