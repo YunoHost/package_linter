@@ -1418,7 +1418,7 @@ class Configurations(TestSuite):
 
                 def right_syntax(line):
                     return re.search(
-                        r"more_set_headers [\"\'][\w-]+\s?: .*[\"\'];", line
+                        r"more_set_headers +[\"\'][\w-]+\s?: .*[\"\'];", line
                     )
 
                 lines = [line.strip() for line in more_set_headers_lines if not right_syntax(line)]
