@@ -2797,7 +2797,7 @@ class Script(TestSuite):
     @test()
     def helpers_sourcing_after_official(self):
         helpers_after_official = subprocess.check_output(
-            "head -n 30 '%s' | grep -A 10 '^ *source */usr/share/yunohost/helpers' | grep '^ *source' | tail -n +2"
+            "head -n 30 '%s' | grep -A 10 '^ *source */usr/share/yunohost/helpers' | grep '^ *source ' | tail -n +2"
             % self.path,
             shell=True,
         ).decode("utf-8")
