@@ -1449,7 +1449,7 @@ class Configurations(TestSuite):
 
             if os.system(cmd) != 0:
                 yield Warning(
-                    "When using regexp in the nignx location field (location ~ __PATH__), start the path with ^ (location ~ ^__PATH__)."
+                    "When using regexp in the nginx location field (location ~ __PATH__), start the path with ^ (location ~ ^__PATH__)."
                 )
 
 
