@@ -1445,7 +1445,7 @@ class Configurations(TestSuite):
             ):
                 continue
 
-            cmd = 'grep -q -IhEro "location ~ __PATH__" %s' % filename
+            cmd = 'grep -q -IhEro "location ~ __PATH__" %s' % (app.path + "/conf/" + filename)
 
             if os.system(cmd) != 0:
                 yield Warning(
