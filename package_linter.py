@@ -1575,7 +1575,7 @@ class Configurations(TestSuite):
                 return
 
             for number, line in enumerate(content.split("\n"), 1):
-                comment = ("#", "//", ";")
+                comment = ("#", "//", ";", "/**", "*")
                 if (
                     ( "0.0.0.0" in line or "::" in line )
                     and not line.strip().startswith(comment)
