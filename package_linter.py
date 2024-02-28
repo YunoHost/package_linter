@@ -2515,7 +2515,7 @@ class Script(TestSuite):
 
     @test()
     def bad_ynh_exec_syntax(self):
-        cmd = 'grep -q -IhEro "ynh_exec_(err|warn|warn_less|quiet|fully_quiet) (\\"|\')" %s' % self.path
+        cmd = 'grep -q -IhEro "ynh_exec_(err|warn|warn_less|quiet|fully_quiet) (\\"|\').*(\\"|\')$" %s' % self.path
         if os.system(cmd) == 0:
             yield Warning("(Requires Yunohost 4.3) When using ynh_exec_*, please don't wrap your command between quotes (typically DONT write ynh_exec_warn_less 'foo --bar --baz')")
 
