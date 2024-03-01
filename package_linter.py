@@ -992,8 +992,8 @@ class App(TestSuite):
     def conf_json_persistent_tweaking(self):
         if (
             os.system(
-                "grep -q -nr '/etc/ssowat/conf.json.persistent' %s/*/* 2>/dev/null"
-                % self.path
+                "grep -nr '/etc/ssowat/conf.json.persistent' %s | grep -vq '^%s/doc' 2>/dev/null"
+                % (self.path, self.path)
             )
             == 0
         ):
