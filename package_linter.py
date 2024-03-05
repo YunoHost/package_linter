@@ -1448,7 +1448,7 @@ class Configurations(TestSuite):
             cmd = 'grep -q -IhEro "location ~ __PATH__" %s' % (app.path + "/conf/" + filename)
 
             if os.system(cmd) == 0:
-                yield Info(
+                yield Warning(
                     "When using regexp in the nginx location field (location ~ __PATH__), start the path with ^ (location ~ ^__PATH__)."
                 )
 
