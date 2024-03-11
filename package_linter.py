@@ -1577,20 +1577,20 @@ class Configurations(TestSuite):
 
             for number, line in enumerate(content.split("\n"), 1):
                 comment = ("#", "//", ";", "/**", "*")
-                    if (
-                        ( "0.0.0.0" in line or "::" in line )
-                        and not line.strip().startswith(comment)
-                    ):
-                        for ip in re.split("[ \t,='\"(){}\[\]]", line):
-                            if ip == "::" or ip.startswith("0.0.0.0"):
-                                yield Info(
-                                    f"{os.path.relpath(path, app.path)}/{filename}:{number}: "
-                                    "Binding to '0.0.0.0' or '::' can result in a security issue "
-                                    "as the reverse proxy and the SSO can be bypassed by knowing "
-                                    "a public IP (typically an IPv6) and the app port. "
-                                    "Please be sure that this behavior is intentional. "
-                                    "Maybe use '127.0.0.1' or '::1' instead."
-                                )
+                if (
+                    ( "0.0.0.0" in line or "::" in line )
+                    and not line.strip().startswith(comment)
+                ):
+                    for ip in re.split("[ \t,='\"(){}\[\]]", line):
+                        if ip == "::" or ip.startswith("0.0.0.0"):
+                            yield Info(
+                                f"{os.path.relpath(path, app.path)}/{filename}:{number}: "
+                                "Binding to '0.0.0.0' or '::' can result in a security issue "
+                                "as the reverse proxy and the SSO can be bypassed by knowing "
+                                "a public IP (typically an IPv6) and the app port. "
+                                "Please be sure that this behavior is intentional. "
+                                "Maybe use '127.0.0.1' or '::1' instead."
+                            )
 
 #############################################
 #   __  __             _  __          _     #
