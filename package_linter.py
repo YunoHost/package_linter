@@ -1584,7 +1584,7 @@ class Configurations(TestSuite):
                         for ip in re.split("[ \t,='\"(){}\[\]]", line):
                             if ip == "::" or ip.startswith("0.0.0.0"):
                                 yield Info(
-                                    f"{os.path.relpath(path, app.path)}:{number}: "
+                                    f"{os.path.relpath(path, app.path)}/{filename}:{number}: "
                                     "Binding to '0.0.0.0' or '::' can result in a security issue "
                                     "as the reverse proxy and the SSO can be bypassed by knowing "
                                     "a public IP (typically an IPv6) and the app port. "
