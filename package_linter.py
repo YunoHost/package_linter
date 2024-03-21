@@ -16,13 +16,13 @@ from datetime import datetime
 try:
     import toml
 except Exception:
-    os.system('pip3 install toml')
+    os.system("pip3 install toml")
     import toml
 
 try:
     import jsonschema
 except Exception:
-    os.system('pip3 install jsonschema')
+    os.system("pip3 install jsonschema")
     import jsonschema
 
 
@@ -67,13 +67,13 @@ official_helpers = {
     "ynh_app_config_get_one": "",
     # Commenting out config panel helpers
     # that may legitimately be overwritten from config script
-    #"ynh_app_config_get": "",
-    #"ynh_app_config_show": "",
-    #"ynh_app_config_validate": "",
+    # "ynh_app_config_get": "",
+    # "ynh_app_config_show": "",
+    # "ynh_app_config_validate": "",
     "ynh_app_config_apply_one": "",
-    #"ynh_app_config_apply": "",
-    #"ynh_app_action_run": "",
-    #"ynh_app_config_run": "",
+    # "ynh_app_config_apply": "",
+    # "ynh_app_action_run": "",
+    # "ynh_app_config_run": "",
     "ynh_add_fail2ban_config": "4.1.0",
     "ynh_remove_fail2ban_config": "3.5.0",
     "ynh_handle_getopts_args": "3.2.2",
@@ -213,7 +213,10 @@ deprecated_helpers_in_v2 = [
     ("ynh_mysql_remove_db", "the database resource"),
     ("ynh_psql_remove_db", "the database resource"),
     ("ynh_find_port", "the port resource"),
-    ("ynh_send_readme_to_admin", "the doc/POST_INSTALL.md or POST_UPGRADE.md mechanism")
+    (
+        "ynh_send_readme_to_admin",
+        "the doc/POST_INSTALL.md or POST_UPGRADE.md mechanism",
+    ),
 ]
 
 # Default to 1, set to 2 automatically if a toml manifest is found
@@ -515,8 +518,18 @@ class App(TestSuite):
         catalog_infos = self.app_catalog.catalog_infos
         antifeatures = catalog_infos and catalog_infos.get("antifeatures", [])
 
-        if any(af in antifeatures for af in ['package-not-maintained', 'deprecated-software', 'alpha-software', 'replaced-by-another-app']):
-            _print(" In the catalog, the app is flagged as not maintained / deprecated / alpha or replaced by another app")
+        if any(
+            af in antifeatures
+            for af in [
+                "package-not-maintained",
+                "deprecated-software",
+                "alpha-software",
+                "replaced-by-another-app",
+            ]
+        ):
+            _print(
+                " In the catalog, the app is flagged as not maintained / deprecated / alpha or replaced by another app"
+            )
         elif (
             "qualify_for_level_7" in successes
             and "is_long_term_good_quality" in successes
@@ -544,9 +557,13 @@ class App(TestSuite):
     def v1packaging(app):
         if app_packaging_format <= 1:
             if datetime.today() >= datetime(2025, 2, 1):
-                yield Error("This app is still using packaging v1 which is now hard-deprecated. Packaging v2 was released more than two years ago. You should really have a look at https://yunohost.org/en/packaging_v2.")
+                yield Error(
+                    "This app is still using packaging v1 which is now hard-deprecated. Packaging v2 was released more than two years ago. You should really have a look at https://yunohost.org/en/packaging_v2."
+                )
             elif datetime.today() >= datetime(2024, 2, 1):
-                yield Warning("This app is still using packaging v1 which is now softly-deprecated. Packaging v2 was released more than one year ago and is now used by 75% of the app catalog with many other v1->v2 app transition ongoing. We encourage you to convert this app to packaging v2 following the recommendations described in https://yunohost.org/en/packaging_v2. This warning will turn into an error on February 1st, 2025.")
+                yield Warning(
+                    "This app is still using packaging v1 which is now softly-deprecated. Packaging v2 was released more than one year ago and is now used by 75% of the app catalog with many other v1->v2 app transition ongoing. We encourage you to convert this app to packaging v2 following the recommendations described in https://yunohost.org/en/packaging_v2. This warning will turn into an error on February 1st, 2025."
+                )
 
     @test()
     def mandatory_scripts(app):
@@ -575,13 +592,13 @@ class App(TestSuite):
         if not os.path.exists(app.path + "/doc"):
             if app_packaging_format <= 1:
                 yield Warning(
-"""READMEs are to be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator.
+                    """READMEs are to be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator.
     - You are encouraged to create a doc/DISCLAIMER.md file, which should contain any important information to be presented to the admin before installation. Check https://github.com/YunoHost/example_ynh/blob/master/doc/DISCLAIMER.md for more details (it should be somewhat equivalent to the old 'Known limitations' and 'Specific features' section). (It's not mandatory to create this file if you're absolutely sure there's no relevant info to show to the user)
     - If relevant for this app, screenshots can be added in a doc/screenshots/ folder."""
                 )
             elif app_packaging_format >= 2:
                 yield Error(
-"""Having a doc/ folder is now mandatory in packaging v2 and is expected to contain :
+                    """Having a doc/ folder is now mandatory in packaging v2 and is expected to contain :
     - (recommended) doc/DESCRIPTION.md : a long description of the app, typically around 5~20 lines, for example to list features
     - (recommended) doc/screenshots/ : a folder containing at least one .png (or .jpg) screenshot of the app
     - (if relevant) doc/ADMIN.md : an admin doc page meant to provide general info about adminstrating this app, will be available in yunohost's webadmin
@@ -591,10 +608,14 @@ class App(TestSuite):
                 )
 
         if os.path.exists(os.path.join(app.path, "doc/screenshots")):
-            du_output = subprocess.check_output(["du", "-sb", app.path + "/doc/screenshots"], shell=False)
+            du_output = subprocess.check_output(
+                ["du", "-sb", app.path + "/doc/screenshots"], shell=False
+            )
             screenshots_size = int(du_output.split()[0])
             if screenshots_size > 512000:
-                yield Info("Consider keeping the content of doc/screenshots under ~512Kb for better UI/UX once the screenshots will be integrated in the webadmin app's catalog (to be discussed with the team)")
+                yield Info(
+                    "Consider keeping the content of doc/screenshots under ~512Kb for better UI/UX once the screenshots will be integrated in the webadmin app's catalog (to be discussed with the team)"
+                )
 
             for _, _, files in os.walk(os.path.join(app.path, "doc/screenshots")):
                 for file in files:
@@ -615,13 +636,23 @@ class App(TestSuite):
         if app_packaging_format <= 1:
             return
 
-        if os.path.exists(app.path + "/doc") and not os.path.exists(app.path + "/doc/DESCRIPTION.md"):
-            yield Error("A DESCRIPTION.md is now mandatory in packaging v2 and is meant to contains an extensive description of what the app is and does. Consider also adding a '/doc/screenshots/' folder with a few screenshots of what the app looks like.")
-        elif os.system(fr'grep -inrq "Some long and extensive description\|lorem ipsum dolor sit amet\|Ut enim ad minim veniam" {app.path}/doc/DESCRIPTION.md') == 0:
+        if os.path.exists(app.path + "/doc") and not os.path.exists(
+            app.path + "/doc/DESCRIPTION.md"
+        ):
+            yield Error(
+                "A DESCRIPTION.md is now mandatory in packaging v2 and is meant to contains an extensive description of what the app is and does. Consider also adding a '/doc/screenshots/' folder with a few screenshots of what the app looks like."
+            )
+        elif (
+            os.system(
+                rf'grep -inrq "Some long and extensive description\|lorem ipsum dolor sit amet\|Ut enim ad minim veniam" {app.path}/doc/DESCRIPTION.md'
+            )
+            == 0
+        ):
             yield Error("It looks like DESCRIPTION.md just contains placeholder texts")
 
         if os.path.exists(app.path + "/doc/DISCLAIMER.md"):
-            yield Warning("""The whole thing about doc/DISCLAIMER.md is refactored again in v2 (sorry about that :/) to improve the UX - basically people shouldnt have to actively go read the READMEs to get those infos
+            yield Warning(
+                """The whole thing about doc/DISCLAIMER.md is refactored again in v2 (sorry about that :/) to improve the UX - basically people shouldnt have to actively go read the READMEs to get those infos
 
     You are encouraged to split its infos into:
 
@@ -641,7 +672,8 @@ class App(TestSuite):
         -> meant to go in 'doc/ADMIN.md' which shall be made available in the app info page in the webadmin after installation.
         -> if relevant, you can also create custom doc page, just create 'doc/WHATEVER.MD' and this will correspond to a specific documentation tab in the webadmin.
         -> note that in these files, the __FOOBAR__ syntax is supported and replaced with the corresponding 'foobar' setting.
-""")
+"""
+            )
 
     @test()
     def disclaimer_wording_or_placeholder(app):
@@ -694,11 +726,24 @@ class App(TestSuite):
             )
 
         if file_exists(app.path + "config_panel.toml"):
-            if os.system("grep -q 'version = \"0.1\"' '%s'" % (app.path + "config_panel.toml")) == 0:
+            if (
+                os.system(
+                    "grep -q 'version = \"0.1\"' '%s'"
+                    % (app.path + "config_panel.toml")
+                )
+                == 0
+            ):
                 yield Error(
                     "Config panels version 0.1 are not supported anymore, should be adapted for version 1.0"
                 )
-            elif os.path.exists(app.path + "/scripts/config") and os.system("grep -q 'YNH_CONFIG_\\|yunohost app action' '%s'" % (app.path + "/scripts/config")) == 0:
+            elif (
+                os.path.exists(app.path + "/scripts/config")
+                and os.system(
+                    "grep -q 'YNH_CONFIG_\\|yunohost app action' '%s'"
+                    % (app.path + "/scripts/config")
+                )
+                == 0
+            ):
                 yield Error(
                     "The config panel is set to version 1.x, but the config script is apparently still using some old code from 0.1 such as '$YNH_CONFIG_STUFF' or 'yunohost app action'"
                 )
@@ -713,13 +758,23 @@ class App(TestSuite):
 
         content = open(app.path + "/README.md").read()
 
-        if "This README was automatically generated" not in content or not "dash.yunohost.org/integration/%s.svg" % id_ in content:
+        if (
+            "This README was automatically generated" not in content
+            or not "dash.yunohost.org/integration/%s.svg" % id_ in content
+        ):
             yield Warning(
                 "It looks like the README was not generated automatically by https://github.com/YunoHost/apps/tree/master/tools/README-generator. "
                 "Note that nowadays you are not suppose to edit README.md, the yunohost bot will usually automatically update it if your app is hosted in the YunoHost-Apps org ... or you can also generate it by running the README-generator yourself."
             )
 
-        superoldstuff = ["%20%28Apps%29", "%20%28Community%29", "/jenkins/job", "ci-buster", "ci-stretch", "ci-apps-arm"]
+        superoldstuff = [
+            "%20%28Apps%29",
+            "%20%28Community%29",
+            "/jenkins/job",
+            "ci-buster",
+            "ci-stretch",
+            "ci-apps-arm",
+        ]
         if any(oldstuff in content for oldstuff in superoldstuff):
             yield Error(
                 "The README contains references to super-old build status (such as old jenkins job or ci-apps-arm or ci-stretch...) which are not relevant anymore. Please consider switching to the new auto-generated README format which contains the standard CI badge at the top."
@@ -739,7 +794,8 @@ class App(TestSuite):
 
         if (
             os.system(
-                "grep -q 'Explain in *a few (10~15) words* the purpose of the app\\|Expliquez en *quelques* (10~15) mots' %s/manifest.json 2>/dev/null" % self.path
+                "grep -q 'Explain in *a few (10~15) words* the purpose of the app\\|Expliquez en *quelques* (10~15) mots' %s/manifest.json 2>/dev/null"
+                % self.path
             )
             == 0
         ):
@@ -802,7 +858,9 @@ class App(TestSuite):
     def git_clone_usage(app):
         cmd = f"grep -I 'git clone' '{app.path}'/scripts/install '{app.path}'/scripts/_common.sh 2>/dev/null | grep -qv 'xxenv\|rbenv\|oracledb'"
         if os.system(cmd) == 0:
-            yield Info("Using 'git clone' is not recommended ... most forge do provide the ability to download a proper archive of the code for a specific commit. Please use the 'sources' resource in the manifest.toml in combination with ynh_setup_source.")
+            yield Info(
+                "Using 'git clone' is not recommended ... most forge do provide the ability to download a proper archive of the code for a specific commit. Please use the 'sources' resource in the manifest.toml in combination with ynh_setup_source."
+            )
 
     @test()
     def helpers_version_requirement(app):
@@ -866,8 +924,12 @@ class App(TestSuite):
 
         deprecated_helpers_in_v2_ = {k: v for k, v in deprecated_helpers_in_v2}
 
-        for helper in [h for h in helpers_used if h in deprecated_helpers_in_v2_.keys()]:
-            yield Warning(f"Using helper {helper} is deprecated when using packaging v2 ... It is replaced by: {deprecated_helpers_in_v2_[helper]}")
+        for helper in [
+            h for h in helpers_used if h in deprecated_helpers_in_v2_.keys()
+        ]:
+            yield Warning(
+                f"Using helper {helper} is deprecated when using packaging v2 ... It is replaced by: {deprecated_helpers_in_v2_[helper]}"
+            )
 
     @test()
     def helper_consistency_apt_deps(app):
@@ -900,15 +962,21 @@ class App(TestSuite):
     def helper_consistency_service_add(app):
 
         occurences = {
-            "install": app.scripts["install"].occurences("yunohost service add")
-            if app.scripts["install"].exists
-            else [],
-            "upgrade": app.scripts["upgrade"].occurences("yunohost service add")
-            if app.scripts["upgrade"].exists
-            else [],
-            "restore": app.scripts["restore"].occurences("yunohost service add")
-            if app.scripts["restore"].exists
-            else [],
+            "install": (
+                app.scripts["install"].occurences("yunohost service add")
+                if app.scripts["install"].exists
+                else []
+            ),
+            "upgrade": (
+                app.scripts["upgrade"].occurences("yunohost service add")
+                if app.scripts["upgrade"].exists
+                else []
+            ),
+            "restore": (
+                app.scripts["restore"].occurences("yunohost service add")
+                if app.scripts["restore"].exists
+                else []
+            ),
         }
 
         occurences = {
@@ -1007,9 +1075,19 @@ class App(TestSuite):
 
     @test()
     def bad_final_path_location(self):
-        if os.system(f"grep -q -nr 'ynh_webpath_register' {self.path}/scripts/install 2>/dev/null") == 0 \
-          and os.system(f"grep -q -nr 'final_path=/opt' {self.path}/scripts/install  {self.path}/scripts/_common.sh 2>/dev/null") == 0:
-            yield Info("Web applications are not supposed to be installed in /opt/ ... They are supposed to be installed in /var/www/$app :/")
+        if (
+            os.system(
+                f"grep -q -nr 'ynh_webpath_register' {self.path}/scripts/install 2>/dev/null"
+            )
+            == 0
+            and os.system(
+                f"grep -q -nr 'final_path=/opt' {self.path}/scripts/install  {self.path}/scripts/_common.sh 2>/dev/null"
+            )
+            == 0
+        ):
+            yield Info(
+                "Web applications are not supposed to be installed in /opt/ ... They are supposed to be installed in /var/www/$app :/"
+            )
 
     @test()
     def app_data_in_unofficial_dir(self):
@@ -1110,9 +1188,7 @@ class Configurations(TestSuite):
         if not file_exists(check_process_file):
             return
 
-        has_is_public_arg = any(
-            a["name"] == "is_public" for a in args
-        )
+        has_is_public_arg = any(a["name"] == "is_public" for a in args)
         if has_is_public_arg:
             if (
                 os.system(r"grep -q '^\s*setup_public=1' '%s'" % check_process_file)
@@ -1130,9 +1206,7 @@ class Configurations(TestSuite):
                     "It looks like you forgot to enable setup_private test in check_process?"
                 )
 
-        has_path_arg = any(
-            a["name"] == "path" for a in args
-        )
+        has_path_arg = any(a["name"] == "path" for a in args)
         if has_path_arg:
             if (
                 os.system(r"grep -q '^\s*setup_sub_dir=1' '%s'" % check_process_file)
@@ -1142,7 +1216,10 @@ class Configurations(TestSuite):
                     "It looks like you forgot to enable setup_sub_dir test in check_process?"
                 )
 
-        if app.manifest.get("multi_instance") in [True, 1, "True", "true"] or app.manifest.get("integration", {}).get("multi_instance") is True:
+        if (
+            app.manifest.get("multi_instance") in [True, 1, "True", "true"]
+            or app.manifest.get("integration", {}).get("multi_instance") is True
+        ):
             if (
                 os.system(r"grep -q '^\s*multi_instance=1' '%s'" % check_process_file)
                 != 0
@@ -1257,7 +1334,7 @@ class Configurations(TestSuite):
                 yield Warning("Can't open/read %s : %s" % (filename, e))
                 return
 
-            if '[Unit]' not in content:
+            if "[Unit]" not in content:
                 continue
 
             if re.findall(r"^ *Type=oneshot", content, flags=re.MULTILINE):
@@ -1333,7 +1410,9 @@ class Configurations(TestSuite):
                 )
                 return
 
-            if any(match[1] == "root" or match == ("user", "www-data") for match in matches):
+            if any(
+                match[1] == "root" or match == ("user", "www-data") for match in matches
+            ):
                 yield Error(
                     "DO NOT run the app PHP worker as root or www-data! Use a dedicated system user for this app!"
                 )
@@ -1346,7 +1425,9 @@ class Configurations(TestSuite):
         if os.path.exists(app.path + "/conf/nginx.conf"):
             content = open(app.path + "/conf/nginx.conf").read()
             if "$http_host" in content:
-                yield Info("In nginx.conf : please don't use $http_host but $host instead. C.f. https://github.com/yandex/gixy/blob/master/docs/en/plugins/hostspoofing.md")
+                yield Info(
+                    "In nginx.conf : please don't use $http_host but $host instead. C.f. https://github.com/yandex/gixy/blob/master/docs/en/plugins/hostspoofing.md"
+                )
 
     @test()
     def nginx_https_redirect(self):
@@ -1420,14 +1501,20 @@ class Configurations(TestSuite):
             if "location" in content and "more_set_headers" in content:
 
                 lines = content.split("\n")
-                more_set_headers_lines = [zzz for zzz in lines if "more_set_headers" in zzz]
+                more_set_headers_lines = [
+                    zzz for zzz in lines if "more_set_headers" in zzz
+                ]
 
                 def right_syntax(line):
                     return re.search(
                         r"more_set_headers +[\"\'][\w-]+\s?: .*[\"\'];", line
                     )
 
-                lines = [line.strip() for line in more_set_headers_lines if not right_syntax(line)]
+                lines = [
+                    line.strip()
+                    for line in more_set_headers_lines
+                    if not right_syntax(line)
+                ]
                 if lines:
                     yield Error(
                         "It looks like the syntax for the 'more_set_headers' "
@@ -1451,13 +1538,14 @@ class Configurations(TestSuite):
             ):
                 continue
 
-            cmd = 'grep -q -IhEro "location ~ __PATH__" %s' % (app.path + "/conf/" + filename)
+            cmd = 'grep -q -IhEro "location ~ __PATH__" %s' % (
+                app.path + "/conf/" + filename
+            )
 
             if os.system(cmd) == 0:
                 yield Warning(
                     "When using regexp in the nginx location field (location ~ __PATH__), start the path with ^ (location ~ ^__PATH__)."
                 )
-
 
     @test()
     def misc_nginx_path_traversal(self):
@@ -1578,15 +1666,16 @@ class Configurations(TestSuite):
                 try:
                     content = open(os.path.join(path, filename)).read()
                 except Exception as e:
-                    yield Warning("Can't open/read %s: %s" % (os.path.join(path, filename), e))
+                    yield Warning(
+                        "Can't open/read %s: %s" % (os.path.join(path, filename), e)
+                    )
                     return
 
                 for number, line in enumerate(content.split("\n"), 1):
                     comment = ("#", "//", ";", "/*", "*")
                     if (
-                        ( "0.0.0.0" in line or "::" in line )
-                        and not line.strip().startswith(comment)
-                    ):
+                        "0.0.0.0" in line or "::" in line
+                    ) and not line.strip().startswith(comment):
                         for ip in re.split("[ \t,='\"(){}\[\]]", line):
                             if ip == "::" or ip.startswith("0.0.0.0"):
                                 yield Info(
@@ -1597,6 +1686,7 @@ class Configurations(TestSuite):
                                     "Please be sure that this behavior is intentional. "
                                     "Maybe use '127.0.0.1' or '::1' instead."
                                 )
+
 
 #############################################
 #   __  __             _  __          _     #
@@ -1698,9 +1788,7 @@ class Manifest(TestSuite):
                 )
         else:
             if "license" not in self.manifest.get("upstream"):
-                yield Error(
-                    "The license key in the upstream section is missing"
-                )
+                yield Error("The license key in the upstream section is missing")
 
     @test()
     def upstream_fields(self):
@@ -1725,8 +1813,12 @@ class Manifest(TestSuite):
                 yield Warning(
                     "The field 'userdoc' should point to the **official** user doc, not the YunoHost documentation. (The default auto-generated README already includes a link to the yunohost doc page for this app). If there's no official user doc, simply remove the userdoc key entirely."
                 )
-            if "example.com" in self.manifest["upstream"].get("demo", "") or "example.com" in self.manifest["upstream"].get("website", ""):
-                yield Error("It seems like the upstream section still contains placeholder values such as 'example.com' ...")
+            if "example.com" in self.manifest["upstream"].get(
+                "demo", ""
+            ) or "example.com" in self.manifest["upstream"].get("website", ""):
+                yield Error(
+                    "It seems like the upstream section still contains placeholder values such as 'example.com' ..."
+                )
 
     @test()
     def FIXMEs(self):
@@ -1755,15 +1847,21 @@ class Manifest(TestSuite):
             yunohost_version_req = (
                 app.manifest.get("requirements", {}).get("yunohost", "").strip(">= ")
             )
-        if yunohost_version_req.startswith("2.") or yunohost_version_req.startswith("3."):
+        if yunohost_version_req.startswith("2.") or yunohost_version_req.startswith(
+            "3."
+        ):
             yield Critical(
                 "Your app only requires YunoHost >= 2.x or 3.x, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
             )
-        elif yunohost_version_req.startswith("4.0") or yunohost_version_req.startswith("4.1") or yunohost_version_req.startswith("4.2"):
+        elif (
+            yunohost_version_req.startswith("4.0")
+            or yunohost_version_req.startswith("4.1")
+            or yunohost_version_req.startswith("4.2")
+        ):
             yield Critical(
                 "Your app only requires yunohost >= 4.0, 4.1 or 4.2, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
             )
-        #elif yunohost_version_req.startswith("4.3"):
+        # elif yunohost_version_req.startswith("4.3"):
         #    yield Warning(
         #        "Your app only requires yunohost >= 4.3, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
         #    )
@@ -1793,13 +1891,37 @@ class Manifest(TestSuite):
             return
 
         keys = {
-            "yunohost": (lambda v: isinstance(v, str) and re.fullmatch(r"^>=\s*[\d\.]+\d$", v), "Expected something like '>= 4.5.6'"),
-            "architectures": (lambda v: v == "all" or (isinstance(v, list) and all(subv in ["i386", "amd64", "armhf", "arm64"] for subv in v)), "'all' or a list of values in ['i386', 'amd64', 'armhf', 'arm64']"),
-            "multi_instance": (lambda v: isinstance(v, bool), "Expected a boolean (true or false, no quotes!)"),
-            "ldap": (lambda v: isinstance(v, bool) or v == "not_relevant", "Expected a boolean (true or false, no quotes!) or 'not_relevant'"),
-            "sso": (lambda v: isinstance(v, bool) or v == "not_relevant", "Expected a boolean (true or false, no quotes!) or 'not_relevant'"),
+            "yunohost": (
+                lambda v: isinstance(v, str) and re.fullmatch(r"^>=\s*[\d\.]+\d$", v),
+                "Expected something like '>= 4.5.6'",
+            ),
+            "architectures": (
+                lambda v: v == "all"
+                or (
+                    isinstance(v, list)
+                    and all(subv in ["i386", "amd64", "armhf", "arm64"] for subv in v)
+                ),
+                "'all' or a list of values in ['i386', 'amd64', 'armhf', 'arm64']",
+            ),
+            "multi_instance": (
+                lambda v: isinstance(v, bool),
+                "Expected a boolean (true or false, no quotes!)",
+            ),
+            "ldap": (
+                lambda v: isinstance(v, bool) or v == "not_relevant",
+                "Expected a boolean (true or false, no quotes!) or 'not_relevant'",
+            ),
+            "sso": (
+                lambda v: isinstance(v, bool) or v == "not_relevant",
+                "Expected a boolean (true or false, no quotes!) or 'not_relevant'",
+            ),
             "disk": (lambda v: isinstance(v, str), "Expected a string"),
-            "ram": (lambda v: isinstance(v, dict) and isinstance(v.get("build"), str) and isinstance(v.get("runtime"), str), "Expected to find ram.build and ram.runtime with string values"),
+            "ram": (
+                lambda v: isinstance(v, dict)
+                and isinstance(v.get("build"), str)
+                and isinstance(v.get("runtime"), str),
+                "Expected to find ram.build and ram.runtime with string values",
+            ),
         }
 
         for key, validator in keys.items():
@@ -1808,7 +1930,9 @@ class Manifest(TestSuite):
                 continue
             value = self.manifest["integration"][key]
             if not validator[0](value):
-                yield Error(f"Error found with key {key} in the 'integration' section: {validator[1]}, got: {value}")
+                yield Error(
+                    f"Error found with key {key} in the 'integration' section: {validator[1]}, got: {value}"
+                )
 
         if not self.manifest.get("upstream", {}).get("license"):
             yield Error("Missing 'license' key in the upstream section")
@@ -1820,8 +1944,14 @@ class Manifest(TestSuite):
             if "license" not in self.manifest:
                 return
 
-            if "upstream" in self.manifest and "license" in self.manifest["upstream"] and self.manifest["upstream"]["license"] != self.manifest["license"]:
-                yield Warning("The content of 'license' in the 'upstream' block should be the same as 'license' (yes sorry, this is duplicate info, this is transitional for the manifest v2 ...)")
+            if (
+                "upstream" in self.manifest
+                and "license" in self.manifest["upstream"]
+                and self.manifest["upstream"]["license"] != self.manifest["license"]
+            ):
+                yield Warning(
+                    "The content of 'license' in the 'upstream' block should be the same as 'license' (yes sorry, this is duplicate info, this is transitional for the manifest v2 ...)"
+                )
 
             # Turns out there may be multiple licenses... (c.f. Seafile)
             licenses = self.manifest["license"].split(",")
@@ -1877,7 +2007,11 @@ class Manifest(TestSuite):
 
     @test()
     def version_format(self):
-        if not re.match(r"^" + VERSION_PATTERN + r"~ynh[0-9]+$", self.manifest.get("version", ""), re.VERBOSE):
+        if not re.match(
+            r"^" + VERSION_PATTERN + r"~ynh[0-9]+$",
+            self.manifest.get("version", ""),
+            re.VERBOSE,
+        ):
             yield Error(
                 "The 'version' field should match the format <upstreamversion>~ynh<packageversion>. "
                 "For example: 4.3-2~ynh3. It is composed of the upstream version number (in the "
@@ -2040,7 +2174,9 @@ class Manifest(TestSuite):
 
                 apt_packages = resources["apt"].get("packages", [])
                 if isinstance(apt_packages, str):
-                    apt_packages = [value.strip() for value in re.split(' |,',apt_packages)]
+                    apt_packages = [
+                        value.strip() for value in re.split(" |,", apt_packages)
+                    ]
 
                 if dbtype == "mysql" and "mariadb-server" not in apt_packages:
                     yield Warning(
@@ -2051,11 +2187,11 @@ class Manifest(TestSuite):
                         "When using a postgresql database, you should add postgresql in apt dependencies."
                     )
 
-        main_perm = self.manifest["resources"].get('permissions', {}).get('main', {})
+        main_perm = self.manifest["resources"].get("permissions", {}).get("main", {})
         if (
-            isinstance(main_perm.get('url'), str)
-            and "init_main_permission" not in self.manifest['install']
-            and not main_perm.get('allowed')
+            isinstance(main_perm.get("url"), str)
+            and "init_main_permission" not in self.manifest["install"]
+            and not main_perm.get("allowed")
         ):
             yield Warning(
                 "You should add a 'init_main_permission' question, or define `allowed` for main permission to have the app ready to be accessed right after installation."
@@ -2071,11 +2207,16 @@ class Manifest(TestSuite):
 
             for error in v.iter_errors(self.manifest):
                 try:
-                    error_path = ' > '.join(error.path)
+                    error_path = " > ".join(error.path)
                 except:
                     error_path = str(error.path)
 
-                yield Info("Error validating manifest using schema: in key " + error_path + "\n       " + error.message)
+                yield Info(
+                    "Error validating manifest using schema: in key "
+                    + error_path
+                    + "\n       "
+                    + error.message
+                )
 
 
 ########################################
@@ -2241,7 +2382,7 @@ class AppCatalog(TestSuite):
 
         def get_history(N):
 
-            for t in list(_time_points_until_today())[(-1 * N):]:
+            for t in list(_time_points_until_today())[(-1 * N) :]:
 
                 # Fetch apps.json content at this date
                 commit = git(
@@ -2252,7 +2393,12 @@ class AppCatalog(TestSuite):
                         "master",
                     ]
                 )
-                if os.system(f"git -C ./.apps  cat-file -e {commit}:apps.json 2>/dev/null") == 0:
+                if (
+                    os.system(
+                        f"git -C ./.apps  cat-file -e {commit}:apps.json 2>/dev/null"
+                    )
+                    == 0
+                ):
                     raw_catalog_at_this_date = git(["show", f"{commit}:apps.json"])
                     loader = json
 
@@ -2389,10 +2535,14 @@ class Script(TestSuite):
     def error_handling(self):
 
         if app_packaging_format == 2:
-            if self.contains("ynh_abort_if_errors") \
-              or self.contains("set -eu") \
-              or self.contains("set -u"):
-                yield Error("ynh_abort_if_errors or set -eu is now handled by YunoHost core in packaging v2, you should not have to add it to your script !")
+            if (
+                self.contains("ynh_abort_if_errors")
+                or self.contains("set -eu")
+                or self.contains("set -u")
+            ):
+                yield Error(
+                    "ynh_abort_if_errors or set -eu is now handled by YunoHost core in packaging v2, you should not have to add it to your script !"
+                )
 
             return
 
@@ -2497,14 +2647,16 @@ class Script(TestSuite):
             )
         if self.contains("ynh_detect_arch"):
             yield Warning(
-                    "(Requires yunohost 4.3) Using ynh_detect_arch is deprecated, since Yunohost 4.3, an $YNH_ARCH variable is directly available in the global context. Its value directly corresponds to `dpkg --print-architecture` which returns a value among : amd64, i386, armhf, arm64 and armel (though armel is probably not used at all?)"
+                "(Requires yunohost 4.3) Using ynh_detect_arch is deprecated, since Yunohost 4.3, an $YNH_ARCH variable is directly available in the global context. Its value directly corresponds to `dpkg --print-architecture` which returns a value among : amd64, i386, armhf, arm64 and armel (though armel is probably not used at all?)"
             )
 
     @test(only=["install"])
     def admin_has_to_finish_install(self):
         cmd = 'grep -B10 -IhEr "send_readme_to_admin" %s | grep -q db_pwd' % self.path
         if os.system(cmd) == 0:
-            yield Warning("It looks like this app requires the admin to finish the install by entering DB credentials. Unless it's absolutely not easily automatizable, this should be handled automatically by the app install script using curl calls, or (CLI tools provided by the upstream maybe ?).")
+            yield Warning(
+                "It looks like this app requires the admin to finish the install by entering DB credentials. Unless it's absolutely not easily automatizable, this should be handled automatically by the app install script using curl calls, or (CLI tools provided by the upstream maybe ?)."
+            )
 
     @test(only=["install", "upgrade"])
     def deprecated_replace_string(self):
@@ -2521,20 +2673,29 @@ class Script(TestSuite):
 
     @test()
     def bad_ynh_exec_syntax(self):
-        cmd = 'grep -q -IhEro "ynh_exec_(err|warn|warn_less|quiet|fully_quiet) (\\"|\').*(\\"|\')$" %s' % self.path
+        cmd = (
+            'grep -q -IhEro "ynh_exec_(err|warn|warn_less|quiet|fully_quiet) (\\"|\').*(\\"|\')$" %s'
+            % self.path
+        )
         if os.system(cmd) == 0:
-            yield Warning("(Requires Yunohost 4.3) When using ynh_exec_*, please don't wrap your command between quotes (typically DONT write ynh_exec_warn_less 'foo --bar --baz')")
+            yield Warning(
+                "(Requires Yunohost 4.3) When using ynh_exec_*, please don't wrap your command between quotes (typically DONT write ynh_exec_warn_less 'foo --bar --baz')"
+            )
 
     @test()
     def ynh_setup_source_keep_with_absolute_path(self):
         cmd = 'grep -q -IhEro "ynh_setup_source.*keep.*final_path" %s' % self.path
         if os.system(cmd) == 0:
-            yield Info("The --keep option of ynh_setup_source expects relative paths, not absolute path ... you do not need to prefix everything with '$final_path' in the --keep arg ...")
+            yield Info(
+                "The --keep option of ynh_setup_source expects relative paths, not absolute path ... you do not need to prefix everything with '$final_path' in the --keep arg ..."
+            )
 
     @test()
     def ynh_add_fpm_config_deprecated_package_option(self):
-        if self.containsregex(r'ynh_add_fpm_config .*package=.*'):
-            yield Error("(Requires Yunohost 4.3) Option --package for ynh_add_fpm_config is deprecated : please use 'ynh_install_app_dependencies' with **all** your apt dependencies instead (no need to define a special 'extra_php_dependencies'). YunoHost will automatically install any phpX.Y-fpm / phpX.Y-common if needed.")
+        if self.containsregex(r"ynh_add_fpm_config .*package=.*"):
+            yield Error(
+                "(Requires Yunohost 4.3) Option --package for ynh_add_fpm_config is deprecated : please use 'ynh_install_app_dependencies' with **all** your apt dependencies instead (no need to define a special 'extra_php_dependencies'). YunoHost will automatically install any phpX.Y-fpm / phpX.Y-common if needed."
+            )
 
     @test()
     def set_is_public_setting(self):
@@ -2551,7 +2712,9 @@ class Script(TestSuite):
     @test(only=["_common.sh"])
     def default_php_version_in_common(self):
         if self.contains("YNH_DEFAULT_PHP_VERSION"):
-            yield Warning("Do not use YNH_DEFAULT_PHP_VERSION in _common.sh ... _common.sh is usually sourced *before* the helpers, which define the version of YNH_DEFAULT_PHP_VERSION (hence it gets replaced with empty string). Instead, please explicitly state the PHP version in the package, e.g. dependencies='php8.2-cli php8.2-imagemagick'")
+            yield Warning(
+                "Do not use YNH_DEFAULT_PHP_VERSION in _common.sh ... _common.sh is usually sourced *before* the helpers, which define the version of YNH_DEFAULT_PHP_VERSION (hence it gets replaced with empty string). Instead, please explicitly state the PHP version in the package, e.g. dependencies='php8.2-cli php8.2-imagemagick'"
+            )
 
     @test(ignore=["install", "_common.sh"])
     def get_is_public_setting(self):
@@ -2562,7 +2725,9 @@ class Script(TestSuite):
 
     @test(only=["upgrade"])
     def temporarily_enable_visitors_during_upgrade(self):
-        if self.containsregex("ynh_permission_update.*add.*visitors") and self.containsregex("ynh_permission_update.*remove.*visitors"):
+        if self.containsregex(
+            "ynh_permission_update.*add.*visitors"
+        ) and self.containsregex("ynh_permission_update.*remove.*visitors"):
             yield Warning(
                 "permission system: since Yunohost 4.3, there should be no need to temporarily add 'visitors' to the main permission. ynh_local_curl will temporarily enable visitors access if needed"
             )
@@ -2622,7 +2787,9 @@ class Script(TestSuite):
     @test()
     def bad_line_match(self):
 
-        if self.containsregex(r'--line_match=Started$') or self.containsregex(r'--line_match=Stopped$'):
+        if self.containsregex(r"--line_match=Started$") or self.containsregex(
+            r"--line_match=Stopped$"
+        ):
             yield Warning(
                 'Using --line_match="Started" or "Stopped" in ynh_systemd_action is counter productive because it will match the systemd message and not the actual app message ... Please check the log of the service to find an actual, relevant message to match, or remove the --line_match option entirely'
             )
@@ -2750,8 +2917,9 @@ class Script(TestSuite):
 
     @test()
     def chownroot(self):
-        if self.containsregex(r"^\s*chown.* root:?[^$]* .*final_path") \
-          and not self.contains('chown root:root "$final_path"'):
+        if self.containsregex(
+            r"^\s*chown.* root:?[^$]* .*final_path"
+        ) and not self.contains('chown root:root "$final_path"'):
             # (Mywebapp has a special case because of SFTP é_è)
             yield Warning(
                 "Using 'chown root $final_path' is usually symptomatic of misconfigured and wide-open 'other' permissions ... Usually ynh_setup_source should now set sane default permissions on $final_path (if the app requires Yunohost >= 4.2) ... Otherwise, consider using 'chown $app', 'chown nobody' or 'chmod' to limit access to $final_path ..."
