@@ -599,6 +599,8 @@ class App(TestSuite):
             for path in os.listdir(app.path + "/doc/screenshots"):
                 if path == ".gitkeep":
                     continue
+                if os.path.isdir(path):
+                    continue
                 if all(not path.lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]):
                     yield Warning("In the doc/screenshots folder, only .jpg, .jpeg, .png, .webp and .gif are accepted")
                     break
