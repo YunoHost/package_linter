@@ -1797,7 +1797,9 @@ class Manifest(TestSuite):
                 if not value.strip():
                     yield Warning("Please don't put empty string as a maintainer x_x")
                 elif "," in value:
-                    yield Warning("Please don't use comma in maintainers value, this is supposed to be a list such as ['foo', bar'], not ['foo, bar'] x_x")
+                    yield Warning(
+                        "Please don't use comma in maintainers value, this is supposed to be a list such as ['foo', bar'], not ['foo, bar'] x_x"
+                    )
 
     @test()
     def upstream_fields(self):
