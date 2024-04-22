@@ -2913,7 +2913,7 @@ class Script(TestSuite):
             r"sed\s+(-i|--in-place)\s+(-r\s+)?s"
         ) or self.containsregex(r"sed\s+s\S*\s+(-i|--in-place)"):
             yield Info(
-                "You should avoid using 'sed -i' for substitutions, please use 'ynh_add_config' instead"
+                "You should avoid using 'sed -i' for substitutions, please use 'ynh_replace_string' or 'ynh_add_config' instead"
             )
 
     @test()
