@@ -1791,6 +1791,15 @@ class Manifest(TestSuite):
                 yield Error("The license key in the upstream section is missing")
 
     @test()
+    def maintainer_sensible_values(self):
+        if "maintainers" in self.manifest.keys():
+            for value in self.manifest["maintainers"]:
+                if not value.strip():
+                    yield Warning("Please don't put empty string as a maintainer x_x")
+                elif "," in value:
+                    yield Warning("Please don't use comma in maintainers value, this is supposed to be a list such as ['foo', bar'], not ['foo, bar'] x_x")
+
+    @test()
     def upstream_fields(self):
         if "upstream" not in self.manifest.keys():
             yield Warning(
