@@ -811,7 +811,9 @@ class App(TestSuite):
     @test()
     def supervisor_usage(self):
         if os.system("grep -I -qr '^\s*supervisorctl' %s 2>/dev/null" % self.path) == 0:
-            yield Warning("Please don't rely on supervisor to run services. YunoHost is about standardization and the standard is to use systemd units...")
+            yield Warning(
+                "Please don't rely on supervisor to run services. YunoHost is about standardization and the standard is to use systemd units..."
+            )
 
     @test()
     def bad_encoding(self):
