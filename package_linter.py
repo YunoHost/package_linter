@@ -528,7 +528,7 @@ class App(TestSuite):
             ]
         ):
             _print(
-                " In the catalog, the app is flagged as not maintained / deprecated / alpha or replaced by another app"
+                " In the catalog, the app is flagged as not maintained / deprecated / alpha or replaced by another app, therefore does not qualify for level 8"
             )
         elif (
             "qualify_for_level_7" in successes
