@@ -310,27 +310,49 @@ def file_exists(file_path):
     return os.path.isfile(file_path) and os.stat(file_path).st_size > 0
 
 
+def cache_file(cachefile: str, ttl_s: int):
+    def cache_is_fresh():
+        return os.path.exists(cachefile) and time.time() - os.path.getmtime(cachefile) < ttl_s
+    def decorator(function):
+        def wrapper(*args, **kwargs):
+            if not cache_is_fresh():
+                with open(cachefile, "w+") as outfile:
+                    outfile.write(function(*args, **kwargs))
+            return open(cachefile).read()
+        return wrapper
+    return decorator
+
+
+@cache_file(".spdx_licenses", 3600)
 def spdx_licenses():
-    cachefile = ".spdx_licenses"
-    if os.path.exists(cachefile) and time.time() - os.path.getmtime(cachefile) < 3600:
-        return open(cachefile).read()
-
-    url = "https://spdx.org/licenses/"
-    content = urlopen(url)["content"]
-    open(cachefile, "w").write(content)
-    return content
+    return urlopen("https://spdx.org/licenses/")["content"]
 
 
+@cache_file(".manifest.v2.schema.json", 3600)
 def manifest_v2_schema():
-    cachefile = ".manifest.v2.schema.json"
-    if os.path.exists(cachefile) and time.time() - os.path.getmtime(cachefile) < 3600:
-        return json.loads(open(cachefile).read())
+    return urlopen("https://raw.githubusercontent.com/YunoHost/apps/master/schemas/manifest.v2.schema.json")["content"]
 
-    url = "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/manifest.v2.schema.json"
-    content = urlopen(url)["content"]
-    open(cachefile, "w").write(content)
-    return json.loads(content)
 
+@cache_file(".tests.v1.schema.json", 3600)
+def tests_v1_schema():
+    return urlopen("https://raw.githubusercontent.com/YunoHost/apps/master/schemas/tests.v1.schema.json")["content"]
+
+
+@cache_file(".config_panel.v1.schema.json", 3600)
+def config_panel_v1_schema():
+    return urlopen("https://raw.githubusercontent.com/YunoHost/apps/master/schemas/config_panel.v1.schema.json")["content"]
+
+
+def validate_schema(name: str, schema, data):
+    v = jsonschema.Draft7Validator(schema)
+    
+    for error in v.iter_errors(data):
+        try:
+            error_path = " > ".join(error.path)
+        except:
+            error_path = str(error.path)
+
+        yield Info(f"Error validating {name} using schema: in key {error_path}\n       {error.message}")
 
 tests = {}
 tests_reports = {
@@ -760,6 +782,8 @@ class App(TestSuite):
                     "The config panel is set to version 1.x, but the config script is apparently still using some old code from 0.1 such as '$YNH_CONFIG_STUFF' or 'yunohost app action'"
                 )
 
+            validate_schema("config_panel", config_panel_v1_schema(), toml.load(app.path + "config_panel.toml"))
+
     @test()
     def badges_in_readme(app):
 
@@ -1157,7 +1181,7 @@ class Configurations(TestSuite):
     ############################
 
     @test()
-    def tests_toml_exists(self):
+    def tests_toml(self):
 
         app = self.app
 
@@ -1173,6 +1197,8 @@ class Configurations(TestSuite):
                 yield Error(
                     "The 'check_process' file that interfaces with the app CI has now been replaced with 'tests.toml' format and is now mandatory for apps v2."
                 )
+            else:
+                validate_schema("tests.toml", tests_v1_schema(), toml.load(app.path + "tests.toml"))
 
     @test()
     def check_process_syntax(self):
@@ -2229,24 +2255,9 @@ class Manifest(TestSuite):
 
         @test()
         def manifest_schema(self):
-
-            v = jsonschema.Draft7Validator(manifest_v2_schema())
-
             if app_packaging_format <= 1:
                 return
-
-            for error in v.iter_errors(self.manifest):
-                try:
-                    error_path = " > ".join(error.path)
-                except:
-                    error_path = str(error.path)
-
-                yield Info(
-                    "Error validating manifest using schema: in key "
-                    + error_path
-                    + "\n       "
-                    + error.message
-                )
+            validate_schema("manifest", manifest_v2_schema(), self.manifest)
 
 
 ########################################
