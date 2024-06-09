@@ -769,16 +769,16 @@ class App(TestSuite):
     @test()
     def config_panel(app):
 
-        if file_exists(app.path + "config_panel.json"):
+        if file_exists(app.path + "/config_panel.json"):
             yield Error(
                 "JSON config panels are not supported anymore, should be replaced by a toml version"
             )
 
-        if file_exists(app.path + "config_panel.toml"):
+        if file_exists(app.path + "/config_panel.toml"):
             if (
                 os.system(
                     "grep -q 'version = \"0.1\"' '%s'"
-                    % (app.path + "config_panel.toml")
+                    % (app.path + "/config_panel.toml")
                 )
                 == 0
             ):
@@ -797,10 +797,10 @@ class App(TestSuite):
                     "The config panel is set to version 1.x, but the config script is apparently still using some old code from 0.1 such as '$YNH_CONFIG_STUFF' or 'yunohost app action'"
                 )
 
-            validate_schema(
+            yield from validate_schema(
                 "config_panel",
-                config_panel_v1_schema(),
-                toml.load(app.path + "config_panel.toml"),
+                json.loads(config_panel_v1_schema()),
+                toml.load(app.path + "/config_panel.toml"),
             )
 
     @test()
@@ -1217,8 +1217,8 @@ class Configurations(TestSuite):
                     "The 'check_process' file that interfaces with the app CI has now been replaced with 'tests.toml' format and is now mandatory for apps v2."
                 )
             else:
-                validate_schema(
-                    "tests.toml", tests_v1_schema(), toml.load(app.path + "tests.toml")
+                yield from validate_schema(
+                    "tests.toml", json.loads(tests_v1_schema()), toml.load(app.path + "/tests.toml")
                 )
 
     @test()
@@ -2278,7 +2278,7 @@ class Manifest(TestSuite):
         def manifest_schema(self):
             if app_packaging_format <= 1:
                 return
-            validate_schema("manifest", manifest_v2_schema(), self.manifest)
+            yield from validate_schema("manifest", json.loads(manifest_v2_schema()), self.manifest)
 
 
 ########################################
