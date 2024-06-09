@@ -1218,7 +1218,9 @@ class Configurations(TestSuite):
                 )
             else:
                 yield from validate_schema(
-                    "tests.toml", json.loads(tests_v1_schema()), toml.load(app.path + "/tests.toml")
+                    "tests.toml",
+                    json.loads(tests_v1_schema()),
+                    toml.load(app.path + "/tests.toml"),
                 )
 
     @test()
@@ -2278,7 +2280,9 @@ class Manifest(TestSuite):
         def manifest_schema(self):
             if app_packaging_format <= 1:
                 return
-            yield from validate_schema("manifest", json.loads(manifest_v2_schema()), self.manifest)
+            yield from validate_schema(
+                "manifest", json.loads(manifest_v2_schema()), self.manifest
+            )
 
 
 ########################################
