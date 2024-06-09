@@ -310,26 +310,27 @@ def file_exists(file_path):
     return os.path.isfile(file_path) and os.stat(file_path).st_size > 0
 
 
+def cache_file(cachefile: str, ttl_s: int):
+    def cache_is_fresh():
+        return os.path.exists(cachefile) and time.time() - os.path.getmtime(cachefile) < ttl_s
+    def decorator(function):
+        def wrapper(*args, **kwargs):
+            if not cache_is_fresh():
+                with open(cachefile, "w+") as outfile:
+                    outfile.write(function(*args, **kwargs))
+            return open(cachefile).read()
+        return wrapper
+    return decorator
+
+
+@cache_file(".spdx_licenses", 3600)
 def spdx_licenses():
-    cachefile = ".spdx_licenses"
-    if os.path.exists(cachefile) and time.time() - os.path.getmtime(cachefile) < 3600:
-        return open(cachefile).read()
-
-    url = "https://spdx.org/licenses/"
-    content = urlopen(url)["content"]
-    open(cachefile, "w").write(content)
-    return content
+    return urlopen("https://spdx.org/licenses/")["content"]
 
 
+@cache_file(".manifest.v2.schema.json", 3600)
 def manifest_v2_schema():
-    cachefile = ".manifest.v2.schema.json"
-    if os.path.exists(cachefile) and time.time() - os.path.getmtime(cachefile) < 3600:
-        return json.loads(open(cachefile).read())
-
-    url = "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/manifest.v2.schema.json"
-    content = urlopen(url)["content"]
-    open(cachefile, "w").write(content)
-    return json.loads(content)
+    return urlopen("https://raw.githubusercontent.com/YunoHost/apps/master/schemas/manifest.v2.schema.json")["content"]
 
 
 tests = {}
