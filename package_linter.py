@@ -312,14 +312,20 @@ def file_exists(file_path):
 
 def cache_file(cachefile: str, ttl_s: int):
     def cache_is_fresh():
-        return os.path.exists(cachefile) and time.time() - os.path.getmtime(cachefile) < ttl_s
+        return (
+            os.path.exists(cachefile)
+            and time.time() - os.path.getmtime(cachefile) < ttl_s
+        )
+
     def decorator(function):
         def wrapper(*args, **kwargs):
             if not cache_is_fresh():
                 with open(cachefile, "w+") as outfile:
                     outfile.write(function(*args, **kwargs))
             return open(cachefile).read()
+
         return wrapper
+
     return decorator
 
 
@@ -330,29 +336,38 @@ def spdx_licenses():
 
 @cache_file(".manifest.v2.schema.json", 3600)
 def manifest_v2_schema():
-    return urlopen("https://raw.githubusercontent.com/YunoHost/apps/master/schemas/manifest.v2.schema.json")["content"]
+    return urlopen(
+        "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/manifest.v2.schema.json"
+    )["content"]
 
 
 @cache_file(".tests.v1.schema.json", 3600)
 def tests_v1_schema():
-    return urlopen("https://raw.githubusercontent.com/YunoHost/apps/master/schemas/tests.v1.schema.json")["content"]
+    return urlopen(
+        "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/tests.v1.schema.json"
+    )["content"]
 
 
 @cache_file(".config_panel.v1.schema.json", 3600)
 def config_panel_v1_schema():
-    return urlopen("https://raw.githubusercontent.com/YunoHost/apps/master/schemas/config_panel.v1.schema.json")["content"]
+    return urlopen(
+        "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/config_panel.v1.schema.json"
+    )["content"]
 
 
 def validate_schema(name: str, schema, data):
     v = jsonschema.Draft7Validator(schema)
-    
+
     for error in v.iter_errors(data):
         try:
             error_path = " > ".join(error.path)
         except:
             error_path = str(error.path)
 
-        yield Info(f"Error validating {name} using schema: in key {error_path}\n       {error.message}")
+        yield Info(
+            f"Error validating {name} using schema: in key {error_path}\n       {error.message}"
+        )
+
 
 tests = {}
 tests_reports = {
@@ -782,7 +797,11 @@ class App(TestSuite):
                     "The config panel is set to version 1.x, but the config script is apparently still using some old code from 0.1 such as '$YNH_CONFIG_STUFF' or 'yunohost app action'"
                 )
 
-            validate_schema("config_panel", config_panel_v1_schema(), toml.load(app.path + "config_panel.toml"))
+            validate_schema(
+                "config_panel",
+                config_panel_v1_schema(),
+                toml.load(app.path + "config_panel.toml"),
+            )
 
     @test()
     def badges_in_readme(app):
@@ -1198,7 +1217,9 @@ class Configurations(TestSuite):
                     "The 'check_process' file that interfaces with the app CI has now been replaced with 'tests.toml' format and is now mandatory for apps v2."
                 )
             else:
-                validate_schema("tests.toml", tests_v1_schema(), toml.load(app.path + "tests.toml"))
+                validate_schema(
+                    "tests.toml", tests_v1_schema(), toml.load(app.path + "tests.toml")
+                )
 
     @test()
     def check_process_syntax(self):
