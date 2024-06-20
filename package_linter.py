@@ -3120,6 +3120,13 @@ class Script(TestSuite):
                 "You should not use `ynh_script_progression` in _common.sh because it will produce warnings when trying to install the application."
             )
 
+    @test(only=["remove"])
+    def no_log_remove(self):
+        if self.containsregex("(ynh_secure_remove|ynh_safe_rm|rm).*(\/var\/log\/)"):
+            yield Warning(
+                "Do not delete logs on app removal, else they will be erased if the app upgrade fails. This is handled by the core."
+            )
+
 
 def main():
     if len(sys.argv) < 2:
