@@ -2759,7 +2759,9 @@ class Script(TestSuite):
     @test()
     def ynh_npm_global(self):
         if self.containsregex(r"ynh_npm.*install.*global"):
-            yield Warning("Please don't install stuff on global scope with npm install --global é_è")
+            yield Warning(
+                "Please don't install stuff on global scope with npm install --global é_è"
+            )
 
     @test()
     def ynh_add_fpm_config_deprecated_package_option(self):
