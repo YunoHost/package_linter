@@ -2229,6 +2229,23 @@ class Manifest(TestSuite):
                 )
 
     @test()
+    def old_php_version(self):
+
+        if app_packaging_format <= 1:
+            return
+
+        resources = self.manifest["resources"]
+
+        if "apt" in list(resources.keys()):
+            packages = str(list(resources["apt"].get("packages")))
+            if "php7.4-" in packages:
+                yield Warning("The app currently runs on php7.4 which is pretty old (unsupported by the PHP group since January 2023). Ideally, upgrade it to at least php8.2.")
+            elif "php8.0-" in packages:
+                yield Warning("The app currently runs on php8.0 which is pretty old (unsupported by the PHP group since January 2024). Ideally, upgrade it to at least php8.2.")
+            elif "php8.1-" in packages:
+                yield Info("The app currently runs on php8.1 which is deprecated since January 2024. Ideally, upgrade it to at least php8.2.")
+
+    @test()
     def resource_consistency(self):
 
         if app_packaging_format <= 1:
