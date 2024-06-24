@@ -2864,6 +2864,16 @@ class Script(TestSuite):
             )
 
     @test()
+    def FIXMEs(self):
+        removeme = f"grep -q '#REMOVEME?' '{self.path}'"
+        fixme = f"grep -q '# FIXMEhelpers2.1' '{self.path}'"
+
+        if os.system(removeme) == 0:
+            yield Warning("There are still some REMOVEME? flags to be taken care of")
+        if os.system(fixme) == 0:
+            yield Warning("There are still some FIXMEhelpers2.1 flags to be taken care of")
+
+    @test()
     def nginx_restart(self):
         if self.contains("systemctl restart nginx") or self.contains(
             "service nginx restart"
