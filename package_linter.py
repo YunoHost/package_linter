@@ -2237,7 +2237,7 @@ class Manifest(TestSuite):
         resources = self.manifest["resources"]
 
         if "apt" in list(resources.keys()):
-            packages = str(list(resources["apt"].get("packages")))
+            packages = str(list(resources["apt"].get("packages", "")))
             if "php7.4-" in packages:
                 yield Warning(
                     "The app currently runs on php7.4 which is pretty old (unsupported by the PHP group since January 2023). Ideally, upgrade it to at least php8.2."
