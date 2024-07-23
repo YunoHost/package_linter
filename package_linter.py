@@ -493,7 +493,9 @@ class App(TestSuite):
         self.path = path
         self.manifest_ = Manifest(self.path)
         self.manifest = self.manifest_.manifest
-        self.scripts = {f: Script(self.path, f, self.manifest.get("id")) for f in scriptnames}
+        self.scripts = {
+            f: Script(self.path, f, self.manifest.get("id")) for f in scriptnames
+        }
         self.configurations = Configurations(self)
         self.app_catalog = AppCatalog(self.manifest["id"])
 
@@ -1672,8 +1674,13 @@ class Manifest(TestSuite):
                     "It seems like the upstream section still contains placeholder values such as 'example.com' ..."
                 )
             code = self.manifest["upstream"].get("code")
-            if code and (code == self.manifest["upstream"].get("userdoc") or code == self.manifest["upstream"].get("admindoc")):
-                yield Warning("userdoc or admindoc: A code repository is not a documentation x_x")
+            if code and (
+                code == self.manifest["upstream"].get("userdoc")
+                or code == self.manifest["upstream"].get("admindoc")
+            ):
+                yield Warning(
+                    "userdoc or admindoc: A code repository is not a documentation x_x"
+                )
 
     @test()
     def FIXMEs(self):
@@ -1686,15 +1693,11 @@ class Manifest(TestSuite):
         yunohost_version_req = (
             app.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
         )
-        if (
-            yunohost_version_req.startswith("4.")
-        ):
+        if yunohost_version_req.startswith("4."):
             yield Critical(
                 "Your app only requires yunohost >= 4.x, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
             )
-        elif (
-            yunohost_version_req.startswith("11.0")
-        ):
+        elif yunohost_version_req.startswith("11.0"):
             yield Error(
                 "Your app only requires yunohost >= 11.0, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
             )
