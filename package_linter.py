@@ -924,7 +924,7 @@ class App(TestSuite):
     def git_clone_usage(app):
         cmd = f"grep -I 'git clone' '{app.path}'/scripts/install '{app.path}'/scripts/_common.sh 2>/dev/null | grep -qv 'xxenv\|rbenv\|oracledb'"
         if os.system(cmd) == 0:
-            yield Info(
+            yield Warning(
                 "Using 'git clone' is not recommended ... most forge do provide the ability to download a proper archive of the code for a specific commit. Please use the 'sources' resource in the manifest.toml in combination with ynh_setup_source."
             )
 
