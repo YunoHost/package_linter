@@ -2101,12 +2101,16 @@ class Manifest(TestSuite):
 
     @test()
     def custom_install_dir(self):
-        custom_install_dir = self.manifest.get("resources", {}).get("install_dir", {}).get("dir")
+        custom_install_dir = (
+            self.manifest.get("resources", {}).get("install_dir", {}).get("dir")
+        )
         if not custom_install_dir:
             return
 
         if custom_install_dir.startswith("/opt/yunohost"):
-            yield Warning("Installing apps in /opt/yunohost is deprecated ... YunoHost is about standardization, and the standard is to install in /var/www/__APP__ (yes, even if not a webapp, because whatever). Please stick to the default value. the resource system should automatically move the install dir if needed so you don't really need to think about backward compatibility.")
+            yield Warning(
+                "Installing apps in /opt/yunohost is deprecated ... YunoHost is about standardization, and the standard is to install in /var/www/__APP__ (yes, even if not a webapp, because whatever). Please stick to the default value. the resource system should automatically move the install dir if needed so you don't really need to think about backward compatibility."
+            )
 
     @test()
     def install_args(self):
