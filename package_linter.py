@@ -231,8 +231,8 @@ deprecated_helpers_in_v2 = [
     ),
 ]
 
-# Default to 1, set to 2 automatically if a toml manifest is found
-app_packaging_format = None
+# Only packaging v2 is supported on the linter now ... But someday™ according The Prophecy™, packaging v3 will be a thing
+app_packaging_format = 2
 
 # ############################################################################
 #   Utilities
@@ -603,18 +603,6 @@ class App(TestSuite):
     #########################################
 
     @test()
-    def v1packaging(app):
-        if app_packaging_format <= 1:
-            if datetime.today() >= datetime(2025, 2, 1):
-                yield Error(
-                    "This app is still using packaging v1 which is now hard-deprecated. Packaging v2 was released more than two years ago. You should really have a look at https://yunohost.org/en/packaging_v2."
-                )
-            elif datetime.today() >= datetime(2024, 2, 1):
-                yield Warning(
-                    "This app is still using packaging v1 which is now softly-deprecated. Packaging v2 was released more than one year ago and is now used by 75% of the app catalog with many other v1->v2 app transition ongoing. We encourage you to convert this app to packaging v2 following the recommendations described in https://yunohost.org/en/packaging_v2. This warning will turn into an error on February 1st, 2025."
-                )
-
-    @test()
     def mandatory_scripts(app):
         filenames = (
             "LICENSE",
@@ -639,22 +627,15 @@ class App(TestSuite):
     def doc_dir(app):
 
         if not os.path.exists(app.path + "/doc"):
-            if app_packaging_format <= 1:
-                yield Warning(
-                    """READMEs are to be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator.
-    - You are encouraged to create a doc/DISCLAIMER.md file, which should contain any important information to be presented to the admin before installation. Check https://github.com/YunoHost/example_ynh/blob/master/doc/DISCLAIMER.md for more details (it should be somewhat equivalent to the old 'Known limitations' and 'Specific features' section). (It's not mandatory to create this file if you're absolutely sure there's no relevant info to show to the user)
-    - If relevant for this app, screenshots can be added in a doc/screenshots/ folder."""
-                )
-            elif app_packaging_format >= 2:
-                yield Error(
-                    """Having a doc/ folder is now mandatory in packaging v2 and is expected to contain :
-    - (recommended) doc/DESCRIPTION.md : a long description of the app, typically around 5~20 lines, for example to list features
-    - (recommended) doc/screenshots/ : a folder containing at least one .png (or .jpg) screenshot of the app
-    - (if relevant) doc/ADMIN.md : an admin doc page meant to provide general info about adminstrating this app, will be available in yunohost's webadmin
-    - (if relevant) doc/SOME_OTHER_PAGE.md : an arbitrarily named admin doc page meant to provide info on a specific topic, will be available in yunohost's webadmin
-    - (if relevant) doc/PRE_INSTALL.md, POST_INSTALL.md : important informations to display to the user before/after the install (similar mechanism exists for upgrade)
+            yield Error(
+                """Having a doc/ folder is now mandatory in packaging v2 and is expected to contain :
+- (recommended) doc/DESCRIPTION.md : a long description of the app, typically around 5~20 lines, for example to list features
+- (recommended) doc/screenshots/ : a folder containing at least one .png (or .jpg) screenshot of the app
+- (if relevant) doc/ADMIN.md : an admin doc page meant to provide general info about adminstrating this app, will be available in yunohost's webadmin
+- (if relevant) doc/SOME_OTHER_PAGE.md : an arbitrarily named admin doc page meant to provide info on a specific topic, will be available in yunohost's webadmin
+- (if relevant) doc/PRE_INSTALL.md, POST_INSTALL.md : important informations to display to the user before/after the install (similar mechanism exists for upgrade)
 """
-                )
+            )
 
         if os.path.exists(os.path.join(app.path, "doc/screenshots")):
             du_output = subprocess.check_output(
@@ -686,9 +667,6 @@ class App(TestSuite):
     @test()
     def doc_dir_v2(app):
 
-        if app_packaging_format <= 1:
-            return
-
         if os.path.exists(app.path + "/doc") and not os.path.exists(
             app.path + "/doc/DESCRIPTION.md"
         ):
@@ -705,7 +683,7 @@ class App(TestSuite):
 
         if os.path.exists(app.path + "/doc/DISCLAIMER.md"):
             yield Warning(
-                """The whole thing about doc/DISCLAIMER.md is refactored again in v2 (sorry about that :/) to improve the UX - basically people shouldnt have to actively go read the READMEs to get those infos
+                """DISCLAIMER.md has been replaced with several files in packaging v2 to improve the UX and provide the user with key information at the appropriate step of the app install / upgrade cycles.
 
     You are encouraged to split its infos into:
 
@@ -726,6 +704,19 @@ class App(TestSuite):
         -> if relevant, you can also create custom doc page, just create 'doc/WHATEVER.MD' and this will correspond to a specific documentation tab in the webadmin.
         -> note that in these files, the __FOOBAR__ syntax is supported and replaced with the corresponding 'foobar' setting.
 """
+            )
+
+    @test()
+    def admin_has_to_finish_install(app):
+
+        # Mywebapp has a legit use case for this
+        if app.manifest.get("id") == "my_webapp":
+            return
+
+        cmd = f"grep -q -IhEr '__DB_PWD__' '{app.path}/doc/'"
+        if os.path.exists(app.path + "/doc") and os.system(cmd) == 0:
+            yield Warning(
+                "(doc folder) It looks like this app requires the admin to finish the install by entering DB credentials. Unless it's absolutely not easily automatizable, this should be handled automatically by the app install script using curl calls, or (CLI tools provided by the upstream maybe ?)."
             )
 
     @test()
@@ -755,13 +746,10 @@ class App(TestSuite):
     @test()
     def change_url_script(app):
 
-        if app_packaging_format <= 1:
-            args = app.manifest["arguments"].get("install", [])
-        else:
-            keyandargs = copy.deepcopy(app.manifest["install"])
-            for key, infos in keyandargs.items():
-                infos["name"] = key
-            args = keyandargs.values()
+        keyandargs = copy.deepcopy(app.manifest["install"])
+        for key, infos in keyandargs.items():
+            infos["name"] = key
+        args = keyandargs.values()
 
         has_domain_arg = any(a["name"] == "domain" for a in args)
 
@@ -824,42 +812,6 @@ class App(TestSuite):
             yield Warning(
                 "It looks like the README was not generated automatically by https://github.com/YunoHost/apps/tree/master/tools/README-generator. "
                 "Note that nowadays you are not suppose to edit README.md, the yunohost bot will usually automatically update it if your app is hosted in the YunoHost-Apps org ... or you can also generate it by running the README-generator yourself."
-            )
-
-        superoldstuff = [
-            "%20%28Apps%29",
-            "%20%28Community%29",
-            "/jenkins/job",
-            "ci-buster",
-            "ci-stretch",
-            "ci-apps-arm",
-        ]
-        if any(oldstuff in content for oldstuff in superoldstuff):
-            yield Error(
-                "The README contains references to super-old build status (such as old jenkins job or ci-apps-arm or ci-stretch...) which are not relevant anymore. Please consider switching to the new auto-generated README format which contains the standard CI badge at the top."
-            )
-
-    @test()
-    def placeholder_help_string(self):
-        if (
-            os.system(
-                "grep -q 'Use the help field' %s/manifest.json 2>/dev/null" % self.path
-            )
-            == 0
-        ):
-            yield Warning(
-                "Sounds like your manifest.json contains some default placeholder help string ('Use the help field to...') ... either replace it with an actually helpful explanation, or remove the help string entirely if you don't use it."
-            )
-
-        if (
-            os.system(
-                "grep -q 'Explain in *a few (10~15) words* the purpose of the app\\|Expliquez en *quelques* (10~15) mots' %s/manifest.json 2>/dev/null"
-                % self.path
-            )
-            == 0
-        ):
-            yield Error(
-                "Sounds like your manifest.json contains the default description string ('Explain in *a few (10~15 words) [...]') ... Please replace it with an actual description."
             )
 
     @test()
@@ -937,14 +889,9 @@ class App(TestSuite):
         )
         custom_helpers = [c.split("__")[0] for c in custom_helpers]
 
-        if app_packaging_format <= 1:
-            yunohost_version_req = (
-                app.manifest.get("requirements", {}).get("yunohost", "").strip(">= ")
-            )
-        else:
-            yunohost_version_req = (
-                app.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
-            )
+        yunohost_version_req = (
+            app.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
+        )
 
         cmd = "grep -IhEro 'ynh_\\w+' '%s/scripts'" % app.path
         helpers_used = (
@@ -978,9 +925,6 @@ class App(TestSuite):
 
     @test()
     def helpers_deprecated_in_v2(app):
-
-        if app_packaging_format <= 1:
-            return
 
         cmd = f"grep -IhEro 'ynh_\\w+' '{app.path}/scripts/install' '{app.path}/scripts/remove' '{app.path}/scripts/upgrade' '{app.path}/scripts/backup' '{app.path}/scripts/restore' || true"
         helpers_used = (
@@ -1192,117 +1136,16 @@ class Configurations(TestSuite):
 
         app = self.app
 
-        if app_packaging_format <= 1:
-            check_process_file = app.path + "/check_process"
-            if not file_exists(check_process_file):
-                yield Warning(
-                    "You should add a 'check_process' file to properly interface with the continuous integration system"
-                )
-        else:
-            tests_toml_file = app.path + "/tests.toml"
-            if not file_exists(tests_toml_file):
-                yield Error(
-                    "The 'check_process' file that interfaces with the app CI has now been replaced with 'tests.toml' format and is now mandatory for apps v2."
-                )
-            else:
-                yield from validate_schema(
-                    "tests.toml",
-                    json.loads(tests_v1_schema()),
-                    toml.load(app.path + "/tests.toml"),
-                )
-
-    @test()
-    def check_process_syntax(self):
-
-        app = self.app
-
-        check_process_file = app.path + "/check_process"
-        if not file_exists(check_process_file):
-            return
-
-        if os.system("grep -q 'Level 5=1' '%s'" % check_process_file) == 0:
-            yield Error("Do not force Level 5=1 in check_process...")
-        elif os.system("grep -qE ' *Level \\d=' '%s'" % check_process_file) == 0:
+        tests_toml_file = app.path + "/tests.toml"
+        if not file_exists(tests_toml_file):
             yield Error(
-                "Setting Level x=y in check_process is obsolete / not relevant anymore"
+                "The 'check_process' file that interfaces with the app CI has now been replaced with 'tests.toml' format and is now mandatory for apps v2."
             )
-
-    @test()
-    def check_process_consistency(self):
-
-        app = self.app
-
-        if app_packaging_format <= 1:
-            args = app.manifest["arguments"].get("install", [])
         else:
-            keyandargs = copy.deepcopy(app.manifest["install"])
-            for key, infos in keyandargs.items():
-                infos["name"] = key
-            args = keyandargs.values()
-
-        check_process_file = app.path + "/check_process"
-        if not file_exists(check_process_file):
-            return
-
-        has_is_public_arg = any(a["name"] == "is_public" for a in args)
-        if has_is_public_arg:
-            if (
-                os.system(r"grep -q '^\s*setup_public=1' '%s'" % check_process_file)
-                != 0
-            ):
-                yield Info(
-                    "It looks like you forgot to enable setup_public test in check_process?"
-                )
-
-            if (
-                os.system(r"grep -q '^\s*setup_private=1' '%s'" % check_process_file)
-                != 0
-            ):
-                yield Info(
-                    "It looks like you forgot to enable setup_private test in check_process?"
-                )
-
-        has_path_arg = any(a["name"] == "path" for a in args)
-        if has_path_arg:
-            if (
-                os.system(r"grep -q '^\s*setup_sub_dir=1' '%s'" % check_process_file)
-                != 0
-            ):
-                yield Info(
-                    "It looks like you forgot to enable setup_sub_dir test in check_process?"
-                )
-
-        if (
-            app.manifest.get("multi_instance") in [True, 1, "True", "true"]
-            or app.manifest.get("integration", {}).get("multi_instance") is True
-        ):
-            if (
-                os.system(r"grep -q '^\s*multi_instance=1' '%s'" % check_process_file)
-                != 0
-            ):
-                yield Info(
-                    "It looks like you forgot to enable multi_instance test in check_process?"
-                )
-
-        if app.scripts["backup"].exists:
-            if (
-                os.system(r"grep -q '^\s*backup_restore=1' '%s'" % check_process_file)
-                != 0
-            ):
-                yield Info(
-                    "It looks like you forgot to enable backup_restore test in check_process?"
-                )
-
-    @test()
-    def misc_legacy_phpini(self):
-
-        app = self.app
-
-        if file_exists(app.path + "/conf/php-fpm.ini"):
-            yield Error(
-                "Using a separate php-fpm.ini file is deprecated. "
-                "Please merge your php-fpm directives directly in the pool file. "
-                "(c.f. https://github.com/YunoHost-Apps/nextcloud_ynh/issues/138 )"
+            yield from validate_schema(
+                "tests.toml",
+                json.loads(tests_v1_schema()),
+                toml.load(app.path + "/tests.toml"),
             )
 
     @test()
@@ -1345,28 +1188,6 @@ class Configurations(TestSuite):
                 "Original discussion happened here: "
                 "https://github.com/YunoHost/issues/issues/201#issuecomment-391549262"
             )
-
-    @test()
-    def src_file_checksum_type(self):
-
-        app = self.app
-        for filename in (
-            os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []
-        ):
-            if not filename.endswith(".src"):
-                continue
-
-            try:
-                content = open(app.path + "/conf/" + filename).read()
-            except Exception as e:
-                yield Warning("Can't open/read %s: %s" % (filename, e))
-                return
-
-            if "SOURCE_SUM_PRG=md5sum" in content:
-                yield Error(
-                    "%s: Using md5sum checksum is not so great for "
-                    "security. Consider using sha256sum instead." % filename
-                )
 
     @test()
     def systemd_config_specific_user(self):
@@ -1502,8 +1323,7 @@ class Configurations(TestSuite):
 
             content = open(app.path + "/conf/" + filename).read()
             if "if ($scheme = http)" in content and "rewrite ^ https" in content:
-                level = Info if app_packaging_format <= 1 else Warning
-                yield level(
+                yield Error(
                     "Since Yunohost 4.3, the http->https redirect is handled by the core, "
                     "therefore having an if ($scheme = http) { rewrite ^ https://... } block "
                     "in the nginx config file is deprecated. (This helps with supporting Yunohost-behind-reverse-proxy use case)"
@@ -1658,13 +1478,13 @@ class Configurations(TestSuite):
                         #
                         # Note that we also consider a positive the case where
                         # the alias folder (e.g. /var/www/foo/) does not ends
-                        # with / if __FINALPATH__ ain't used...  that probably
+                        # with / if __INSTALL_DIR__ ain't used...  that probably
                         # means that the app is not using the standard nginx
                         # helper, and therefore it is likely to be replaced by
                         # something ending with / ...
                         if not location.strip("'").endswith("/") and (
                             alias_path.endswith("/")
-                            or "__FINALPATH__" not in alias_path
+                            or "__INSTALL_DIR__" not in alias_path
                         ):
                             yield location
 
@@ -1761,14 +1581,7 @@ class Manifest(TestSuite):
         self.path = path
         self.test_suite_name = "manifest"
 
-        global app_packaging_format
         manifest_path = os.path.join(path, "manifest.toml")
-        if os.path.exists(manifest_path):
-            app_packaging_format = 2
-        else:
-            app_packaging_format = 1
-            manifest_path = os.path.join(path, "manifest.json")
-            assert os.path.exists(manifest_path), "manifest.json is missing"
 
         # Taken from https://stackoverflow.com/a/49518779
         def check_for_duplicate_keys(ordered_pairs):
@@ -1782,12 +1595,7 @@ class Manifest(TestSuite):
 
         self.raw_manifest = open(manifest_path, encoding="utf-8").read()
         try:
-            if app_packaging_format == 1:
-                self.manifest = json.loads(
-                    self.raw_manifest, object_pairs_hook=check_for_duplicate_keys
-                )
-            else:
-                self.manifest = toml.loads(self.raw_manifest)
+            self.manifest = toml.loads(self.raw_manifest)
         except Exception as e:
             print(
                 c.FAIL
@@ -1798,30 +1606,18 @@ class Manifest(TestSuite):
     @test()
     def mandatory_fields(self):
 
-        base_fields = [
+        fields = [
             "packaging_format",
             "id",
             "name",
             "description",
             "version",
+            "maintainers",
+            "upstream",
+            "integration",
+            "install",
+            "resources",
         ]
-
-        if app_packaging_format == 1:
-            fields = base_fields + [
-                "maintainer",
-                "requirements",
-                "multi_instance",
-                "services",
-                "arguments",
-            ]
-        else:
-            fields = base_fields + [
-                "maintainers",
-                "upstream",
-                "integration",
-                "install",
-                "resources",
-            ]
 
         missing_fields = [
             field for field in fields if field not in self.manifest.keys()
@@ -1832,28 +1628,17 @@ class Manifest(TestSuite):
                 "The following mandatory fields are missing: %s" % missing_fields
             )
 
-        if app_packaging_format == 1:
-            fields = ("license", "url")
-            missing_fields = [
-                field for field in fields if field not in self.manifest.keys()
-            ]
-
-            if missing_fields:
-                yield Error(
-                    "The following mandatory fields are missing: %s" % missing_fields
-                )
-        else:
-            if "license" not in self.manifest.get("upstream"):
-                yield Error("The license key in the upstream section is missing")
+        if "license" not in self.manifest.get("upstream"):
+            yield Error("The license key in the upstream section is missing")
 
     @test()
     def maintainer_sensible_values(self):
         if "maintainers" in self.manifest.keys():
             for value in self.manifest["maintainers"]:
                 if not value.strip():
-                    yield Warning("Please don't put empty string as a maintainer x_x")
+                    yield Error("Please don't put empty string as a maintainer x_x")
                 elif "," in value:
-                    yield Warning(
+                    yield Error(
                         "Please don't use comma in maintainers value, this is supposed to be a list such as ['foo', bar'], not ['foo, bar'] x_x"
                     )
 
@@ -1886,6 +1671,9 @@ class Manifest(TestSuite):
                 yield Error(
                     "It seems like the upstream section still contains placeholder values such as 'example.com' ..."
                 )
+            code = self.manifest["upstream"].get("code")
+            if code and (code == self.manifest["upstream"].get("userdoc") or code == self.manifest["upstream"].get("admindoc")):
+                yield Warning("userdoc or admindoc: A code repository is not a documentation x_x")
 
     @test()
     def FIXMEs(self):
@@ -1893,45 +1681,23 @@ class Manifest(TestSuite):
             yield Warning("There are still some FIXMEs remaining in the manifest")
 
     @test()
-    def yunohost_version_requirement(self):
-
-        if app_packaging_format >= 2:
-            return
-
-        if not self.manifest.get("requirements", {}).get("yunohost", ""):
-            yield Critical(
-                "You should add a YunoHost version requirement in the manifest"
-            )
-
-    @test()
     def yunohost_version_requirement_superold(app):
 
-        if app_packaging_format >= 2:
-            yunohost_version_req = (
-                app.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
-            )
-        else:
-            yunohost_version_req = (
-                app.manifest.get("requirements", {}).get("yunohost", "").strip(">= ")
-            )
-        if yunohost_version_req.startswith("2.") or yunohost_version_req.startswith(
-            "3."
+        yunohost_version_req = (
+            app.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
+        )
+        if (
+            yunohost_version_req.startswith("4.")
         ):
             yield Critical(
-                "Your app only requires YunoHost >= 2.x or 3.x, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
+                "Your app only requires yunohost >= 4.x, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
             )
         elif (
-            yunohost_version_req.startswith("4.0")
-            or yunohost_version_req.startswith("4.1")
-            or yunohost_version_req.startswith("4.2")
+            yunohost_version_req.startswith("11.0")
         ):
-            yield Critical(
-                "Your app only requires yunohost >= 4.0, 4.1 or 4.2, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
+            yield Error(
+                "Your app only requires yunohost >= 11.0, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
             )
-        # elif yunohost_version_req.startswith("4.3"):
-        #    yield Warning(
-        #        "Your app only requires yunohost >= 4.3, which tends to indicate that it may not be up to date with recommended packaging practices and helpers."
-        #    )
 
     @test()
     def basic_fields_format(self):
@@ -1944,18 +1710,6 @@ class Manifest(TestSuite):
             yield Warning("The app id is not supposed to end with _ynh :| ...")
         if len(self.manifest["name"]) > 22:
             yield Error("The app name is too long")
-
-        if app_packaging_format <= 1:
-            if self.manifest.get("url", "").endswith("_ynh"):
-                yield Info(
-                    "'url' is not meant to be the URL of the YunoHost package, "
-                    "but rather the website or repo of the upstream app itself..."
-                )
-            if self.manifest["multi_instance"] not in [True, False, 0, 1]:
-                yield Error(
-                    "\"multi_instance\" field should be boolean 'true' or 'false', and not string type"
-                )
-            return
 
         keys = {
             "yunohost": (
@@ -2007,24 +1761,8 @@ class Manifest(TestSuite):
     @test()
     def license(self):
 
-        if app_packaging_format <= 1:
-            if "license" not in self.manifest:
-                return
-
-            if (
-                "upstream" in self.manifest
-                and "license" in self.manifest["upstream"]
-                and self.manifest["upstream"]["license"] != self.manifest["license"]
-            ):
-                yield Warning(
-                    "The content of 'license' in the 'upstream' block should be the same as 'license' (yes sorry, this is duplicate info, this is transitional for the manifest v2 ...)"
-                )
-
-            # Turns out there may be multiple licenses... (c.f. Seafile)
-            licenses = self.manifest["license"].split(",")
-        else:
-            # Turns out there may be multiple licenses... (c.f. Seafile)
-            licenses = self.manifest.get("upstream", {}).get("license", "").split(",")
+        # Turns out there may be multiple licenses... (c.f. Seafile)
+        licenses = self.manifest.get("upstream", {}).get("license", "").split(",")
 
         for license in licenses:
 
@@ -2121,20 +1859,16 @@ class Manifest(TestSuite):
             "group",
             "number",
             "range",
-            "display_text",
             "alert",
             "markdown",
             "file",
             "app",
         )
 
-        if app_packaging_format <= 1:
-            args = self.manifest["arguments"].get("install", [])
-        else:
-            keyandargs = copy.deepcopy(self.manifest["install"])
-            for key, infos in keyandargs.items():
-                infos["name"] = key
-            args = keyandargs.values()
+        keyandargs = copy.deepcopy(self.manifest["install"])
+        for key, infos in keyandargs.items():
+            infos["name"] = key
+        args = keyandargs.values()
 
         for argument in args:
             if not isinstance(argument.get("optional", False), bool):
@@ -2152,10 +1886,6 @@ class Manifest(TestSuite):
                     "The type '%s' for argument '%s' is not recognized... "
                     "it probably doesn't behave as you expect? Choose among those instead: %s"
                     % (argument["type"], argument["name"], ", ".join(recognized_types))
-                )
-            elif argument["type"] == "display_text":
-                yield Info(
-                    "Question type 'display_text' is deprecated. You might want to use 'markdown' or 'alert' instead."
                 )
             elif argument["type"] == "boolean" and argument.get(
                 "default", True
@@ -2199,13 +1929,10 @@ class Manifest(TestSuite):
             ("init_main_permission", "group"),
         ]
 
-        if app_packaging_format <= 1:
-            args = self.manifest["arguments"].get("install", [])
-        else:
-            keyandargs = copy.deepcopy(self.manifest["install"])
-            for key, infos in keyandargs.items():
-                infos["name"] = key
-            args = keyandargs.values()
+        keyandargs = copy.deepcopy(self.manifest["install"])
+        for key, infos in keyandargs.items():
+            infos["name"] = key
+        args = keyandargs.values()
 
         for argument in args:
 
@@ -2232,9 +1959,6 @@ class Manifest(TestSuite):
     @test()
     def old_php_version(self):
 
-        if app_packaging_format <= 1:
-            return
-
         resources = self.manifest["resources"]
 
         if "apt" in list(resources.keys()):
@@ -2254,9 +1978,6 @@ class Manifest(TestSuite):
 
     @test()
     def resource_consistency(self):
-
-        if app_packaging_format <= 1:
-            return
 
         resources = self.manifest["resources"]
 
@@ -2302,8 +2023,6 @@ class Manifest(TestSuite):
 
         @test()
         def manifest_schema(self):
-            if app_packaging_format <= 1:
-                return
             yield from validate_schema(
                 "manifest", json.loads(manifest_v2_schema()), self.manifest
             )
@@ -2624,17 +2343,16 @@ class Script(TestSuite):
     @test()
     def error_handling(self):
 
-        if app_packaging_format == 2:
-            if (
-                self.contains("ynh_abort_if_errors")
-                or self.contains("set -eu")
-                or self.contains("set -u")
-            ):
-                yield Error(
-                    "ynh_abort_if_errors or set -eu is now handled by YunoHost core in packaging v2, you should not have to add it to your script !"
-                )
+        if (
+            self.contains("ynh_abort_if_errors")
+            or self.contains("set -eu")
+            or self.contains("set -u")
+        ):
+            yield Error(
+                "ynh_abort_if_errors or set -eu is now handled by YunoHost core in packaging v2, you should not have to add it to your script !"
+            )
 
-            return
+        return
 
         if self.name in ["backup", "remove", "_common.sh"]:
             present = (
@@ -2688,64 +2406,9 @@ class Script(TestSuite):
             yield Critical(
                 "Do not use 'yunohost app setting' directly. Please use 'ynh_app_setting_(set,get,delete)' instead."
             )
-        if self.contains("yunohost app checkurl"):
-            yield Critical(
-                "'yunohost app checkurl' is obsolete!!! Please use 'ynh_webpath_register' instead."
-            )
-        if self.contains("yunohost app checkport"):
-            yield Critical(
-                "'yunohost app checkport' is obsolete!!! Please use 'ynh_find_port' instead."
-            )
-        if self.contains("yunohost app initdb"):
-            yield Critical(
-                "'yunohost app initdb' is obsolete!!! Please use 'ynh_mysql_setup_db' instead."
-            )
-        if self.contains("yunohost tools port-available"):
-            yield Critical(
-                "'yunohost tools port-available is obsolete!!! Please use 'ynh_port_available' instead."
-            )
-        if self.contains("yunohost app addaccess") or self.contains(
-            "yunohost app removeaccess"
-        ):
-            yield Error(
-                "'yunohost app addaccess/removeacces' is obsolete. You should use the new permission system to manage accesses."
-            )
-        if self.contains("yunohost app list -i") or self.contains(
-            "yunohost app list --installed"
-        ):
-            yield Error(
-                "Argument --installed ain't needed anymore when using "
-                "'yunohost app list'. It directly returns the list of installed "
-                "apps.. Also beware that option -f is obsolete as well... "
-                "Use grep -q 'id: $appname' to check a specific app is installed"
-            )
-        if self.contains("--others_var"):
-            yield Error(
-                "Option --others_var is deprecated / irrelevant since 4.2, and will be removed in Bullseye. YunoHost now manages conf using ynh_add_config which automatically replace all __FOOBAR__ by $foobar"
-            )
-        if self.contains("ynh_webpath_available"):
-            yield Warning(
-                "Calling 'ynh_webpath_available' is quite probably pointless: in the install script, just call ynh_webpath_register, and in the restore script, there's no need to check/register the webpath. (Also the helper always return exit code 0, so 'ynh_webpath_available || ynh_die' is useless :/"
-            )
-        if self.contains("ynh_print_ON") or self.contains("ynh_print_OFF"):
-            yield Error(
-                "Please refrain from using 'ynh_print_ON/OFF' ... YunoHost already integrates a mecanism to automatically redact variables with names ending with : pwd, pass, passwd, password, passphrase, key, token, and any variable with 'secret' in its name. Using 'ynh_print_ON/OFF' is cumbersome and may have the unintended effect of defeating Yunohost's autoredacting mecanism ... If you noticed that Yunohost's mecanism doesn't work or cover your specific case, please contact the dev team about it."
-            )
-        if self.contains("ynh_add_app_dependencies"):
-            yield Error(
-                "ynh_add_app_dependencies is supposed to be an internal helper and will soon be deprecated. Consider using ynh_install_app_dependencies or ynh_install_extra_app_dependencies instead."
-            )
         if self.contains("ynh_detect_arch"):
             yield Warning(
                 "(Requires yunohost 4.3) Using ynh_detect_arch is deprecated, since Yunohost 4.3, an $YNH_ARCH variable is directly available in the global context. Its value directly corresponds to `dpkg --print-architecture` which returns a value among : amd64, i386, armhf, arm64 and armel (though armel is probably not used at all?)"
-            )
-
-    @test(only=["install"])
-    def admin_has_to_finish_install(self):
-        cmd = 'grep -B10 -IhEr "send_readme_to_admin" %s | grep -q db_pwd' % self.path
-        if os.system(cmd) == 0:
-            yield Warning(
-                "It looks like this app requires the admin to finish the install by entering DB credentials. Unless it's absolutely not easily automatizable, this should be handled automatically by the app install script using curl calls, or (CLI tools provided by the upstream maybe ?)."
             )
 
     @test(only=["install", "upgrade"])
@@ -2774,10 +2437,10 @@ class Script(TestSuite):
 
     @test()
     def ynh_setup_source_keep_with_absolute_path(self):
-        cmd = 'grep -q -IhEro "ynh_setup_source.*keep.*final_path" %s' % self.path
+        cmd = 'grep -q -IhEro "ynh_setup_source.*keep.*install_dir" %s' % self.path
         if os.system(cmd) == 0:
             yield Info(
-                "The --keep option of ynh_setup_source expects relative paths, not absolute path ... you do not need to prefix everything with '$final_path' in the --keep arg ..."
+                "The --keep option of ynh_setup_source expects relative paths, not absolute path ... you do not need to prefix everything with '$install_dir' in the --keep arg ..."
             )
 
     @test()
@@ -2997,7 +2660,7 @@ class Script(TestSuite):
                 "You probably don't need to run 'yunohost app ssowatconf' in the app self. It's supposed to be ran automatically after the script."
             )
 
-        if app_packaging_format >= 2 and self.name not in ["change_url", "restore"]:
+        if self.name not in ["change_url", "restore"]:
             if self.contains("ynh_systemd_action --service_name=nginx --action=reload"):
                 yield Warning(
                     "You should not need to reload nginx at the end of the script ... it's already taken care of by ynh_add_nginx_config"
@@ -3027,11 +2690,11 @@ class Script(TestSuite):
     @test()
     def chownroot(self):
         if self.containsregex(
-            r"^\s*chown.* root:?[^$]* .*final_path"
-        ) and not self.contains('chown root:root "$final_path"'):
+            r"^\s*chown.* root:?[^$]* .*install_dir"
+        ) and not self.contains('chown root:root "$install_dir"'):
             # (Mywebapp has a special case because of SFTP é_è)
             yield Warning(
-                "Using 'chown root $final_path' is usually symptomatic of misconfigured and wide-open 'other' permissions ... Usually ynh_setup_source should now set sane default permissions on $final_path (if the app requires Yunohost >= 4.2) ... Otherwise, consider using 'chown $app', 'chown nobody' or 'chmod' to limit access to $final_path ..."
+                "Using 'chown root $install_dir' is usually symptomatic of misconfigured and wide-open 'other' permissions ... Usually ynh_setup_source should now set sane default permissions on $install_dir (if the app requires Yunohost >= 4.2) ... Otherwise, consider using 'chown $app', 'chown nobody' or 'chmod' to limit access to $install_dir ..."
             )
 
     @test()
@@ -3118,13 +2781,6 @@ class Script(TestSuite):
         if self.containsregex("^ynh_systemd_action"):
             yield Warning(
                 "Unless you really have a good reason to do so, starting/stopping services during backup has no benefit and leads to unecessary service interruptions when creating backups... As a 'reminder': apart from possibly database dumps (which usually do not require the service to be stopped) or other super-specific action, running the backup script is only a *declaration* of what needs to be backed up. The real copy and archive creation happens *after* the backup script is ran."
-            )
-
-    @test(only=["backup"])
-    def check_size_backup(self):
-        if self.contains("CHECK_SIZE"):
-            yield Error(
-                "There's no need to 'CHECK_SIZE' during backup... This check is handled by the core automatically."
             )
 
     @test()
