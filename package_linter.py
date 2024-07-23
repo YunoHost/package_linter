@@ -661,9 +661,13 @@ class App(TestSuite):
                 ["du", "-sb", app.path + "/doc/screenshots"], shell=False
             )
             screenshots_size = int(du_output.split()[0])
-            if screenshots_size > 512000:
+            if screenshots_size > 1024 * 1000:
+                yield Warning(
+                    "Please keep the content of doc/screenshots under ~512Kb. Having screenshots bigger than 512kb is probably a waste of resource and will take unecessarily long time to load on the webadmin UI and app catalog."
+                )
+            elif screenshots_size > 512 * 1000:
                 yield Info(
-                    "Consider keeping the content of doc/screenshots under ~512Kb for better UI/UX once the screenshots will be integrated in the webadmin app's catalog (to be discussed with the team)"
+                    "Please keep the content of doc/screenshots under ~512Kb. Having screenshots bigger than 512kb is probably a waste of resource and will take unecessarily long time to load on the webadmin UI and app catalog."
                 )
 
             for _, _, files in os.walk(os.path.join(app.path, "doc/screenshots")):
