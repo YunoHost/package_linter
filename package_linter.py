@@ -493,7 +493,7 @@ class App(TestSuite):
         self.path = path
         self.manifest_ = Manifest(self.path)
         self.manifest = self.manifest_.manifest
-        self.scripts = {f: Script(self.path, f) for f in scriptnames}
+        self.scripts = {f: Script(self.path, f, self.manifest.get("id")) for f in scriptnames}
         self.configurations = Configurations(self)
         self.app_catalog = AppCatalog(self.manifest["id"])
 
@@ -2262,9 +2262,10 @@ class AppCatalog(TestSuite):
 #                    |_|         #
 ##################################
 class Script(TestSuite):
-    def __init__(self, app_path, name):
+    def __init__(self, app_path, name, app_id):
         self.name = name
         self.app_path = app_path
+        self.app_id = app_id
         self.path = app_path + "/scripts/" + name
         self.exists = file_exists(self.path)
         if not self.exists:
@@ -2689,6 +2690,11 @@ class Script(TestSuite):
 
     @test()
     def chownroot(self):
+
+        # Mywebapp has a legit use case for this >_>
+        if self.app_id == "my_webapp":
+            return
+
         if self.containsregex(
             r"^\s*chown.* root:?[^$]* .*install_dir"
         ) and not self.contains('chown root:root "$install_dir"'):
