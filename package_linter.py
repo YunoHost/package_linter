@@ -1140,22 +1140,6 @@ class App(TestSuite):
             yield Error("Don't do black magic with /etc/ssowat/conf.json.persistent!")
 
     @test()
-    def bad_final_path_location(self):
-        if (
-            os.system(
-                f"grep -q -nr 'ynh_webpath_register' {self.path}/scripts/install 2>/dev/null"
-            )
-            == 0
-            and os.system(
-                f"grep -q -nr 'final_path=/opt' {self.path}/scripts/install  {self.path}/scripts/_common.sh 2>/dev/null"
-            )
-            == 0
-        ):
-            yield Info(
-                "Web applications are not supposed to be installed in /opt/ ... They are supposed to be installed in /var/www/$app :/"
-            )
-
-    @test()
     def app_data_in_unofficial_dir(self):
 
         allowed_locations = [
