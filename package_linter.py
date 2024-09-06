@@ -754,7 +754,6 @@ class App(TestSuite):
                 "It looks like this app installs a custom version of Python which is heavily discouraged, both because it takes a shitload amount of time to compile Python locally, and because it is likely to create complication later once the system gets upgraded to newer Debian versions..."
             )
 
-
     @test()
     def change_url_script(app):
 
