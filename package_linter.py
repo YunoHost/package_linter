@@ -2585,7 +2585,7 @@ class Script(TestSuite):
         systemctl_enable = [
             line
             for line in [" ".join(line) for line in self.lines]
-            if re.search(r"systemctl.*(enable|disable)", line)
+            if re.search(r"^\s*systemctl.*(enable|disable)", line)
         ]
 
         if any("-q" not in cmd for cmd in systemctl_enable):
