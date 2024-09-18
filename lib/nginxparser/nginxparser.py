@@ -1,11 +1,22 @@
 """Very low-level nginx config parser based on pyparsing."""
+
 # Taken from https://github.com/certbot/certbot (Apache licensed)
 # Itself forked from https://github.com/fatiherikli/nginxparser (MIT Licensed)
 import copy
 import logging
 
 from pyparsing import (
-    Literal, White, Forward, Group, Optional, OneOrMore, QuotedString, Regex, ZeroOrMore, Combine)
+    Literal,
+    White,
+    Forward,
+    Group,
+    Optional,
+    OneOrMore,
+    QuotedString,
+    Regex,
+    ZeroOrMore,
+    Combine,
+)
 from pyparsing import stringEnd
 from pyparsing import restOfLine
 import six
@@ -25,13 +36,13 @@ class RawNginxParser(object):
     left_bracket = Literal("{").suppress()
     right_bracket = space + Literal("}").suppress()
     semicolon = Literal(";").suppress()
-    dquoted = QuotedString('"', multiline=True, unquoteResults=False, escChar='\\')
-    squoted = QuotedString("'", multiline=True, unquoteResults=False, escChar='\\')
+    dquoted = QuotedString('"', multiline=True, unquoteResults=False, escChar="\\")
+    squoted = QuotedString("'", multiline=True, unquoteResults=False, escChar="\\")
     quoted = dquoted | squoted
     head_tokenchars = Regex(r"(\$\{)|[^{};\s'\"]")  # if (last_space)
     tail_tokenchars = Regex(r"(\$\{)|[^{;\s]")  # else
     tokenchars = Combine(head_tokenchars + ZeroOrMore(tail_tokenchars))
-    paren_quote_extend = Combine(quoted + Literal(')') + ZeroOrMore(tail_tokenchars))
+    paren_quote_extend = Combine(quoted + Literal(")") + ZeroOrMore(tail_tokenchars))
     # note: ')' allows extension, but then we fall into else, not last_space.
 
     token = paren_quote_extend | tokenchars | quoted
@@ -39,7 +50,7 @@ class RawNginxParser(object):
     whitespace_token_group = space + token + ZeroOrMore(required_space + token) + space
     assignment = whitespace_token_group + semicolon
 
-    comment = space + Literal('#') + restOfLine
+    comment = space + Literal("#") + restOfLine
 
     block = Forward()
 
@@ -68,6 +79,7 @@ class RawNginxParser(object):
 class RawNginxDumper(object):
     # pylint: disable=too-few-public-methods
     """A class that dumps nginx configuration from the provided tree."""
+
     def __init__(self, blocks):
         self.blocks = blocks
 
@@ -85,24 +97,27 @@ class RawNginxDumper(object):
                     continue
 
             if isinstance(item[0], list):  # block
-                yield "".join(item.pop(0)) + '{'
+                yield "".join(item.pop(0)) + "{"
                 for parameter in item.pop(0):
                     for line in self.__iter__([parameter]):  # negate "for b0 in blocks"
                         yield line
-                yield '}'
+                yield "}"
             else:  # not a block - list of strings
                 semicolon = ";"
-                if isinstance(item[0], six.string_types) and item[0].strip() == '#':  # comment
+                if (
+                    isinstance(item[0], six.string_types) and item[0].strip() == "#"
+                ):  # comment
                     semicolon = ""
                 yield "".join(item) + semicolon
 
     def __str__(self):
         """Return the parsed block as a string."""
-        return ''.join(self)
+        return "".join(self)
 
 
 # Shortcut functions to respect Python's serialization interface
 # (like pyyaml, picker or json)
+
 
 def loads(source):
     """Parses from a string.
@@ -149,7 +164,8 @@ def dump(blocks, _file):
     return _file.write(dumps(blocks))
 
 
-def spacey(x): return (isinstance(x, six.string_types) and x.isspace()) or x == ''
+def spacey(x):
+    return (isinstance(x, six.string_types) and x.isspace()) or x == ""
 
 
 class UnspacedList(list):
@@ -182,7 +198,7 @@ class UnspacedList(list):
         :rtype: tuple
 
         """
-        if not isinstance(inbound, list):                      # str or None
+        if not isinstance(inbound, list):  # str or None
             return (inbound, inbound)
         else:
             if not hasattr(inbound, "spaced"):
@@ -229,11 +245,15 @@ class UnspacedList(list):
         raise NotImplementedError("UnspacedList.sort() not yet implemented")
 
     def __setslice__(self, _i, _j, _newslice):
-        raise NotImplementedError("Slice operations on UnspacedLists not yet implemented")
+        raise NotImplementedError(
+            "Slice operations on UnspacedLists not yet implemented"
+        )
 
     def __setitem__(self, i, value):
         if isinstance(i, slice):
-            raise NotImplementedError("Slice operations on UnspacedLists not yet implemented")
+            raise NotImplementedError(
+                "Slice operations on UnspacedLists not yet implemented"
+            )
         item, spaced_item = self._coerce(value)
         self.spaced.__setitem__(self._spaced_position(i), spaced_item)
         if not spacey(item):
