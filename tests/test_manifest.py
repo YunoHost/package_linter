@@ -8,7 +8,6 @@ import toml
 import re
 
 from lib.lib_package_linter import *
-from lib.lib_package_linter import _print
 
 
 # Only packaging v2 is supported on the linter now ... But someday™ according The Prophecy™, packaging v3 will be a thing

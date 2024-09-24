@@ -13,3 +13,6 @@ __pycache__/
 .apps/
 .manifest.*
 .tests.*
+
+.venv/
+venv/

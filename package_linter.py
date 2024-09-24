@@ -4,7 +4,8 @@
 import argparse
 from pathlib import Path
 
-from lib.lib_package_linter import _print, c, set_output_json
+from lib.lib_package_linter import c
+from lib.print import _print, set_output_json
 
 from tests.test_app import App
 
