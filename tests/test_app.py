@@ -7,7 +7,7 @@ import sys
 import toml
 
 from lib.lib_package_linter import *
-from lib.lib_package_linter import _print
+from lib.print import _print, is_json_output
 
 from tests.test_manifest import Manifest
 from tests.test_scripts import Script
@@ -263,7 +263,7 @@ class App(TestSuite):
         self.run_single_test(App.qualify_for_level_8)
         self.run_single_test(App.qualify_for_level_9)
 
-        if output == "json":
+        if is_json_output():
             print(
                 json.dumps(
                     {

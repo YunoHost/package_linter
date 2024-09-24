@@ -7,7 +7,7 @@ from datetime import datetime
 import subprocess
 
 from lib.lib_package_linter import *
-from lib.lib_package_linter import _print
+from lib.print import _print
 
 ########################################
 #  _____       _        _              #

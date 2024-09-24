@@ -5,6 +5,8 @@ import time
 import urllib
 import jsonschema
 
+from lib.print import _print
+
 # ############################################################################
 #   Utilities
 # ############################################################################
@@ -48,19 +50,6 @@ class Success(TestReport):
 
 class Critical(TestReport):
     style = c.FAIL + " ✘✘✘ %s" + c.END
-
-
-output = "plain"
-
-
-def _print(*args, **kwargs):
-    if output == "plain":
-        print(*args, **kwargs)
-
-
-def set_output_json():
-    global output
-    output = "json"
 
 
 def report_warning_not_reliable(str):
