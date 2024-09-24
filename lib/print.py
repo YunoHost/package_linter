@@ -2,6 +2,7 @@
 
 output = "plain"
 
+
 def _print(*args, **kwargs):
     if not is_json_output():
         print(*args, **kwargs)
