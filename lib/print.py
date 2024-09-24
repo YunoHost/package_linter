@@ -1,5 +1,6 @@
-output = "plain"
+#!/usr/bin/env python3
 
+output = "plain"
 
 def _print(*args, **kwargs):
     if not is_json_output():
@@ -8,7 +9,6 @@ def _print(*args, **kwargs):
 
 def set_output_json():
     global output
-    print("setting")
     output = "json"
 
 
