@@ -2,8 +2,12 @@
 
 import re
 import json
+import sys
+
 import toml
 import subprocess
+
+from packaging.version import Version
 
 from lib.lib_package_linter import *
 from lib.print import _print
@@ -456,3 +460,46 @@ class Configurations(TestSuite):
                                     "Please be sure that this behavior is intentional. "
                                     "Maybe use '127.0.0.1' or '::1' instead."
                                 )
+
+    @test()
+    def sso_config_auth_header(self):
+        app = self.app
+        manifest_path = app.path +  "/manifest.toml"
+        try:
+            raw_manifest = open(manifest_path, encoding="utf-8").read()
+            manifest = toml.loads(raw_manifest)
+            yunohost_min_version = manifest["integration"]["yunohost"]
+        except Exception as e:
+            print(
+                c.FAIL
+                + "✘ Can't load manifest. Need manifest to run this test ?\n ---> %s" % e
+            )
+            sys.exit(1)
+
+        if Version(yunohost_min_version.lstrip(">= ")) < Version("12"):
+            # for yunohost version<12 we don't test this as this might break a lot of app and
+            # on Yunohost the correct implementation is not clearly documented
+            return
+
+        for filename in (
+                os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []
+        ):
+            cmd = f"grep -q -IhEro 'fastcgi_param\\s+REMOTE_USER\\s+\\$remote_user;' {app.path}/conf/{filename}"
+            if os.system(cmd) == 0:
+                yield Warning(
+                    "Since Yunohost >=12 you shouldn't use any more the nginx instruction "
+                    "'fastcgi_param REMOTE_USER     $remote_user;'. "
+                    "This bring some security issues. Use the header 'YNH_USER' instead which is already defined by "
+                    "ssowat and which is safe. "
+                    "More details available on https://yunohost.org/fr/packaging_sso_ldap_integration"
+                )
+                return
+
+            cmd = f'grep -q -IhEro "REMOTE_USER" {app.path}/conf/{filename}'
+            if os.system(cmd) == 0:
+                yield Warning(
+                    "Since Yunohost >=12 you shouldn't use any more the header 'REMOTE_USER' "
+                    "to detect the authenticated user."
+                    "Instead use the header 'YNH_USER' which is defined by ssowat and which is safe. "
+                    "More details available on https://yunohost.org/fr/packaging_sso_ldap_integration"
+                )
