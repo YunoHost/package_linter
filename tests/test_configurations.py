@@ -111,9 +111,12 @@ class Configurations(TestSuite):
 
             try:
                 content = open(app.path + "/conf/" + filename).read()
+            except UnicodeDecodeError:
+                yield Info("%s does not look like a text file.")
+                continue
             except Exception as e:
                 yield Warning("Can't open/read %s : %s" % (filename, e))
-                return
+                continue
 
             if "[Unit]" not in content:
                 continue
@@ -128,7 +131,7 @@ class Configurations(TestSuite):
                 yield Level(
                     "You should specify a 'User=' directive in the systemd config !"
                 )
-                return
+                continue
 
             if any(match[1] in ["root", "www-data"] for match in matches):
                 yield Level(
@@ -178,9 +181,12 @@ class Configurations(TestSuite):
 
             try:
                 content = open(app.path + "/conf/" + filename).read()
+            except UnicodeDecodeError:
+                yield Info("%s does not look like a text file.")
+                continue
             except Exception as e:
                 yield Warning("Can't open/read %s : %s" % (filename, e))
-                return
+                continue
 
             matches = re.findall(
                 r"^ *(user|group) = (\S+)", content, flags=re.MULTILINE
@@ -189,7 +195,7 @@ class Configurations(TestSuite):
                 yield Error(
                     "You should at least specify a 'user =' directive in your PHP conf file"
                 )
-                return
+                continue
 
             if any(
                 match[1] == "root" or match == ("user", "www-data") for match in matches
@@ -446,11 +452,14 @@ class Configurations(TestSuite):
             for filename in files:
                 try:
                     content = open(os.path.join(path, filename)).read()
+                except UnicodeDecodeError:
+                    yield Info("%s does not look like a text file.")
+                    continue
                 except Exception as e:
                     yield Warning(
                         "Can't open/read %s: %s" % (os.path.join(path, filename), e)
                     )
-                    return
+                    continue
 
                 for number, line in enumerate(content.split("\n"), 1):
                     comment = ("#", "//", ";", "/*", "*")
