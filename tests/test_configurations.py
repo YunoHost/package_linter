@@ -112,7 +112,7 @@ class Configurations(TestSuite):
             try:
                 content = open(app.path + "/conf/" + filename).read()
             except UnicodeDecodeError:
-                yield Info("%s does not look like a text file.")
+                yield Info("%s does not look like a text file." % filename)
                 continue
             except Exception as e:
                 yield Warning("Can't open/read %s : %s" % (filename, e))
@@ -182,7 +182,7 @@ class Configurations(TestSuite):
             try:
                 content = open(app.path + "/conf/" + filename).read()
             except UnicodeDecodeError:
-                yield Info("%s does not look like a text file.")
+                yield Info("%s does not look like a text file." % filename)
                 continue
             except Exception as e:
                 yield Warning("Can't open/read %s : %s" % (filename, e))
@@ -453,7 +453,7 @@ class Configurations(TestSuite):
                 try:
                     content = open(os.path.join(path, filename)).read()
                 except UnicodeDecodeError:
-                    yield Info("%s does not look like a text file.")
+                    yield Info("%s does not look like a text file." % filename)
                     continue
                 except Exception as e:
                     yield Warning(
