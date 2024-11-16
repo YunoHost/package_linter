@@ -1,11 +1,21 @@
 #!/usr/bin/env python3
 
-import re
 import json
-import toml
+import os
+import re
 import subprocess
 
-from lib.lib_package_linter import *
+import toml
+from lib.lib_package_linter import (
+    Error,
+    Info,
+    TestSuite,
+    Warning,
+    file_exists,
+    test,
+    tests_v1_schema,
+    validate_schema,
+)
 from lib.print import _print
 
 
@@ -384,7 +394,8 @@ class Configurations(TestSuite):
 
             do_path_traversal_check = False
             try:
-                import pyparsing, six
+                import pyparsing
+                import six
 
                 do_path_traversal_check = True
             except Exception:

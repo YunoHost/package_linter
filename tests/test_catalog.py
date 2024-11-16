@@ -1,12 +1,23 @@
 #!/usr/bin/env python3
 
-import toml
 import json
-import sys
-from datetime import datetime
+import os
 import subprocess
+import sys
+import time
+from datetime import datetime
 
-from lib.lib_package_linter import *
+import toml
+from lib.lib_package_linter import (
+    Critical,
+    Error,
+    Info,
+    Success,
+    TestSuite,
+    Warning,
+    test,
+    urlopen,
+)
 from lib.print import _print
 
 ########################################

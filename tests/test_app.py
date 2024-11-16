@@ -1,18 +1,30 @@
 #!/usr/bin/env python3
 
-import subprocess
 import copy
 import json
+import os
+import subprocess
 import sys
-import toml
 
-from lib.lib_package_linter import *
+import toml
+from lib.lib_package_linter import (
+    Error,
+    Info,
+    Success,
+    TestSuite,
+    Warning,
+    config_panel_v1_schema,
+    file_exists,
+    test,
+    tests_reports,
+    validate_schema,
+)
 from lib.print import _print, is_json_output
 
+from tests.test_catalog import AppCatalog
+from tests.test_configurations import Configurations
 from tests.test_manifest import Manifest
 from tests.test_scripts import Script
-from tests.test_configurations import Configurations
-from tests.test_catalog import AppCatalog
 
 scriptnames = ["_common.sh", "install", "remove", "upgrade", "backup", "restore"]
 

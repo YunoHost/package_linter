@@ -1,14 +1,24 @@
 #!/usr/bin/env python3
 
-import json
 import copy
+import json
 import os
-import sys
-import toml
 import re
+import sys
 
-from lib.lib_package_linter import *
-
+import toml
+from lib.lib_package_linter import (
+    Critical,
+    Error,
+    Info,
+    TestSuite,
+    Warning,
+    c,
+    manifest_v2_schema,
+    spdx_licenses,
+    test,
+    validate_schema,
+)
 
 # Only packaging v2 is supported on the linter now ... But someday™ according The Prophecy™, packaging v3 will be a thing
 app_packaging_format = 2
