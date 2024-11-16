@@ -5,7 +5,7 @@ import os
 import re
 import subprocess
 
-import toml
+import tomllib
 from lib.lib_package_linter import (
     Error,
     Info,
@@ -49,7 +49,7 @@ class Configurations(TestSuite):
             yield from validate_schema(
                 "tests.toml",
                 json.loads(tests_v1_schema()),
-                toml.load(app.path + "/tests.toml"),
+                tomllib.load(open(app.path + "/tests.toml", "rb")),
             )
 
     @test()

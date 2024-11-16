@@ -6,7 +6,7 @@ import os
 import re
 import sys
 
-import toml
+import tomllib
 from lib.lib_package_linter import (
     Critical,
     Error,
@@ -89,7 +89,7 @@ class Manifest(TestSuite):
 
         self.raw_manifest = open(manifest_path, encoding="utf-8").read()
         try:
-            self.manifest = toml.loads(self.raw_manifest)
+            self.manifest = tomllib.loads(self.raw_manifest)
         except Exception as e:
             print(
                 c.FAIL
