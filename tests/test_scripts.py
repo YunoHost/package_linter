@@ -1,11 +1,21 @@
 #!/usr/bin/env python3
 
-import shlex
+import os
 import re
-import subprocess
+import shlex
 import statistics
+import subprocess
 
-from lib.lib_package_linter import *
+from lib.lib_package_linter import (
+    Critical,
+    Error,
+    Info,
+    TestSuite,
+    Warning,
+    file_exists,
+    report_warning_not_reliable,
+    test,
+)
 from lib.print import _print
 
 
