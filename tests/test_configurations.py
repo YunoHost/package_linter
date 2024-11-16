@@ -49,7 +49,7 @@ class Configurations(TestSuite):
             yield from validate_schema(
                 "tests.toml",
                 json.loads(tests_v1_schema()),
-                tomllib.load(app.path + "/tests.toml"),
+                tomllib.load(open(app.path + "/tests.toml", "rb")),
             )
 
     @test()

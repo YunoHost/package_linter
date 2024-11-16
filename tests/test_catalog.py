@@ -42,7 +42,7 @@ class AppCatalog(TestSuite):
         self._fetch_app_repo()
 
         try:
-            self.app_list = tomllib.loads(open("./.apps/apps.toml").read())
+            self.app_list = tomllib.load(open("./.apps/apps.toml", "rb"))
         except Exception:
             _print("Failed to read apps.toml :/")
             sys.exit(-1)
