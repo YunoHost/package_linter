@@ -5,20 +5,12 @@ import json
 import os
 import re
 import sys
-
 import tomllib
-from lib.lib_package_linter import (
-    Critical,
-    Error,
-    Info,
-    TestSuite,
-    Warning,
-    c,
-    manifest_v2_schema,
-    spdx_licenses,
-    test,
-    validate_schema,
-)
+from typing import Any, Callable
+
+from lib.lib_package_linter import (Critical, Error, Info, TestResult,
+                                    TestSuite, Warning, c, manifest_v2_schema,
+                                    spdx_licenses, test, validate_schema)
 
 # Only packaging v2 is supported on the linter now ... But someday™ according The Prophecy™, packaging v3 will be a thing
 app_packaging_format = 2
@@ -70,7 +62,7 @@ VERSION_PATTERN = r"""
 
 
 class Manifest(TestSuite):
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
 
         self.path = path
         self.test_suite_name = "manifest"
@@ -78,7 +70,7 @@ class Manifest(TestSuite):
         manifest_path = os.path.join(path, "manifest.toml")
 
         # Taken from https://stackoverflow.com/a/49518779
-        def check_for_duplicate_keys(ordered_pairs):
+        def check_for_duplicate_keys(ordered_pairs: list[tuple[str, Any]]) -> dict[str, Any]:
             dict_out = {}
             for key, val in ordered_pairs:
                 if key in dict_out:
@@ -98,7 +90,7 @@ class Manifest(TestSuite):
             sys.exit(1)
 
     @test()
-    def mandatory_fields(self):
+    def mandatory_fields(self) -> TestResult:
 
         fields = [
             "packaging_format",
@@ -122,11 +114,11 @@ class Manifest(TestSuite):
                 "The following mandatory fields are missing: %s" % missing_fields
             )
 
-        if "license" not in self.manifest.get("upstream"):
+        if "license" not in self.manifest.get("upstream", ""):
             yield Error("The license key in the upstream section is missing")
 
     @test()
-    def maintainer_sensible_values(self):
+    def maintainer_sensible_values(self) -> TestResult:
         if "maintainers" in self.manifest.keys():
             for value in self.manifest["maintainers"]:
                 if not value.strip():
@@ -137,7 +129,7 @@ class Manifest(TestSuite):
                     )
 
     @test()
-    def upstream_fields(self):
+    def upstream_fields(self) -> TestResult:
         if "upstream" not in self.manifest.keys():
             yield Warning(
                 """READMEs are to be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator.
@@ -145,7 +137,7 @@ class Manifest(TestSuite):
             )
 
     @test()
-    def upstream_placeholders(self):
+    def upstream_placeholders(self) -> TestResult:
         if "upstream" in self.manifest.keys():
             if "yunohost.org" in self.manifest["upstream"].get("admindoc", ""):
                 yield Error(
@@ -175,12 +167,12 @@ class Manifest(TestSuite):
                 )
 
     @test()
-    def FIXMEs(self):
+    def FIXMEs(self) -> TestResult:
         if "FIXME" in self.raw_manifest:
             yield Warning("There are still some FIXMEs remaining in the manifest")
 
     @test()
-    def yunohost_version_requirement_superold(app):
+    def yunohost_version_requirement_superold(app) -> TestResult:
 
         yunohost_version_req = (
             app.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
@@ -195,18 +187,18 @@ class Manifest(TestSuite):
             )
 
     @test()
-    def basic_fields_format(self):
+    def basic_fields_format(self) -> TestResult:
 
         if self.manifest.get("packaging_format") != app_packaging_format:
             yield Error(f"packaging_format should be {app_packaging_format}")
-        if not re.match("^[a-z0-9]((_|-)?[a-z0-9])+$", self.manifest.get("id")):
+        if not re.match("^[a-z0-9]((_|-)?[a-z0-9])+$", self.manifest.get("id", "")):
             yield Error("The app id is not a valid app id")
-        elif self.manifest.get("id").endswith("_ynh"):
+        elif self.manifest.get("id", "").endswith("_ynh"):
             yield Warning("The app id is not supposed to end with _ynh :| ...")
         if len(self.manifest["name"]) > 22:
             yield Error("The app name is too long")
 
-        keys = {
+        keys: dict[str, tuple[Callable[..., bool | re.Match[str] | None], str]] = {
             "yunohost": (
                 lambda v: isinstance(v, str) and re.fullmatch(r"^>=\s*[\d\.]+\d$", v),
                 "Expected something like '>= 4.5.6'",
@@ -254,7 +246,7 @@ class Manifest(TestSuite):
             yield Error("Missing 'license' key in the upstream section")
 
     @test()
-    def license(self):
+    def license(self) -> TestResult:
 
         # Turns out there may be multiple licenses... (c.f. Seafile)
         licenses = self.manifest.get("upstream", {}).get("license", "").split(",")
@@ -279,7 +271,7 @@ class Manifest(TestSuite):
                 return
 
     @test()
-    def description(self):
+    def description(self) -> TestResult:
 
         descr = self.manifest.get("description", "")
         id = self.manifest["id"].lower()
@@ -306,7 +298,7 @@ class Manifest(TestSuite):
             )
 
     @test()
-    def version_format(self):
+    def version_format(self) -> TestResult:
         if not re.match(
             r"^" + VERSION_PATTERN + r"~ynh[0-9]+$",
             self.manifest.get("version", ""),
@@ -321,7 +313,7 @@ class Manifest(TestSuite):
             )
 
     @test()
-    def custom_install_dir(self):
+    def custom_install_dir(self) -> TestResult:
         custom_install_dir = (
             self.manifest.get("resources", {}).get("install_dir", {}).get("dir")
         )
@@ -334,7 +326,7 @@ class Manifest(TestSuite):
             )
 
     @test()
-    def install_args(self):
+    def install_args(self) -> TestResult:
 
         recognized_types = (
             "string",
@@ -413,7 +405,7 @@ class Manifest(TestSuite):
                         )
 
     @test()
-    def obsolete_or_missing_ask_strings(self):
+    def obsolete_or_missing_ask_strings(self) -> TestResult:
 
         ask_string_managed_by_the_core = [
             ("domain", "domain"),
@@ -452,7 +444,7 @@ class Manifest(TestSuite):
                 )
 
     @test()
-    def old_php_version(self):
+    def old_php_version(self) -> TestResult:
 
         resources = self.manifest["resources"]
 
@@ -472,7 +464,7 @@ class Manifest(TestSuite):
                 )
 
     @test()
-    def resource_consistency(self):
+    def resource_consistency(self) -> TestResult:
 
         resources = self.manifest["resources"]
 
@@ -517,7 +509,7 @@ class Manifest(TestSuite):
             )
 
         @test()
-        def manifest_schema(self):
+        def manifest_schema(self: "Manifest") -> TestResult:
             yield from validate_schema(
                 "manifest", json.loads(manifest_v2_schema()), self.manifest
             )

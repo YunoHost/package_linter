@@ -3,8 +3,9 @@
 import os
 import time
 import urllib.request
+from typing import Any, Callable, Generator, TypeVar
+
 import jsonschema
-from typing import Any, Callable, Generator, Tuple
 
 from lib.print import _print
 
@@ -135,7 +136,8 @@ def validate_schema(name: str, schema: dict[str, Any], data: dict[str, Any]) -> 
         )
 
 
-TestFn = Callable[["TestSuite"], Generator[TestReport, None, None]]
+TestResult = Generator[TestReport, None, None]
+TestFn = Callable[[Any], TestResult]
 
 tests: dict[str, list[tuple[TestFn, Any]]] = {}
 tests_reports: dict[str, list[Any]] = {
@@ -145,6 +147,7 @@ tests_reports: dict[str, list[Any]] = {
     "error": [],
     "critical": [],
 }
+
 
 
 def test(**kwargs: Any) -> Callable[[TestFn], TestFn]:
@@ -158,7 +161,7 @@ def test(**kwargs: Any) -> Callable[[TestFn], TestFn]:
     return decorator
 
 
-class TestSuite:
+class TestSuite():
     name: str
     test_suite_name: str
 

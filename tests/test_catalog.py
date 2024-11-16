@@ -5,19 +5,13 @@ import os
 import subprocess
 import sys
 import time
-from datetime import datetime
-
 import tomllib
-from lib.lib_package_linter import (
-    Critical,
-    Error,
-    Info,
-    Success,
-    TestSuite,
-    Warning,
-    test,
-    urlopen,
-)
+from datetime import datetime
+from types import ModuleType
+from typing import Any, Generator
+
+from lib.lib_package_linter import (Critical, Error, Info, Success, TestResult,
+                                    TestSuite, Warning, test, urlopen)
 from lib.print import _print
 
 ########################################
@@ -34,7 +28,7 @@ from lib.print import _print
 
 
 class AppCatalog(TestSuite):
-    def __init__(self, app_id):
+    def __init__(self, app_id: str) -> None:
 
         self.app_id = app_id
         self.test_suite_name = "Catalog infos"
@@ -49,7 +43,7 @@ class AppCatalog(TestSuite):
 
         self.catalog_infos = self.app_list.get(app_id, {})
 
-    def _fetch_app_repo(self):
+    def _fetch_app_repo(self) -> None:
 
         flagfile = "./.apps_git_clone_cache"
         if (
@@ -78,13 +72,13 @@ class AppCatalog(TestSuite):
         open(flagfile, "w").write("")
 
     @test()
-    def is_in_catalog(self):
+    def is_in_catalog(self) -> TestResult:
 
         if not self.catalog_infos:
             yield Critical("This app is not in YunoHost's application catalog")
 
     @test()
-    def revision_is_HEAD(self):
+    def revision_is_HEAD(self) -> TestResult:
 
         if self.catalog_infos and self.catalog_infos.get("revision", "HEAD") != "HEAD":
             yield Error(
@@ -92,7 +86,7 @@ class AppCatalog(TestSuite):
             )
 
     @test()
-    def state_is_working(self):
+    def state_is_working(self) -> TestResult:
 
         if (
             self.catalog_infos
@@ -103,14 +97,14 @@ class AppCatalog(TestSuite):
             )
 
     @test()
-    def has_category(self):
+    def has_category(self) -> TestResult:
         if self.catalog_infos and not self.catalog_infos.get("category"):
             yield Warning(
                 "The application has no associated category in YunoHost's apps catalog"
             )
 
     @test()
-    def is_in_github_org(self):
+    def is_in_github_org(self) -> TestResult:
 
         repo_org = "https://github.com/YunoHost-Apps/%s_ynh" % (self.app_id)
         repo_brique = "https://github.com/labriqueinternet/%s_ynh" % (self.app_id)
@@ -130,10 +124,10 @@ class AppCatalog(TestSuite):
 
         else:
 
-            def is_in_github_org():
+            def is_in_github_org() -> bool:
                 return urlopen(repo_org)[0] != 404
 
-            def is_in_brique_org():
+            def is_in_brique_org() -> bool:
                 return urlopen(repo_brique)[0] != 404
 
             if not is_in_github_org() and not is_in_brique_org():
@@ -142,7 +136,7 @@ class AppCatalog(TestSuite):
                 )
 
     @test()
-    def is_long_term_good_quality(self):
+    def is_long_term_good_quality(self) -> TestResult:
 
         #
         # This analyzes the (git) history of apps.json in the past year and
@@ -150,14 +144,14 @@ class AppCatalog(TestSuite):
         # known + flagged working + level >= 5
         #
 
-        def git(cmd):
+        def git(cmd: list[str]) -> str:
             return (
                 subprocess.check_output(["git", "-C", "./.apps"] + cmd)
                 .decode("utf-8")
                 .strip()
             )
 
-        def _time_points_until_today():
+        def _time_points_until_today() -> Generator[datetime, None, None]:
 
             # Prior to April 4th, 2019, we still had official.json and community.json
             # Nowadays we only have apps.json
@@ -181,9 +175,10 @@ class AppCatalog(TestSuite):
 
                 date = datetime(year, month, day)
 
-        def get_history(N):
+        def get_history(N: int) -> Generator[tuple[datetime, dict[str, Any]], None, None]:
 
             for t in list(_time_points_until_today())[(-1 * N) :]:
+                loader: ModuleType
 
                 # Fetch apps.json content at this date
                 commit = git(
@@ -229,7 +224,7 @@ class AppCatalog(TestSuite):
         # + flagged as working
         # + level > 5
         # for the past 6 months
-        def good_quality(infos):
+        def good_quality(infos: dict[str, Any]) -> bool:
             return (
                 bool(infos)
                 and isinstance(infos, dict)
