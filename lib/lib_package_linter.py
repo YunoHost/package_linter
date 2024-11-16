@@ -2,8 +2,9 @@
 
 import os
 import time
-import urllib
+import urllib.request
 import jsonschema
+from typing import Any, Callable, Generator, Tuple
 
 from lib.print import _print
 
@@ -25,10 +26,13 @@ class c:
 
 
 class TestReport:
-    def __init__(self, message):
+    style: str
+    test_name: str
+
+    def __init__(self, message: str) -> None:
         self.message = message
 
-    def display(self, prefix=""):
+    def display(self, prefix: str = "") -> None:
         _print(prefix + self.style % self.message)
 
 
@@ -52,38 +56,38 @@ class Critical(TestReport):
     style = c.FAIL + " ✘✘✘ %s" + c.END
 
 
-def report_warning_not_reliable(str):
-    _print(c.MAYBE_FAIL + "?", str, c.END)
+def report_warning_not_reliable(message: str) -> None:
+    _print(c.MAYBE_FAIL + "?", message, c.END)
 
 
-def print_happy(str):
-    _print(c.OKGREEN + " ☺ ", str, "♥")
+def print_happy(message: str) -> None:
+    _print(c.OKGREEN + " ☺ ", message, "♥")
 
 
-def urlopen(url):
+def urlopen(url: str) -> tuple[int, str]:
     try:
         conn = urllib.request.urlopen(url)
     except urllib.error.HTTPError as e:
-        return {"content": "", "code": e.code}
+        return e.code, ""
     except urllib.error.URLError as e:
         _print("Could not fetch %s : %s" % (url, e))
-        return {"content": "", "code": 0}
-    return {"content": conn.read().decode("UTF8"), "code": 200}
+        return 0, ""
+    return 200, conn.read().decode("UTF8")
 
 
-def file_exists(file_path):
+def file_exists(file_path: str) -> bool:
     return os.path.isfile(file_path) and os.stat(file_path).st_size > 0
 
 
-def cache_file(cachefile: str, ttl_s: int):
-    def cache_is_fresh():
+def cache_file(cachefile: str, ttl_s: int) -> Callable[[Callable[..., str]], Callable[..., str]]:
+    def cache_is_fresh() -> bool:
         return (
             os.path.exists(cachefile)
             and time.time() - os.path.getmtime(cachefile) < ttl_s
         )
 
-    def decorator(function):
-        def wrapper(*args, **kwargs):
+    def decorator(function: Callable[..., str]) -> Callable[..., str]:
+        def wrapper(*args: Any, **kwargs: Any) -> str:
             if not cache_is_fresh():
                 with open(cachefile, "w+") as outfile:
                     outfile.write(function(*args, **kwargs))
@@ -95,38 +99,35 @@ def cache_file(cachefile: str, ttl_s: int):
 
 
 @cache_file(".spdx_licenses", 3600)
-def spdx_licenses():
-    return urlopen("https://spdx.org/licenses/")["content"]
+def spdx_licenses() -> str:
+    return urlopen("https://spdx.org/licenses/")[1]
 
 
 @cache_file(".manifest.v2.schema.json", 3600)
-def manifest_v2_schema():
-    return urlopen(
-        "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/manifest.v2.schema.json"
-    )["content"]
+def manifest_v2_schema() -> str:
+    url = "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/manifest.v2.schema.json"
+    return urlopen(url)[1]
 
 
 @cache_file(".tests.v1.schema.json", 3600)
-def tests_v1_schema():
-    return urlopen(
-        "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/tests.v1.schema.json"
-    )["content"]
+def tests_v1_schema() -> str:
+    url = "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/tests.v1.schema.json"
+    return urlopen(url)[1]
 
 
 @cache_file(".config_panel.v1.schema.json", 3600)
-def config_panel_v1_schema():
-    return urlopen(
-        "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/config_panel.v1.schema.json"
-    )["content"]
+def config_panel_v1_schema() -> str:
+    url = "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/config_panel.v1.schema.json"
+    return urlopen(url)[1]
 
 
-def validate_schema(name: str, schema, data):
+def validate_schema(name: str, schema: dict[str, Any], data: dict[str, Any]) -> Generator[Info, None, None]:
     v = jsonschema.Draft7Validator(schema)
 
     for error in v.iter_errors(data):
         try:
             error_path = " > ".join(error.path)
-        except:
+        except TypeError:
             error_path = str(error.path)
 
         yield Info(
@@ -134,8 +135,10 @@ def validate_schema(name: str, schema, data):
         )
 
 
-tests = {}
-tests_reports = {
+TestFn = Callable[["TestSuite"], Generator[TestReport, None, None]]
+
+tests: dict[str, list[tuple[TestFn, Any]]] = {}
+tests_reports: dict[str, list[Any]] = {
     "success": [],
     "info": [],
     "warning": [],
@@ -144,8 +147,8 @@ tests_reports = {
 }
 
 
-def test(**kwargs):
-    def decorator(f):
+def test(**kwargs: Any) -> Callable[[TestFn], TestFn]:
+    def decorator(f: TestFn) -> TestFn:
         clsname = f.__qualname__.split(".")[0]
         if clsname not in tests:
             tests[clsname] = []
@@ -156,7 +159,10 @@ def test(**kwargs):
 
 
 class TestSuite:
-    def run_tests(self):
+    name: str
+    test_suite_name: str
+
+    def run_tests(self) -> None:
 
         reports = []
 
@@ -174,7 +180,7 @@ class TestSuite:
 
         # Display part
 
-        def report_type(report):
+        def report_type(report: TestReport) -> str:
             return report.__class__.__name__.lower()
 
         if any(report_type(r) in ["warning", "error", "critical"] for r in reports):
@@ -198,11 +204,11 @@ class TestSuite:
         for report in reports:
             tests_reports[report_type(report)].append((report.test_name, report))
 
-    def run_single_test(self, test):
+    def run_single_test(self, test: TestFn) -> None:
 
         reports = list(test(self))
 
-        def report_type(report):
+        def report_type(report: TestReport) -> str:
             return report.__class__.__name__.lower()
 
         for report in reports:
