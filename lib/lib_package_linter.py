@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os
+from pathlib import Path
 import time
 import urllib.request
 from typing import Any, Callable, Generator, TypeVar
@@ -76,47 +76,44 @@ def urlopen(url: str) -> tuple[int, str]:
     return 200, conn.read().decode("UTF8")
 
 
-def file_exists(file_path: str) -> bool:
-    return os.path.isfile(file_path) and os.stat(file_path).st_size > 0
+def not_empty(file: Path) -> bool:
+    return file.is_file() and file.stat().st_size > 0
 
 
-def cache_file(cachefile: str, ttl_s: int) -> Callable[[Callable[..., str]], Callable[..., str]]:
+def cache_file(cachefile: Path, ttl_s: int) -> Callable[[Callable[..., str]], Callable[..., str]]:
     def cache_is_fresh() -> bool:
-        return (
-            os.path.exists(cachefile)
-            and time.time() - os.path.getmtime(cachefile) < ttl_s
-        )
+        age_s = time.time() - cachefile.stat().st_mtime
+        return cachefile.exists() and age_s < ttl_s
 
     def decorator(function: Callable[..., str]) -> Callable[..., str]:
         def wrapper(*args: Any, **kwargs: Any) -> str:
             if not cache_is_fresh():
-                with open(cachefile, "w+") as outfile:
-                    outfile.write(function(*args, **kwargs))
-            return open(cachefile).read()
+                cachefile.write_text(function(*args, **kwargs))
+            return cachefile.read_text()
 
         return wrapper
 
     return decorator
 
 
-@cache_file(".spdx_licenses", 3600)
+@cache_file(Path(".spdx_licenses"), 3600)
 def spdx_licenses() -> str:
     return urlopen("https://spdx.org/licenses/")[1]
 
 
-@cache_file(".manifest.v2.schema.json", 3600)
+@cache_file(Path(".manifest.v2.schema.json"), 3600)
 def manifest_v2_schema() -> str:
     url = "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/manifest.v2.schema.json"
     return urlopen(url)[1]
 
 
-@cache_file(".tests.v1.schema.json", 3600)
+@cache_file(Path(".tests.v1.schema.json"), 3600)
 def tests_v1_schema() -> str:
     url = "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/tests.v1.schema.json"
     return urlopen(url)[1]
 
 
-@cache_file(".config_panel.v1.schema.json", 3600)
+@cache_file(Path(".config_panel.v1.schema.json"), 3600)
 def config_panel_v1_schema() -> str:
     url = "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/config_panel.v1.schema.json"
     return urlopen(url)[1]

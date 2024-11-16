@@ -3,12 +3,13 @@
 import json
 import os
 import re
+from pathlib import Path
 import subprocess
 import tomllib
 from typing import Any, Generator
 
 from lib.lib_package_linter import (Error, Info, TestReport, TestResult,
-                                    TestSuite, Warning, file_exists, test,
+                                    TestSuite, Warning, not_empty, test,
                                     tests_v1_schema, validate_schema)
 from lib.print import _print
 
@@ -31,11 +32,8 @@ class Configurations(TestSuite):
 
     @test()
     def tests_toml(self) -> TestResult:
-
-        app = self.app
-
-        tests_toml_file = app.path + "/tests.toml"
-        if not file_exists(tests_toml_file):
+        tests_toml_file = self.app.path / "tests.toml"
+        if not not_empty(tests_toml_file):
             yield Error(
                 "The 'check_process' file that interfaces with the app CI has now been replaced with 'tests.toml' format and is now mandatory for apps v2."
             )
@@ -43,15 +41,13 @@ class Configurations(TestSuite):
             yield from validate_schema(
                 "tests.toml",
                 json.loads(tests_v1_schema()),
-                tomllib.load(open(app.path + "/tests.toml", "rb")),
+                tomllib.load(tests_toml_file.open("rb")),
             )
 
     @test()
     def encourage_extra_php_conf(self) -> TestResult:
-
-        app = self.app
-
-        if file_exists(app.path + "/conf/php-fpm.conf"):
+        php_conf = self.app.path / "conf" / "php-fpm.conf"
+        if not_empty(php_conf):
             yield Info(
                 "For the php configuration, consider getting rid of php-fpm.conf "
                 "and using the --usage and --footprint option of ynh_add_fpm_config. "
@@ -64,21 +60,9 @@ class Configurations(TestSuite):
 
     @test()
     def misc_source_management(self) -> TestResult:
+        source_dir = self.app.path / "sources"
 
-        app = self.app
-
-        source_dir = os.path.join(app.path, "sources")
-        if (
-            os.path.exists(source_dir)
-            and len(
-                [
-                    name
-                    for name in os.listdir(source_dir)
-                    if os.path.isfile(os.path.join(source_dir, name))
-                ]
-            )
-            > 5
-        ):
+        if source_dir.exists() and len(list(source_dir.rglob("*"))) > 5:
             yield Error(
                 "Upstream app sources shouldn't be stored in this 'sources' folder of this git repository as a copy/paste\n"
                 "During installation, the package should download sources from upstream via 'ynh_setup_source'.\n"
@@ -89,27 +73,27 @@ class Configurations(TestSuite):
 
     @test()
     def systemd_config_specific_user(self) -> TestResult:
+        conf_dir: Path = self.app.path / "conf"
+        if not conf_dir.exists():
+            return
 
-        app = self.app
-        for filename in (
-            os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []
-        ):
+        for file in conf_dir.iterdir():
             # Ignore subdirs or filename not containing nginx in the name
-            if not filename.endswith(".service"):
+            if not file.name.endswith(".service"):
                 continue
 
             # Some apps only provide an override conf file, which is different
             # from the full/base service config (c.f. ffsync)
-            if "override" in filename:
+            if "override" in file.name:
                 continue
 
             try:
-                content = open(app.path + "/conf/" + filename).read()
+                content = file.read_text()
             except UnicodeDecodeError:
-                yield Info("%s does not look like a text file." % filename)
+                yield Info("%s does not look like a text file." % file.name)
                 continue
             except Exception as e:
-                yield Warning("Can't open/read %s : %s" % (filename, e))
+                yield Warning("Can't open/read %s : %s" % (file.name, e))
                 continue
 
             if "[Unit]" not in content:
@@ -135,52 +119,43 @@ class Configurations(TestSuite):
 
     @test()
     def systemd_config_harden_security(self) -> TestResult:
+        conf_dir: Path = self.app.path / "conf"
+        if not conf_dir.exists():
+            return
 
-        app = self.app
-        for filename in (
-            os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []
-        ):
+        for file in conf_dir.iterdir():
             # Ignore subdirs or filename not containing nginx in the name
-            if not filename.endswith(".service"):
+            if not file.name.endswith(".service"):
                 continue
 
             if (
-                os.system(
-                    f"grep -q '^ *CapabilityBoundingSet=' '{app.path}/conf/{filename}'"
-                )
-                != 0
-                or os.system(f"grep -q '^ *Protect.*=' '{app.path}/conf/{filename}'")
-                != 0
-                or os.system(
-                    f"grep -q '^ *SystemCallFilter=' '{app.path}/conf/{filename}'"
-                )
-                != 0
-                or os.system(f"grep -q '^ *PrivateTmp=' '{app.path}/conf/{filename}'")
-                != 0
+                os.system(f"grep -q '^ *CapabilityBoundingSet=' '{file}'") != 0
+                or os.system(f"grep -q '^ *Protect.*=' '{file}'") != 0
+                or os.system(f"grep -q '^ *SystemCallFilter=' '{file}'") != 0
+                or os.system(f"grep -q '^ *PrivateTmp=' '{file}'") != 0
             ):
-
                 yield Info(
-                    f"You are encouraged to harden the security of the systemd configuration {filename}. You can have a look at https://github.com/YunoHost/example_ynh/blob/master/conf/systemd.service#L14-L46 for a baseline."
+                    f"You are encouraged to harden the security of the systemd configuration {file.name}. You can have a look at https://github.com/YunoHost/example_ynh/blob/master/conf/systemd.service#L14-L46 for a baseline."
                 )
 
     @test()
     def php_config_specific_user(self) -> TestResult:
+        conf_dir: Path = self.app.path / "conf"
+        if not conf_dir.exists():
+            return
 
-        app = self.app
-        for filename in (
-            os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []
-        ):
+        for file in conf_dir.iterdir():
             # Ignore subdirs or filename not containing nginx in the name
-            if not filename.startswith("php") or not filename.endswith(".conf"):
+            if not file.name.startswith("php") or not file.name.endswith(".conf"):
                 continue
 
             try:
-                content = open(app.path + "/conf/" + filename).read()
+                content = file.read_text()
             except UnicodeDecodeError:
-                yield Info("%s does not look like a text file." % filename)
+                yield Info("%s does not look like a text file." % file.name)
                 continue
             except Exception as e:
-                yield Warning("Can't open/read %s : %s" % (filename, e))
+                yield Warning("Can't open/read %s : %s" % (file.name, e))
                 continue
 
             matches = re.findall(
@@ -201,32 +176,28 @@ class Configurations(TestSuite):
 
     @test()
     def nginx_http_host(self) -> TestResult:
+        nginx_conf: Path = self.app.path / "conf" / "nginx.conf"
+        if not nginx_conf.exists():
+            return
 
-        app = self.app
-
-        if os.path.exists(app.path + "/conf/nginx.conf"):
-            content = open(app.path + "/conf/nginx.conf").read()
-            if "$http_host" in content:
-                yield Info(
-                    "In nginx.conf : please don't use $http_host but $host instead. C.f. https://github.com/yandex/gixy/blob/master/docs/en/plugins/hostspoofing.md"
-                )
+        content = nginx_conf.read_text()
+        if "$http_host" in content:
+            yield Info(
+                "In nginx.conf : please don't use $http_host but $host instead. C.f. https://github.com/yandex/gixy/blob/master/docs/en/plugins/hostspoofing.md"
+            )
 
     @test()
     def nginx_https_redirect(self) -> TestResult:
+        conf_dir: Path = self.app.path / "conf"
+        if not conf_dir.exists():
+            return
 
-        app = self.app
-
-        for filename in (
-            os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []
-        ):
+        for file in conf_dir.iterdir():
             # Ignore subdirs or filename not containing nginx in the name
-            if (
-                not os.path.isfile(app.path + "/conf/" + filename)
-                or "nginx" not in filename
-            ):
+            if not file.is_file() or "nginx" not in file.name:
                 continue
 
-            content = open(app.path + "/conf/" + filename).read()
+            content = file.read_text()
             if "if ($scheme = http)" in content and "rewrite ^ https" in content:
                 yield Error(
                     "Since Yunohost 4.3, the http->https redirect is handled by the core, "
@@ -236,26 +207,21 @@ class Configurations(TestSuite):
 
     @test()
     def misc_nginx_add_header(self) -> TestResult:
-
-        app = self.app
-
         #
         # Analyze nginx conf
         # - Deprecated usage of 'add_header' in nginx conf
         # - Spot path traversal issue vulnerability
         #
+        conf_dir: Path = self.app.path / "conf"
+        if not conf_dir.exists():
+            return
 
-        for filename in (
-            os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []
-        ):
+        for file in conf_dir.iterdir():
             # Ignore subdirs or filename not containing nginx in the name
-            if (
-                not os.path.isfile(app.path + "/conf/" + filename)
-                or "nginx" not in filename
-            ):
+            if not file.is_file() or "nginx" not in file.name:
                 continue
 
-            content = open(app.path + "/conf/" + filename).read()
+            content = file.read_text()
             if "location" in content and "add_header" in content:
                 yield Error(
                     "Do not use 'add_header' in the NGINX conf. Use 'more_set_headers' instead. "
@@ -265,22 +231,18 @@ class Configurations(TestSuite):
 
     @test()
     def misc_nginx_more_set_headers(self) -> TestResult:
+        conf_dir: Path = self.app.path / "conf"
+        if not conf_dir.exists():
+            return
 
-        app = self.app
-
-        for filename in (
-            os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []
-        ):
+        for file in conf_dir.iterdir():
             # Ignore subdirs or filename not containing nginx in the name
-            if (
-                not os.path.isfile(app.path + "/conf/" + filename)
-                or "nginx" not in filename
-            ):
+            if not file.is_file() or "nginx" not in file.name:
                 continue
 
-            content = open(app.path + "/conf/" + filename).read()
-            if "location" in content and "more_set_headers" in content:
+            content = file.read_text()
 
+            if "location" in content and "more_set_headers" in content:
                 lines = content.split("\n")
                 more_set_headers_lines = [
                     zzz for zzz in lines if "more_set_headers" in zzz
@@ -308,20 +270,16 @@ class Configurations(TestSuite):
 
     @test()
     def misc_nginx_check_regex_in_location(self) -> TestResult:
-        app = self.app
-        for filename in (
-            os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []
-        ):
+        conf_dir: Path = self.app.path / "conf"
+        if not conf_dir.exists():
+            return
+
+        for file in conf_dir.iterdir():
             # Ignore subdirs or filename not containing nginx in the name
-            if (
-                not os.path.isfile(app.path + "/conf/" + filename)
-                or "nginx" not in filename
-            ):
+            if not file.is_file() or "nginx" not in file.name:
                 continue
 
-            cmd = 'grep -q -IhEro "location ~ __PATH__" %s' % (
-                app.path + "/conf/" + filename
-            )
+            cmd = 'grep -q -IhEro "location ~ __PATH__" %s' % file
 
             if os.system(cmd) == 0:
                 yield Warning(
@@ -330,16 +288,13 @@ class Configurations(TestSuite):
 
     @test()
     def misc_nginx_path_traversal(self) -> TestResult:
+        conf_dir: Path = self.app.path / "conf"
+        if not conf_dir.exists():
+            return
 
-        app = self.app
-        for filename in (
-            os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []
-        ):
+        for file in conf_dir.iterdir():
             # Ignore subdirs or filename not containing nginx in the name
-            if (
-                not os.path.isfile(app.path + "/conf/" + filename)
-                or "nginx" not in filename
-            ):
+            if not file.is_file() or "nginx" not in file.name:
                 continue
 
             #
@@ -423,9 +378,9 @@ class Configurations(TestSuite):
                 from lib.nginxparser import nginxparser
 
                 try:
-                    nginxconf: list[Any] = nginxparser.load(open(app.path + "/conf/" + filename))
+                    nginxconf: list[Any] = nginxparser.load(file.open())
                 except Exception as e:
-                    _print("Could not parse NGINX conf...: " + str(e))
+                    _print(f"Could not parse NGINX conf...: {e}")
                     nginxconf = []
 
                 for location in find_path_traversal_issue(nginxconf):
@@ -440,34 +395,35 @@ class Configurations(TestSuite):
 
     @test()
     def bind_public_ip(self) -> TestResult:
-        app = self.app
-        for path, subdirs, files in (
-            os.walk(app.path + "/conf") if os.path.exists(app.path + "/conf") else []
-        ):
-            for filename in files:
-                try:
-                    content = open(os.path.join(path, filename)).read()
-                except UnicodeDecodeError:
-                    yield Info("%s does not look like a text file." % filename)
-                    continue
-                except Exception as e:
-                    yield Warning(
-                        "Can't open/read %s: %s" % (os.path.join(path, filename), e)
-                    )
-                    continue
+        conf_dir: Path = self.app.path / "conf"
+        if not conf_dir.exists():
+            return
 
-                for number, line in enumerate(content.split("\n"), 1):
-                    comment = ("#", "//", ";", "/*", "*")
-                    if (
-                        "0.0.0.0" in line or "::" in line
-                    ) and not line.strip().startswith(comment):
-                        for ip in re.split(r"[ \t,='\"(){}\[\]]", line):
-                            if ip == "::" or ip.startswith("0.0.0.0"):
-                                yield Info(
-                                    f"{os.path.relpath(path, app.path)}/{filename}:{number}: "
-                                    "Binding to '0.0.0.0' or '::' can result in a security issue "
-                                    "as the reverse proxy and the SSO can be bypassed by knowing "
-                                    "a public IP (typically an IPv6) and the app port. "
-                                    "Please be sure that this behavior is intentional. "
-                                    "Maybe use '127.0.0.1' or '::1' instead."
-                                )
+        for file in conf_dir.rglob("*"):
+            if not file.is_file():
+                continue
+
+            try:
+                content = file.read_text()
+            except UnicodeDecodeError:
+                yield Info("%s does not look like a text file." % file.name)
+                continue
+            except Exception as e:
+                yield Warning("Can't open/read %s: %s" % (file, e))
+                continue
+
+            for number, line in enumerate(content.split("\n"), 1):
+                comment = ("#", "//", ";", "/*", "*")
+                if (
+                    "0.0.0.0" in line or "::" in line
+                ) and not line.strip().startswith(comment):
+                    for ip in re.split(r"[ \t,='\"(){}\[\]]", line):
+                        if ip == "::" or ip.startswith("0.0.0.0"):
+                            yield Info(
+                                f"{file.relative_to(self.app.path)}:{number}: "
+                                "Binding to '0.0.0.0' or '::' can result in a security issue "
+                                "as the reverse proxy and the SSO can be bypassed by knowing "
+                                "a public IP (typically an IPv6) and the app port. "
+                                "Please be sure that this behavior is intentional. "
+                                "Maybe use '127.0.0.1' or '::1' instead."
+                            )

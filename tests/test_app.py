@@ -3,6 +3,7 @@
 import copy
 import json
 import os
+from pathlib import Path
 import subprocess
 import sys
 import tomllib
@@ -10,7 +11,7 @@ from typing import Generator
 
 from lib.lib_package_linter import (Error, Info, Success, TestResult,
                                     TestSuite, Warning, config_panel_v1_schema,
-                                    file_exists, test, tests_reports,
+                                    not_empty, test, tests_reports,
                                     validate_schema)
 from lib.print import _print, is_json_output
 from tests.test_catalog import AppCatalog
@@ -228,9 +229,9 @@ deprecated_helpers_in_v2 = [
 
 
 class App(TestSuite):
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: Path) -> None:
 
-        _print("  Analyzing app %s ..." % path)
+        _print(f"  Analyzing app {path} ...")
         self.path = path
         self.manifest_ = Manifest(self.path)
         self.manifest = self.manifest_.manifest
@@ -358,18 +359,19 @@ class App(TestSuite):
         )
 
         for filename in filenames:
-            if not file_exists(app.path + "/" + filename):
+            if not not_empty(app.path / filename):
                 yield Error("Providing %s is mandatory" % filename)
 
-        if file_exists(app.path + "/LICENSE"):
-            license_content = open(app.path + "/LICENSE").read()
+        license = app.path / "LICENSE"
+        if not_empty(license):
+            license_content = license.read_text()
             if "File containing the license of your package" in license_content:
                 yield Error("You should put an actual license in LICENSE...")
 
     @test()
     def doc_dir(app) -> TestResult:
 
-        if not os.path.exists(app.path + "/doc"):
+        if not (app.path / "doc").exists():
             yield Error(
                 """Having a doc/ folder is now mandatory in packaging v2 and is expected to contain :
 - (recommended) doc/DESCRIPTION.md : a long description of the app, typically around 5~20 lines, for example to list features
@@ -380,9 +382,9 @@ class App(TestSuite):
 """
             )
 
-        if os.path.exists(os.path.join(app.path, "doc/screenshots")):
+        if (app.path / "doc" / "screenshots").exists():
             du_output = subprocess.check_output(
-                ["du", "-sb", app.path + "/doc/screenshots"], shell=False
+                ["du", "-sb", app.path / "doc" / "screenshots"], shell=False
             )
             screenshots_size = int(du_output.split()[0])
             if screenshots_size > 1024 * 1000:
@@ -394,25 +396,23 @@ class App(TestSuite):
                     "Please keep the content of doc/screenshots under ~512Kb. Having screenshots bigger than 512kb is probably a waste of resource and will take unecessarily long time to load on the webadmin UI and app catalog."
                 )
 
-            for _, _, files in os.walk(os.path.join(app.path, "doc/screenshots")):
-                for file in files:
-                    if file == ".gitkeep":
-                        continue
-                    if all(
-                        not file.lower().endswith(ext)
-                        for ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]
-                    ):
-                        yield Warning(
-                            "In the doc/screenshots folder, only .jpg, .jpeg, .png, .webp and .gif are accepted"
-                        )
-                        break
+            for file in (app.path / "doc" / "screenshots").rglob("*"):
+                filename = file.name
+                if filename == ".gitkeep":
+                    continue
+                if all(
+                    not filename.lower().endswith(ext)
+                    for ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]
+                ):
+                    yield Warning(
+                        "In the doc/screenshots folder, only .jpg, .jpeg, .png, .webp and .gif are accepted"
+                    )
+                    break
 
     @test()
     def doc_dir_v2(app) -> TestResult:
 
-        if os.path.exists(app.path + "/doc") and not os.path.exists(
-            app.path + "/doc/DESCRIPTION.md"
-        ):
+        if (app.path / "doc").exists() and not (app.path / "doc" / "DESCRIPTION.md").exists():
             yield Error(
                 "A DESCRIPTION.md is now mandatory in packaging v2 and is meant to contains an extensive description of what the app is and does. Consider also adding a '/doc/screenshots/' folder with a few screenshots of what the app looks like."
             )
@@ -424,7 +424,7 @@ class App(TestSuite):
         ):
             yield Error("It looks like DESCRIPTION.md just contains placeholder texts")
 
-        if os.path.exists(app.path + "/doc/DISCLAIMER.md"):
+        if (app.path / "doc" / "DISCLAIMER.md").exists():
             yield Warning(
                 """DISCLAIMER.md has been replaced with several files in packaging v2 to improve the UX and provide the user with key information at the appropriate step of the app install / upgrade cycles.
 
@@ -457,14 +457,14 @@ class App(TestSuite):
             return
 
         cmd = f"grep -q -IhEr '__DB_PWD__' '{app.path}/doc/'"
-        if os.path.exists(app.path + "/doc") and os.system(cmd) == 0:
+        if (app.path / "doc").exists() and os.system(cmd) == 0:
             yield Warning(
                 "(doc folder) It looks like this app requires the admin to finish the install by entering DB credentials. Unless it's absolutely not easily automatizable, this should be handled automatically by the app install script using curl calls, or (CLI tools provided by the upstream maybe ?)."
             )
 
     @test()
     def disclaimer_wording_or_placeholder(app) -> TestResult:
-        if os.path.exists(app.path + "/doc"):
+        if (app.path / "doc").exists():
             if (
                 os.system(
                     r"grep -nr -q 'Any known limitations, constrains or stuff not working, such as\|Other infos that people should be' %s/doc/"
@@ -505,7 +505,7 @@ class App(TestSuite):
 
         has_domain_arg = any(a["name"] == "domain" for a in args)
 
-        if has_domain_arg and not file_exists(app.path + "/scripts/change_url"):
+        if has_domain_arg and not not_empty(app.path / "scripts" / "change_url"):
             yield Info(
                 "Consider adding a change_url script to support changing where the app can be reached"
             )
@@ -513,39 +513,35 @@ class App(TestSuite):
     @test()
     def config_panel(app) -> TestResult:
 
-        if file_exists(app.path + "/config_panel.json"):
+        if not_empty(app.path / "config_panel.json"):
             yield Error(
                 "JSON config panels are not supported anymore, should be replaced by a toml version"
             )
 
-        if file_exists(app.path + "/config_panel.toml.example"):
+        if not_empty(app.path / "config_panel.toml.example"):
             yield Warning(
                 "Please do not commit config_panel.toml.example ... This is just a 'documentation' for the config panel syntax meant to be kept in example_ynh"
             )
 
-        if not file_exists(app.path + "/config_panel.toml") and file_exists(
-            app.path + "/scripts/config"
-        ):
+        if not not_empty(app.path / "config_panel.toml") and not_empty(app.path / "scripts" / "config"):
             yield Warning(
                 "The script 'config' exists but there is no config_panel.toml ... Please remove the 'config' script if this is just the example from example_ynh, or add a proper config_panel.toml if the point is really to have a config panel"
             )
 
-        if file_exists(app.path + "/config_panel.toml"):
-            if (
-                os.system(
-                    "grep -q 'version = \"0.1\"' '%s'"
-                    % (app.path + "/config_panel.toml")
-                )
-                == 0
-            ):
+        if not_empty(app.path / "config_panel.toml"):
+            check_old_panel = os.system(
+                "grep -q 'version = \"0.1\"' '%s'"
+                % (app.path / "config_panel.toml")
+            )
+            if check_old_panel == 0:
                 yield Error(
                     "Config panels version 0.1 are not supported anymore, should be adapted for version 1.0"
                 )
             elif (
-                os.path.exists(app.path + "/scripts/config")
+                (app.path / "scripts" / "config").exists()
                 and os.system(
                     "grep -q 'YNH_CONFIG_\\|yunohost app action' '%s'"
-                    % (app.path + "/scripts/config")
+                    % (app.path / "scripts" / "config")
                 )
                 == 0
             ):
@@ -564,14 +560,15 @@ class App(TestSuite):
 
         id_ = app.manifest["id"]
 
-        if not file_exists(app.path + "/README.md"):
+        readme = app.path / "README.md"
+        if not not_empty(readme):
             return
 
-        content = open(app.path + "/README.md").read()
+        content = readme.read_text()
 
         if (
             "This README was automatically generated" not in content
-            or not "dash.yunohost.org/integration/%s.svg" % id_ in content
+            or f"dash.yunohost.org/integration/{id_}.svg" not in content
         ):
             yield Warning(
                 "It looks like the README was not generated automatically by https://github.com/YunoHost/apps/tree/master/tools/README-generator. "

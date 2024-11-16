@@ -3,6 +3,7 @@
 import json
 import os
 import subprocess
+from pathlib import Path
 import sys
 import time
 import tomllib
@@ -13,6 +14,9 @@ from typing import Any, Generator
 from lib.lib_package_linter import (Critical, Error, Info, Success, TestResult,
                                     TestSuite, Warning, test, urlopen)
 from lib.print import _print
+
+PACKAGE_LINTER_DIR = Path(__file__).resolve().parent.parent
+APPS_CACHE = PACKAGE_LINTER_DIR / ".apps"
 
 ########################################
 #  _____       _        _              #
@@ -29,14 +33,13 @@ from lib.print import _print
 
 class AppCatalog(TestSuite):
     def __init__(self, app_id: str) -> None:
-
         self.app_id = app_id
         self.test_suite_name = "Catalog infos"
 
         self._fetch_app_repo()
 
         try:
-            self.app_list = tomllib.load(open("./.apps/apps.toml", "rb"))
+            self.app_list = tomllib.load((APPS_CACHE / "apps.toml").open("rb"))
         except Exception:
             _print("Failed to read apps.toml :/")
             sys.exit(-1)
@@ -44,42 +47,36 @@ class AppCatalog(TestSuite):
         self.catalog_infos = self.app_list.get(app_id, {})
 
     def _fetch_app_repo(self) -> None:
-
-        flagfile = "./.apps_git_clone_cache"
-        if (
-            os.path.exists("./.apps")
-            and os.path.exists(flagfile)
-            and time.time() - os.path.getmtime(flagfile) < 3600
-        ):
+        flagfile = PACKAGE_LINTER_DIR / ".apps_git_clone_cache"
+        if APPS_CACHE.exists() and flagfile.exists() \
+        and time.time() - flagfile.stat().st_mtime < 3600:
             return
 
-        if not os.path.exists("./.apps"):
+        if not APPS_CACHE.exists():
             subprocess.check_call(
                 [
                     "git",
                     "clone",
                     "https://github.com/YunoHost/apps",
-                    "./.apps",
+                    APPS_CACHE,
                     "--quiet",
                 ]
             )
         else:
-            subprocess.check_call(["git", "-C", "./.apps", "fetch", "--quiet"])
+            subprocess.check_call(["git", "-C", APPS_CACHE, "fetch", "--quiet"])
             subprocess.check_call(
-                ["git", "-C", "./.apps", "reset", "origin/master", "--hard", "--quiet"]
+                ["git", "-C", APPS_CACHE, "reset", "origin/master", "--hard", "--quiet"]
             )
 
-        open(flagfile, "w").write("")
+        flagfile.touch()
 
     @test()
     def is_in_catalog(self) -> TestResult:
-
         if not self.catalog_infos:
             yield Critical("This app is not in YunoHost's application catalog")
 
     @test()
     def revision_is_HEAD(self) -> TestResult:
-
         if self.catalog_infos and self.catalog_infos.get("revision", "HEAD") != "HEAD":
             yield Error(
                 "You should make sure that the revision used in YunoHost's apps catalog is HEAD..."
@@ -87,7 +84,6 @@ class AppCatalog(TestSuite):
 
     @test()
     def state_is_working(self) -> TestResult:
-
         if (
             self.catalog_infos
             and self.catalog_infos.get("state", "working") != "working"
@@ -105,7 +101,6 @@ class AppCatalog(TestSuite):
 
     @test()
     def is_in_github_org(self) -> TestResult:
-
         repo_org = "https://github.com/YunoHost-Apps/%s_ynh" % (self.app_id)
         repo_brique = "https://github.com/labriqueinternet/%s_ynh" % (self.app_id)
 
@@ -137,7 +132,6 @@ class AppCatalog(TestSuite):
 
     @test()
     def is_long_term_good_quality(self) -> TestResult:
-
         #
         # This analyzes the (git) history of apps.json in the past year and
         # compute a score according to the time when the app was
@@ -146,7 +140,7 @@ class AppCatalog(TestSuite):
 
         def git(cmd: list[str]) -> str:
             return (
-                subprocess.check_output(["git", "-C", "./.apps"] + cmd)
+                subprocess.check_output(["git", "-C", APPS_CACHE] + cmd)
                 .decode("utf-8")
                 .strip()
             )
@@ -191,14 +185,14 @@ class AppCatalog(TestSuite):
                 )
                 if (
                     os.system(
-                        f"git -C ./.apps  cat-file -e {commit}:apps.json 2>/dev/null"
+                        f"git -C {APPS_CACHE}  cat-file -e {commit}:apps.json 2>/dev/null"
                     )
                     == 0
                 ):
                     raw_catalog_at_this_date = git(["show", f"{commit}:apps.json"])
                     loader = json
 
-                elif os.system(f"git -C ./.apps  cat-file -e {commit}:apps.toml") == 0:
+                elif os.system(f"git -C {APPS_CACHE}  cat-file -e {commit}:apps.toml") == 0:
                     raw_catalog_at_this_date = git(["show", f"{commit}:apps.toml"])
                     loader = tomllib
                 else:

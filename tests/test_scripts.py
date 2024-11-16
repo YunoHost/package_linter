@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+from pathlib import Path
 import re
 import shlex
 import statistics
@@ -8,7 +9,7 @@ import subprocess
 from typing import Generator
 
 from lib.lib_package_linter import (Critical, Error, Info, TestResult,
-                                    TestSuite, Warning, file_exists,
+                                    TestSuite, Warning, not_empty,
                                     report_warning_not_reliable, test)
 from lib.print import _print
 
@@ -24,20 +25,19 @@ from lib.print import _print
 #                    |_|         #
 ##################################
 class Script(TestSuite):
-    def __init__(self, app_path: str, name: str, app_id: str) -> None:
+    def __init__(self, app: Path, name: str, app_id: str) -> None:
         self.name = name
-        self.app_path = app_path
+        self.app = app
         self.app_id = app_id
-        self.path = app_path + "/scripts/" + name
-        self.exists = file_exists(self.path)
+        self.path = app / "scripts" / name
+        self.exists = not_empty(self.path)
         if not self.exists:
             return
         self.lines = list(self.read_file())
         self.test_suite_name = "scripts/" + self.name
 
     def read_file(self) -> Generator[list[str], None, None]:
-        with open(self.path) as f:
-            lines = f.readlines()
+        lines = self.path.open().readlines()
 
         # Remove trailing spaces, empty lines and comment lines
         lines = [line.strip() for line in lines]
@@ -369,11 +369,10 @@ class Script(TestSuite):
 
     @test(only=["install"])
     def sources_list_tweaking(self) -> TestResult:
+        common_sh = self.app / "scripts" / "_common.sh"
         if self.contains("/etc/apt/sources.list") or (
-            os.path.exists(self.app_path + "/scripts/_common.sh")
-            and "/etc/apt/sources.list"
-            in open(self.app_path + "/scripts/_common.sh").read()
-            and "ynh_add_repo" not in open(self.app_path + "/scripts/_common.sh").read()
+            common_sh.exists() and "/etc/apt/sources.list" in common_sh.read_text()
+            and "ynh_add_repo" not in common_sh.read_text()
         ):
             yield Error(
                 "Manually messing with apt's sources.lists is strongly discouraged "
