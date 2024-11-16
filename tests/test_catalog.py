@@ -131,10 +131,10 @@ class AppCatalog(TestSuite):
         else:
 
             def is_in_github_org():
-                return urlopen(repo_org)["code"] != 404
+                return urlopen(repo_org)[0] != 404
 
             def is_in_brique_org():
-                return urlopen(repo_brique)["code"] != 404
+                return urlopen(repo_brique)[0] != 404
 
             if not is_in_github_org() and not is_in_brique_org():
                 yield Info(
