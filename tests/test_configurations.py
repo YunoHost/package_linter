@@ -8,9 +8,18 @@ import subprocess
 import tomllib
 from typing import Any, Generator
 
-from lib.lib_package_linter import (Error, Info, TestReport, TestResult,
-                                    TestSuite, Warning, not_empty, test,
-                                    tests_v1_schema, validate_schema)
+from lib.lib_package_linter import (
+    Error,
+    Info,
+    TestReport,
+    TestResult,
+    TestSuite,
+    Warning,
+    not_empty,
+    test,
+    tests_v1_schema,
+    validate_schema,
+)
 from lib.print import _print
 
 
@@ -62,7 +71,10 @@ class Configurations(TestSuite):
     def misc_source_management(self) -> TestResult:
         source_dir = self.app.path / "sources"
 
-        if source_dir.exists() and len(list(elt for elt in source_dir.iterdir() if elt.is_file())) > 5:
+        if (
+            source_dir.exists()
+            and len(list(elt for elt in source_dir.iterdir() if elt.is_file())) > 5
+        ):
             yield Error(
                 "Upstream app sources shouldn't be stored in this 'sources' folder of this git repository as a copy/paste\n"
                 "During installation, the package should download sources from upstream via 'ynh_setup_source'.\n"
@@ -300,7 +312,9 @@ class Configurations(TestSuite):
             #
             # Path traversal issues
             #
-            def find_location_with_alias(locationblock: Any) -> Generator[tuple[str, str], None, None]:
+            def find_location_with_alias(
+                locationblock: Any,
+            ) -> Generator[tuple[str, str], None, None]:
 
                 if locationblock[0][0] != "location":
                     return
@@ -319,7 +333,9 @@ class Configurations(TestSuite):
                     else:
                         continue
 
-            def find_path_traversal_issue(nginxconf: list[Any]) -> Generator[str, None, None]:
+            def find_path_traversal_issue(
+                nginxconf: list[Any],
+            ) -> Generator[str, None, None]:
 
                 for block in nginxconf:
                     for location, alias in find_location_with_alias(block):
@@ -414,9 +430,9 @@ class Configurations(TestSuite):
 
             for number, line in enumerate(content.split("\n"), 1):
                 comment = ("#", "//", ";", "/*", "*")
-                if (
-                    "0.0.0.0" in line or "::" in line
-                ) and not line.strip().startswith(comment):
+                if ("0.0.0.0" in line or "::" in line) and not line.strip().startswith(
+                    comment
+                ):
                     for ip in re.split(r"[ \t,='\"(){}\[\]]", line):
                         if ip == "::" or ip.startswith("0.0.0.0"):
                             yield Info(

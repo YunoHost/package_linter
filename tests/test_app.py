@@ -9,10 +9,19 @@ import sys
 import tomllib
 from typing import Generator
 
-from lib.lib_package_linter import (Error, Info, Success, TestResult,
-                                    TestSuite, Warning, config_panel_v1_schema,
-                                    not_empty, test, tests_reports,
-                                    validate_schema)
+from lib.lib_package_linter import (
+    Error,
+    Info,
+    Success,
+    TestResult,
+    TestSuite,
+    Warning,
+    config_panel_v1_schema,
+    not_empty,
+    test,
+    tests_reports,
+    validate_schema,
+)
 from lib.print import _print, is_json_output
 from tests.test_catalog import AppCatalog
 from tests.test_configurations import Configurations
@@ -412,7 +421,9 @@ class App(TestSuite):
     @test()
     def doc_dir_v2(app) -> TestResult:
 
-        if (app.path / "doc").exists() and not (app.path / "doc" / "DESCRIPTION.md").exists():
+        if (app.path / "doc").exists() and not (
+            app.path / "doc" / "DESCRIPTION.md"
+        ).exists():
             yield Error(
                 "A DESCRIPTION.md is now mandatory in packaging v2 and is meant to contains an extensive description of what the app is and does. Consider also adding a '/doc/screenshots/' folder with a few screenshots of what the app looks like."
             )
@@ -523,28 +534,25 @@ class App(TestSuite):
                 "Please do not commit config_panel.toml.example ... This is just a 'documentation' for the config panel syntax meant to be kept in example_ynh"
             )
 
-        if not not_empty(app.path / "config_panel.toml") and not_empty(app.path / "scripts" / "config"):
+        if not not_empty(app.path / "config_panel.toml") and not_empty(
+            app.path / "scripts" / "config"
+        ):
             yield Warning(
                 "The script 'config' exists but there is no config_panel.toml ... Please remove the 'config' script if this is just the example from example_ynh, or add a proper config_panel.toml if the point is really to have a config panel"
             )
 
         if not_empty(app.path / "config_panel.toml"):
             check_old_panel = os.system(
-                "grep -q 'version = \"0.1\"' '%s'"
-                % (app.path / "config_panel.toml")
+                "grep -q 'version = \"0.1\"' '%s'" % (app.path / "config_panel.toml")
             )
             if check_old_panel == 0:
                 yield Error(
                     "Config panels version 0.1 are not supported anymore, should be adapted for version 1.0"
                 )
-            elif (
-                (app.path / "scripts" / "config").exists()
-                and os.system(
-                    "grep -q 'YNH_CONFIG_\\|yunohost app action' '%s'"
-                    % (app.path / "scripts" / "config")
-                )
-                == 0
-            ):
+            elif (app.path / "scripts" / "config").exists() and os.system(
+                "grep -q 'YNH_CONFIG_\\|yunohost app action' '%s'"
+                % (app.path / "scripts" / "config")
+            ) == 0:
                 yield Error(
                     "The config panel is set to version 1.x, but the config script is apparently still using some old code from 0.1 such as '$YNH_CONFIG_STUFF' or 'yunohost app action'"
                 )
