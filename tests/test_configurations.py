@@ -62,7 +62,7 @@ class Configurations(TestSuite):
     def misc_source_management(self) -> TestResult:
         source_dir = self.app.path / "sources"
 
-        if source_dir.exists() and len(list(source_dir.rglob("*"))) > 5:
+        if source_dir.exists() and len(list(elt for elt in source_dir.iterdir() if elt.is_file())) > 5:
             yield Error(
                 "Upstream app sources shouldn't be stored in this 'sources' folder of this git repository as a copy/paste\n"
                 "During installation, the package should download sources from upstream via 'ynh_setup_source'.\n"
