@@ -11,8 +11,17 @@ from datetime import datetime
 from types import ModuleType
 from typing import Any, Generator
 
-from lib.lib_package_linter import (Critical, Error, Info, Success, TestResult,
-                                    TestSuite, Warning, test, urlopen)
+from lib.lib_package_linter import (
+    Critical,
+    Error,
+    Info,
+    Success,
+    TestResult,
+    TestSuite,
+    Warning,
+    test,
+    urlopen,
+)
 from lib.print import _print
 
 PACKAGE_LINTER_DIR = Path(__file__).resolve().parent.parent
@@ -48,8 +57,11 @@ class AppCatalog(TestSuite):
 
     def _fetch_app_repo(self) -> None:
         flagfile = PACKAGE_LINTER_DIR / ".apps_git_clone_cache"
-        if APPS_CACHE.exists() and flagfile.exists() \
-        and time.time() - flagfile.stat().st_mtime < 3600:
+        if (
+            APPS_CACHE.exists()
+            and flagfile.exists()
+            and time.time() - flagfile.stat().st_mtime < 3600
+        ):
             return
 
         if not APPS_CACHE.exists():
@@ -169,7 +181,9 @@ class AppCatalog(TestSuite):
 
                 date = datetime(year, month, day)
 
-        def get_history(N: int) -> Generator[tuple[datetime, dict[str, Any]], None, None]:
+        def get_history(
+            N: int,
+        ) -> Generator[tuple[datetime, dict[str, Any]], None, None]:
 
             for t in list(_time_points_until_today())[(-1 * N) :]:
                 loader: ModuleType
@@ -192,7 +206,10 @@ class AppCatalog(TestSuite):
                     raw_catalog_at_this_date = git(["show", f"{commit}:apps.json"])
                     loader = json
 
-                elif os.system(f"git -C {APPS_CACHE}  cat-file -e {commit}:apps.toml") == 0:
+                elif (
+                    os.system(f"git -C {APPS_CACHE}  cat-file -e {commit}:apps.toml")
+                    == 0
+                ):
                     raw_catalog_at_this_date = git(["show", f"{commit}:apps.toml"])
                     loader = tomllib
                 else:

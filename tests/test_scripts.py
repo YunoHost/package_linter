@@ -8,9 +8,17 @@ import statistics
 import subprocess
 from typing import Generator
 
-from lib.lib_package_linter import (Critical, Error, Info, TestResult,
-                                    TestSuite, Warning, not_empty,
-                                    report_warning_not_reliable, test)
+from lib.lib_package_linter import (
+    Critical,
+    Error,
+    Info,
+    TestResult,
+    TestSuite,
+    Warning,
+    not_empty,
+    report_warning_not_reliable,
+    test,
+)
 from lib.print import _print
 
 
@@ -371,7 +379,8 @@ class Script(TestSuite):
     def sources_list_tweaking(self) -> TestResult:
         common_sh = self.app / "scripts" / "_common.sh"
         if self.contains("/etc/apt/sources.list") or (
-            common_sh.exists() and "/etc/apt/sources.list" in common_sh.read_text()
+            common_sh.exists()
+            and "/etc/apt/sources.list" in common_sh.read_text()
             and "ynh_add_repo" not in common_sh.read_text()
         ):
             yield Error(

@@ -8,9 +8,19 @@ import sys
 import tomllib
 from typing import Any, Callable
 
-from lib.lib_package_linter import (Critical, Error, Info, TestResult,
-                                    TestSuite, Warning, c, manifest_v2_schema,
-                                    spdx_licenses, test, validate_schema)
+from lib.lib_package_linter import (
+    Critical,
+    Error,
+    Info,
+    TestResult,
+    TestSuite,
+    Warning,
+    c,
+    manifest_v2_schema,
+    spdx_licenses,
+    test,
+    validate_schema,
+)
 
 # Only packaging v2 is supported on the linter now ... But someday™ according The Prophecy™, packaging v3 will be a thing
 app_packaging_format = 2
@@ -70,7 +80,9 @@ class Manifest(TestSuite):
         manifest_path = path / "manifest.toml"
 
         # Taken from https://stackoverflow.com/a/49518779
-        def check_for_duplicate_keys(ordered_pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        def check_for_duplicate_keys(
+            ordered_pairs: list[tuple[str, Any]]
+        ) -> dict[str, Any]:
             dict_out = {}
             for key, val in ordered_pairs:
                 if key in dict_out:
@@ -83,7 +95,9 @@ class Manifest(TestSuite):
         try:
             self.manifest = tomllib.loads(self.raw_manifest)
         except Exception as e:
-            print(f"{c.FAIL}✘ Looks like there's a syntax issue in your manifest?\n ---> {e}")
+            print(
+                f"{c.FAIL}✘ Looks like there's a syntax issue in your manifest?\n ---> {e}"
+            )
             sys.exit(1)
 
     @test()
