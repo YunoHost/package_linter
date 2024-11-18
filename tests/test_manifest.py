@@ -2,7 +2,7 @@
 
 import copy
 import json
-import os
+from pathlib import Path
 import re
 import sys
 import tomllib
@@ -62,12 +62,12 @@ VERSION_PATTERN = r"""
 
 
 class Manifest(TestSuite):
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: Path) -> None:
 
         self.path = path
         self.test_suite_name = "manifest"
 
-        manifest_path = os.path.join(path, "manifest.toml")
+        manifest_path = path / "manifest.toml"
 
         # Taken from https://stackoverflow.com/a/49518779
         def check_for_duplicate_keys(ordered_pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -79,14 +79,11 @@ class Manifest(TestSuite):
                     dict_out[key] = val
             return dict_out
 
-        self.raw_manifest = open(manifest_path, encoding="utf-8").read()
+        self.raw_manifest = manifest_path.read_text()
         try:
             self.manifest = tomllib.loads(self.raw_manifest)
         except Exception as e:
-            print(
-                c.FAIL
-                + "✘ Looks like there's a syntax issue in your manifest?\n ---> %s" % e
-            )
+            print(f"{c.FAIL}✘ Looks like there's a syntax issue in your manifest?\n ---> {e}")
             sys.exit(1)
 
     @test()

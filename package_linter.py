@@ -32,7 +32,7 @@ def main():
     """
     )
 
-    app = App(str(args.app_path))
+    app = App(args.app_path)
     app.analyze()
 
 
