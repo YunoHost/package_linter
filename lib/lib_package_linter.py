@@ -80,10 +80,11 @@ def not_empty(file: Path) -> bool:
     return file.is_file() and file.stat().st_size > 0
 
 
-def cache_file(cachefile: Path, ttl_s: int) -> Callable[[Callable[..., str]], Callable[..., str]]:
+def cache_file(
+    cachefile: Path, ttl_s: int
+) -> Callable[[Callable[..., str]], Callable[..., str]]:
     def cache_is_fresh() -> bool:
-        age_s = time.time() - cachefile.stat().st_mtime
-        return cachefile.exists() and age_s < ttl_s
+        return cachefile.exists() and time.time() - cachefile.stat().st_mtime < ttl_s
 
     def decorator(function: Callable[..., str]) -> Callable[..., str]:
         def wrapper(*args: Any, **kwargs: Any) -> str:
@@ -119,7 +120,9 @@ def config_panel_v1_schema() -> str:
     return urlopen(url)[1]
 
 
-def validate_schema(name: str, schema: dict[str, Any], data: dict[str, Any]) -> Generator[Info, None, None]:
+def validate_schema(
+    name: str, schema: dict[str, Any], data: dict[str, Any]
+) -> Generator[Info, None, None]:
     v = jsonschema.Draft7Validator(schema)
 
     for error in v.iter_errors(data):
@@ -146,7 +149,6 @@ tests_reports: dict[str, list[Any]] = {
 }
 
 
-
 def test(**kwargs: Any) -> Callable[[TestFn], TestFn]:
     def decorator(f: TestFn) -> TestFn:
         clsname = f.__qualname__.split(".")[0]
@@ -158,7 +160,7 @@ def test(**kwargs: Any) -> Callable[[TestFn], TestFn]:
     return decorator
 
 
-class TestSuite():
+class TestSuite:
     name: str
     test_suite_name: str
 
