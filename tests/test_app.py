@@ -5,22 +5,14 @@ import json
 import os
 import subprocess
 import sys
-
 import tomllib
-from lib.lib_package_linter import (
-    Error,
-    Info,
-    Success,
-    TestSuite,
-    Warning,
-    config_panel_v1_schema,
-    file_exists,
-    test,
-    tests_reports,
-    validate_schema,
-)
-from lib.print import _print, is_json_output
+from typing import Generator
 
+from lib.lib_package_linter import (Error, Info, Success, TestResult,
+                                    TestSuite, Warning, config_panel_v1_schema,
+                                    file_exists, test, tests_reports,
+                                    validate_schema)
+from lib.print import _print, is_json_output
 from tests.test_catalog import AppCatalog
 from tests.test_configurations import Configurations
 from tests.test_manifest import Manifest
@@ -236,14 +228,14 @@ deprecated_helpers_in_v2 = [
 
 
 class App(TestSuite):
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
 
         _print("  Analyzing app %s ..." % path)
         self.path = path
         self.manifest_ = Manifest(self.path)
         self.manifest = self.manifest_.manifest
         self.scripts = {
-            f: Script(self.path, f, self.manifest.get("id")) for f in scriptnames
+            f: Script(self.path, f, self.manifest.get("id", "")) for f in scriptnames
         }
         self.configurations = Configurations(self)
         self.app_catalog = AppCatalog(self.manifest["id"])
@@ -252,7 +244,7 @@ class App(TestSuite):
 
         _print()
 
-    def analyze(self):
+    def analyze(self) -> None:
 
         self.manifest_.run_tests()
 
@@ -265,7 +257,7 @@ class App(TestSuite):
 
         self.report()
 
-    def report(self):
+    def report(self) -> None:
 
         _print(" =======")
 
@@ -293,7 +285,7 @@ class App(TestSuite):
         if tests_reports["error"] or tests_reports["critical"]:
             sys.exit(1)
 
-    def qualify_for_level_7(self):
+    def qualify_for_level_7(self) -> Generator[Success, None, None]:
 
         if tests_reports["critical"]:
             _print(" There are some critical issues in this app :(")
@@ -310,7 +302,7 @@ class App(TestSuite):
                 "Not even a warning! Congratz and thank you for keeping this package up to date with good practices! This app qualifies for level 7!"
             )
 
-    def qualify_for_level_8(self):
+    def qualify_for_level_8(self) -> Generator[Success, None, None]:
 
         successes = [test.split(".")[1] for test, _ in tests_reports["success"]]
 
@@ -338,7 +330,7 @@ class App(TestSuite):
                 "The app is maintained and long-term good quality, and therefore qualifies for level 8!"
             )
 
-    def qualify_for_level_9(self):
+    def qualify_for_level_9(self) -> Generator[Success, None, None]:
 
         if self.app_catalog.catalog_infos.get("high_quality", False):
             yield Success("The app is flagged as high-quality in the app catalog")
@@ -354,7 +346,7 @@ class App(TestSuite):
     #########################################
 
     @test()
-    def mandatory_scripts(app):
+    def mandatory_scripts(app) -> TestResult:
         filenames = (
             "LICENSE",
             "README.md",
@@ -375,7 +367,7 @@ class App(TestSuite):
                 yield Error("You should put an actual license in LICENSE...")
 
     @test()
-    def doc_dir(app):
+    def doc_dir(app) -> TestResult:
 
         if not os.path.exists(app.path + "/doc"):
             yield Error(
@@ -416,7 +408,7 @@ class App(TestSuite):
                         break
 
     @test()
-    def doc_dir_v2(app):
+    def doc_dir_v2(app) -> TestResult:
 
         if os.path.exists(app.path + "/doc") and not os.path.exists(
             app.path + "/doc/DESCRIPTION.md"
@@ -458,7 +450,7 @@ class App(TestSuite):
             )
 
     @test()
-    def admin_has_to_finish_install(app):
+    def admin_has_to_finish_install(app) -> TestResult:
 
         # Mywebapp has a legit use case for this
         if app.manifest.get("id") == "my_webapp":
@@ -471,7 +463,7 @@ class App(TestSuite):
             )
 
     @test()
-    def disclaimer_wording_or_placeholder(app):
+    def disclaimer_wording_or_placeholder(app) -> TestResult:
         if os.path.exists(app.path + "/doc"):
             if (
                 os.system(
@@ -495,7 +487,7 @@ class App(TestSuite):
                 )
 
     @test()
-    def custom_python_version(app):
+    def custom_python_version(app) -> TestResult:
 
         cmd = f"grep -q -IhEr '^[^#]*install_python' '{app.path}/scripts/'"
         if os.system(cmd) == 0:
@@ -504,7 +496,7 @@ class App(TestSuite):
             )
 
     @test()
-    def change_url_script(app):
+    def change_url_script(app) -> TestResult:
 
         keyandargs = copy.deepcopy(app.manifest["install"])
         for key, infos in keyandargs.items():
@@ -519,7 +511,7 @@ class App(TestSuite):
             )
 
     @test()
-    def config_panel(app):
+    def config_panel(app) -> TestResult:
 
         if file_exists(app.path + "/config_panel.json"):
             yield Error(
@@ -568,7 +560,7 @@ class App(TestSuite):
             )
 
     @test()
-    def badges_in_readme(app):
+    def badges_in_readme(app) -> TestResult:
 
         id_ = app.manifest["id"]
 
@@ -587,12 +579,12 @@ class App(TestSuite):
             )
 
     @test()
-    def remaining_replacebyyourapp(self):
+    def remaining_replacebyyourapp(self) -> TestResult:
         if os.system("grep -I -qr 'REPLACEBYYOURAPP' %s 2>/dev/null" % self.path) == 0:
             yield Error("You should replace all occurences of REPLACEBYYOURAPP.")
 
     @test()
-    def supervisor_usage(self):
+    def supervisor_usage(self) -> TestResult:
         if (
             os.system(r"grep -I -qr '^\s*supervisorctl' %s 2>/dev/null" % self.path)
             == 0
@@ -602,7 +594,7 @@ class App(TestSuite):
             )
 
     @test()
-    def bad_encoding(self):
+    def bad_encoding(self) -> TestResult:
 
         cmd = (
             "file --mime-encoding $(find %s/ -type f) | grep 'iso-8859-1\\|unknown-8bit' || true"
@@ -632,7 +624,7 @@ class App(TestSuite):
     #######################################
 
     @test()
-    def helpers_now_official(app):
+    def helpers_now_official(app) -> TestResult:
 
         cmd = "grep -IhEro 'ynh_\\w+ *\\( *\\)' '%s/scripts' | tr -d '() '" % app.path
         custom_helpers = (
@@ -648,7 +640,7 @@ class App(TestSuite):
                 )
 
     @test()
-    def git_clone_usage(app):
+    def git_clone_usage(app) -> TestResult:
         cmd = (
             f"grep -I 'git clone' '{app.path}'/scripts/install '{app.path}'/scripts/_common.sh 2>/dev/null"
             r" | grep -qv 'xxenv\|rbenv\|oracledb'"
@@ -659,7 +651,7 @@ class App(TestSuite):
             )
 
     @test()
-    def helpers_version_requirement(app):
+    def helpers_version_requirement(app) -> TestResult:
 
         cmd = "grep -IhEro 'ynh_\\w+ *\\( *\\)' '%s/scripts' | tr -d '() '" % app.path
         custom_helpers = (
@@ -679,14 +671,14 @@ class App(TestSuite):
 
         manifest_req = [int(i) for i in yunohost_version_req.split(".")] + [0, 0, 0]
 
-        def validate_version_requirement(helper_req):
+        def validate_version_requirement(helper_req: str) -> bool:
             if helper_req == "":
                 return True
-            helper_req = [int(i) for i in helper_req.split(".")]
-            for i in range(0, len(helper_req)):
-                if helper_req[i] == manifest_req[i]:
+            helper_req_list = [int(i) for i in helper_req.split(".")]
+            for i in range(0, len(helper_req_list)):
+                if helper_req_list[i] == manifest_req[i]:
                     continue
-                return helper_req[i] <= manifest_req[i]
+                return helper_req_list[i] <= manifest_req[i]
             return True
 
         for helper in [h for h in helpers_used if h in official_helpers.keys()]:
@@ -702,7 +694,7 @@ class App(TestSuite):
                 yield Error(message) if major_diff else Warning(message)
 
     @test()
-    def helpers_deprecated_in_v2(app):
+    def helpers_deprecated_in_v2(app) -> TestResult:
 
         cmd = f"grep -IhEro 'ynh_\\w+' '{app.path}/scripts/install' '{app.path}/scripts/remove' '{app.path}/scripts/upgrade' '{app.path}/scripts/backup' '{app.path}/scripts/restore' || true"
         helpers_used = (
@@ -720,7 +712,7 @@ class App(TestSuite):
             )
 
     @test()
-    def helper_consistency_apt_deps(app):
+    def helper_consistency_apt_deps(app) -> TestResult:
         """
         Check if ynh_install_app_dependencies is present in install/upgrade/restore
         so dependencies are up to date after restoration or upgrade
@@ -747,7 +739,7 @@ class App(TestSuite):
             )
 
     @test()
-    def helper_consistency_service_add(app):
+    def helper_consistency_service_add(app) -> TestResult:
 
         occurences = {
             "install": (
@@ -796,10 +788,10 @@ class App(TestSuite):
                 )
                 for script in occurences.keys()
             ]
-            details = "\n".join(details)
+            details_str = "\n".join(details)
             yield Warning(
                 "Some inconsistencies were found in the 'yunohost service add' commands between install, upgrade and restore:\n%s"
-                % details
+                % details_str
             )
 
         if found_legacy_logtype_option:
@@ -816,7 +808,7 @@ class App(TestSuite):
             )
 
     @test()
-    def references_to_superold_stuff(app):
+    def references_to_superold_stuff(app) -> TestResult:
         if any(
             script.contains("jessie")
             for script in app.scripts.values()
@@ -851,7 +843,7 @@ class App(TestSuite):
             )
 
     @test()
-    def conf_json_persistent_tweaking(self):
+    def conf_json_persistent_tweaking(self) -> TestResult:
         if (
             os.system(
                 "grep -nr '/etc/ssowat/conf.json.persistent' %s | grep -vq '^%s/doc' 2>/dev/null"
@@ -862,7 +854,7 @@ class App(TestSuite):
             yield Error("Don't do black magic with /etc/ssowat/conf.json.persistent!")
 
     @test()
-    def app_data_in_unofficial_dir(self):
+    def app_data_in_unofficial_dir(self) -> TestResult:
 
         allowed_locations = [
             "/home/yunohost.app",

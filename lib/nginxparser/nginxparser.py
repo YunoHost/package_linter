@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# type: ignore
 """Very low-level nginx config parser based on pyparsing."""
 
 # Taken from https://github.com/certbot/certbot (Apache licensed)

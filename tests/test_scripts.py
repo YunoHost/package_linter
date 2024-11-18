@@ -5,17 +5,11 @@ import re
 import shlex
 import statistics
 import subprocess
+from typing import Generator
 
-from lib.lib_package_linter import (
-    Critical,
-    Error,
-    Info,
-    TestSuite,
-    Warning,
-    file_exists,
-    report_warning_not_reliable,
-    test,
-)
+from lib.lib_package_linter import (Critical, Error, Info, TestResult,
+                                    TestSuite, Warning, file_exists,
+                                    report_warning_not_reliable, test)
 from lib.print import _print
 
 
@@ -30,7 +24,7 @@ from lib.print import _print
 #                    |_|         #
 ##################################
 class Script(TestSuite):
-    def __init__(self, app_path, name, app_id):
+    def __init__(self, app_path: str, name: str, app_id: str) -> None:
         self.name = name
         self.app_path = app_path
         self.app_id = app_id
@@ -41,7 +35,7 @@ class Script(TestSuite):
         self.lines = list(self.read_file())
         self.test_suite_name = "scripts/" + self.name
 
-    def read_file(self):
+    def read_file(self) -> Generator[list[str], None, None]:
         with open(self.path) as f:
             lines = f.readlines()
 
@@ -57,8 +51,8 @@ class Script(TestSuite):
         for line in lines:
 
             try:
-                line = shlex.split(line, True)
-                yield line
+                splitted_line = shlex.split(line, True)
+                yield splitted_line
             except Exception as e:
 
                 ignore_pattern = [
@@ -86,12 +80,12 @@ class Script(TestSuite):
 
                 report_warning_not_reliable("%s : %s" % (e, line))
 
-    def occurences(self, command):
+    def occurences(self, command: str) -> list[str]:
         return [
             line for line in [" ".join(line) for line in self.lines] if command in line
         ]
 
-    def contains(self, command):
+    def contains(self, command: str) -> bool:
         """
         Iterate on lines to check if command is contained in line
 
@@ -99,7 +93,7 @@ class Script(TestSuite):
         """
         return any(command in line for line in [" ".join(line) for line in self.lines])
 
-    def containsregex(self, regex):
+    def containsregex(self, regex: str) -> bool:
         """
         Iterate on lines to check if command is contained in line
 
@@ -110,7 +104,7 @@ class Script(TestSuite):
         )
 
     @test()
-    def error_handling(self):
+    def error_handling(self) -> TestResult:
 
         if (
             self.contains("ynh_abort_if_errors")
@@ -147,7 +141,7 @@ class Script(TestSuite):
 
     # Skip this in common.sh, sometimes custom not-yet-official helpers need this
     @test(ignore=["_common.sh"])
-    def raw_apt_commands(self):
+    def raw_apt_commands(self) -> TestResult:
 
         if (
             self.contains("ynh_package_install")
@@ -170,7 +164,7 @@ class Script(TestSuite):
             )
 
     @test()
-    def obsolete_helpers(self):
+    def obsolete_helpers(self) -> TestResult:
         if self.contains("yunohost app setting"):
             yield Critical(
                 "Do not use 'yunohost app setting' directly. Please use 'ynh_app_setting_(set,get,delete)' instead."
@@ -181,7 +175,7 @@ class Script(TestSuite):
             )
 
     @test(only=["install", "upgrade"])
-    def deprecated_replace_string(self):
+    def deprecated_replace_string(self) -> TestResult:
         cmd1 = "grep -Ec 'ynh_replace_string' '%s' || true" % self.path
         cmd2 = "grep -Ec 'ynh_replace_string.*__\\w+__' '%s' || true" % self.path
 
@@ -194,7 +188,7 @@ class Script(TestSuite):
             )
 
     @test()
-    def bad_ynh_exec_syntax(self):
+    def bad_ynh_exec_syntax(self) -> TestResult:
         cmd = (
             'grep -q -IhEro "ynh_exec_(err|warn|warn_less|quiet|fully_quiet) (\\"|\').*(\\"|\')$" %s'
             % self.path
@@ -205,7 +199,7 @@ class Script(TestSuite):
             )
 
     @test()
-    def ynh_setup_source_keep_with_absolute_path(self):
+    def ynh_setup_source_keep_with_absolute_path(self) -> TestResult:
         cmd = 'grep -q -IhEro "ynh_setup_source.*keep.*install_dir" %s' % self.path
         if os.system(cmd) == 0:
             yield Info(
@@ -213,21 +207,21 @@ class Script(TestSuite):
             )
 
     @test()
-    def ynh_npm_global(self):
+    def ynh_npm_global(self) -> TestResult:
         if self.containsregex(r"ynh_npm.*install.*global"):
             yield Warning(
                 "Please don't install stuff on global scope with npm install --global é_è"
             )
 
     @test()
-    def ynh_add_fpm_config_deprecated_package_option(self):
+    def ynh_add_fpm_config_deprecated_package_option(self) -> TestResult:
         if self.containsregex(r"ynh_add_fpm_config .*package=.*"):
             yield Error(
                 "(Requires Yunohost 4.3) Option --package for ynh_add_fpm_config is deprecated : please use 'ynh_install_app_dependencies' with **all** your apt dependencies instead (no need to define a special 'extra_php_dependencies'). YunoHost will automatically install any phpX.Y-fpm / phpX.Y-common if needed."
             )
 
     @test()
-    def set_is_public_setting(self):
+    def set_is_public_setting(self) -> TestResult:
         if self.containsregex(r"ynh_app_setting_set .*is_public.*"):
             if self.name == "upgrade":
                 yield Error(
@@ -239,21 +233,21 @@ class Script(TestSuite):
                 )
 
     @test(only=["_common.sh"])
-    def default_php_version_in_common(self):
+    def default_php_version_in_common(self) -> TestResult:
         if self.contains("YNH_DEFAULT_PHP_VERSION"):
             yield Warning(
                 "Do not use YNH_DEFAULT_PHP_VERSION in _common.sh ... _common.sh is usually sourced *before* the helpers, which define the version of YNH_DEFAULT_PHP_VERSION (hence it gets replaced with empty string). Instead, please explicitly state the PHP version in the package, e.g. dependencies='php8.2-cli php8.2-imagemagick'"
             )
 
     @test(ignore=["install", "_common.sh"])
-    def get_is_public_setting(self):
+    def get_is_public_setting(self) -> TestResult:
         if self.contains("is_public=") or self.contains("$is_public"):
             yield Warning(
                 "permission system: there should be no need to fetch or use $is_public ... is_public should only be used during installation to initialize the permission. The admin is likely to manually tweak the permission using YunoHost's interface later."
             )
 
     @test(only=["upgrade"])
-    def temporarily_enable_visitors_during_upgrade(self):
+    def temporarily_enable_visitors_during_upgrade(self) -> TestResult:
         if self.containsregex(
             "ynh_permission_update.*add.*visitors"
         ) and self.containsregex("ynh_permission_update.*remove.*visitors"):
@@ -262,7 +256,7 @@ class Script(TestSuite):
             )
 
     @test()
-    def set_legacy_permissions(self):
+    def set_legacy_permissions(self) -> TestResult:
         if self.containsregex(
             r"ynh_app_setting_set .*protected_uris"
         ) or self.containsregex(r"ynh_app_setting_set .*skipped_uris"):
@@ -278,14 +272,14 @@ class Script(TestSuite):
             )
 
     @test()
-    def normalize_url_path(self):
+    def normalize_url_path(self) -> TestResult:
         if self.contains("ynh_normalize_url_path"):
             yield Warning(
                 "You probably don't need to call 'ynh_normalize_url_path'... this is only relevant for upgrades from super-old versions (like 3 years ago or so...)"
             )
 
     @test()
-    def safe_rm(self):
+    def safe_rm(self) -> TestResult:
         if (
             self.contains("rm -r")
             or self.contains("rm -R")
@@ -297,7 +291,7 @@ class Script(TestSuite):
             )
 
     @test()
-    def FIXMEs(self):
+    def FIXMEs(self) -> TestResult:
         removeme = f"grep -q '#REMOVEME?' '{self.path}'"
         fixme = f"grep -q '# FIXMEhelpers2.1' '{self.path}'"
 
@@ -309,7 +303,7 @@ class Script(TestSuite):
             )
 
     @test()
-    def nginx_restart(self):
+    def nginx_restart(self) -> TestResult:
         if self.contains("systemctl restart nginx") or self.contains(
             "service nginx restart"
         ):
@@ -319,14 +313,14 @@ class Script(TestSuite):
             )
 
     @test()
-    def raw_systemctl_start(self):
+    def raw_systemctl_start(self) -> TestResult:
         if self.containsregex(r"systemctl start \"?[^. ]+(\.service)?\"?\s"):
             yield Warning(
                 "Please do not use 'systemctl start' to start services. Instead, you should use 'ynh_systemd_action' which will display the service log in case it fails to start. You can also use '--line_match' to wait until some specific word appear in the log, signaling the service indeed fully started."
             )
 
     @test()
-    def bad_line_match(self):
+    def bad_line_match(self) -> TestResult:
 
         if self.containsregex(r"--line_match=Started$") or self.containsregex(
             r"--line_match=Stopped$"
@@ -336,7 +330,7 @@ class Script(TestSuite):
             )
 
     @test()
-    def quiet_systemctl_enable(self):
+    def quiet_systemctl_enable(self) -> TestResult:
 
         systemctl_enable = [
             line
@@ -349,7 +343,7 @@ class Script(TestSuite):
             yield Warning(message)
 
     @test()
-    def quiet_wget(self):
+    def quiet_wget(self) -> TestResult:
 
         wget_cmds = [
             line
@@ -365,7 +359,7 @@ class Script(TestSuite):
             yield Warning(message)
 
     @test(only=["install"])
-    def argument_fetching(self):
+    def argument_fetching(self) -> TestResult:
 
         if self.containsregex(r"^\w+\=\$\{?[0-9]"):
             yield Critical(
@@ -374,7 +368,7 @@ class Script(TestSuite):
             )
 
     @test(only=["install"])
-    def sources_list_tweaking(self):
+    def sources_list_tweaking(self) -> TestResult:
         if self.contains("/etc/apt/sources.list") or (
             os.path.exists(self.app_path + "/scripts/_common.sh")
             and "/etc/apt/sources.list"
@@ -388,7 +382,7 @@ class Script(TestSuite):
             )
 
     @test()
-    def firewall_consistency(self):
+    def firewall_consistency(self) -> TestResult:
         if self.contains("yunohost firewall allow") and not self.contains(
             "--needs_exposed_ports"
         ):
@@ -404,7 +398,7 @@ class Script(TestSuite):
             )
 
     @test()
-    def exit_ynhdie(self):
+    def exit_ynhdie(self) -> TestResult:
 
         if self.contains(r"\bexit\b"):
             yield Error(
@@ -412,14 +406,14 @@ class Script(TestSuite):
             )
 
     @test()
-    def old_regenconf(self):
+    def old_regenconf(self) -> TestResult:
         if self.contains("yunohost service regen-conf"):
             yield Error(
                 "'yunohost service regen-conf' has been replaced by 'yunohost tools regen-conf'."
             )
 
     @test()
-    def ssowatconf_or_nginx_reload(self):
+    def ssowatconf_or_nginx_reload(self) -> TestResult:
         # Dirty hack to check only the 10 last lines for ssowatconf
         # (the "bad" practice being using this at the very end of the script, but some apps legitimately need this in the middle of the script)
         oldlines = list(self.lines)
@@ -438,7 +432,7 @@ class Script(TestSuite):
         self.lines = oldlines
 
     @test()
-    def sed(self):
+    def sed(self) -> TestResult:
         if self.containsregex(
             r"sed\s+(-i|--in-place)\s+(-r\s+)?s"
         ) or self.containsregex(r"sed\s+s\S*\s+(-i|--in-place)"):
@@ -447,7 +441,7 @@ class Script(TestSuite):
             )
 
     @test()
-    def sudo(self):
+    def sudo(self) -> TestResult:
         if self.containsregex(
             r"sudo \w"
         ):  # \w is here to not match sudo -u, legit use because ynh_exec_as not official yet...
@@ -457,7 +451,7 @@ class Script(TestSuite):
             )
 
     @test()
-    def chownroot(self):
+    def chownroot(self) -> TestResult:
 
         # Mywebapp has a legit use case for this >_>
         if self.app_id == "my_webapp":
@@ -472,21 +466,21 @@ class Script(TestSuite):
             )
 
     @test()
-    def chmod777(self):
+    def chmod777(self) -> TestResult:
         if self.containsregex(r"chmod .*777") or self.containsregex(r"chmod .*o\+w"):
             yield Warning(
                 "DO NOT use chmod 777 or chmod o+w that gives write permission to every users on the system!!! If you have permission issues, just make sure that the owner and/or group owner is right..."
             )
 
     @test()
-    def random(self):
+    def random(self) -> TestResult:
         if self.contains("dd if=/dev/urandom") or self.contains("openssl rand"):
             yield Error(
                 "Instead of 'dd if=/dev/urandom' or 'openssl rand', you should use 'ynh_string_random'"
             )
 
     @test(only=["install"])
-    def progression(self):
+    def progression(self) -> TestResult:
         if not self.contains("ynh_script_progression"):
             yield Warning(
                 "Please add a few messages for the user using 'ynh_script_progression' "
@@ -495,7 +489,7 @@ class Script(TestSuite):
             )
 
     @test(only=["backup"])
-    def progression_in_backup(self):
+    def progression_in_backup(self) -> TestResult:
         if self.contains("ynh_script_progression"):
             yield Warning(
                 "We recommend to *not* use 'ynh_script_progression' in backup "
@@ -506,7 +500,7 @@ class Script(TestSuite):
             )
 
     @test()
-    def progression_time(self):
+    def progression_time(self) -> TestResult:
 
         # Usage of ynh_script_progression with --time or --weight=1 all over the place...
         if self.containsregex(r"ynh_script_progression.*--time"):
@@ -515,8 +509,8 @@ class Script(TestSuite):
             )
 
     @test(ignore=["_common.sh", "backup"])
-    def progression_meaningful_weights(self):
-        def weight(line):
+    def progression_meaningful_weights(self) -> TestResult:
+        def weight(line: list[str]) -> int:
             match = re.search(
                 r"ynh_script_progression.*--weight=([0-9]+)", " ".join(line)
             )
@@ -542,7 +536,7 @@ class Script(TestSuite):
             )
 
     @test(only=["install", "_common.sh"])
-    def php_deps(self):
+    def php_deps(self) -> TestResult:
         if self.containsregex("dependencies.*php-"):
             # (Stupid hack because some apps like roundcube depend on php-pear or php-php-gettext and there's no phpx.y-pear phpx.y-php-gettext>_> ...
             if not self.contains("php-pear") or not self.contains("php-php-gettext"):
@@ -551,14 +545,14 @@ class Script(TestSuite):
                 )
 
     @test(only=["backup"])
-    def systemd_during_backup(self):
+    def systemd_during_backup(self) -> TestResult:
         if self.containsregex("^ynh_systemd_action"):
             yield Warning(
                 "Unless you really have a good reason to do so, starting/stopping services during backup has no benefit and leads to unecessary service interruptions when creating backups... As a 'reminder': apart from possibly database dumps (which usually do not require the service to be stopped) or other super-specific action, running the backup script is only a *declaration* of what needs to be backed up. The real copy and archive creation happens *after* the backup script is ran."
             )
 
     @test()
-    def helpers_sourcing_after_official(self):
+    def helpers_sourcing_after_official(self) -> TestResult:
         helpers_after_official = subprocess.check_output(
             "head -n 30 '%s' | grep -A 10 '^ *source */usr/share/yunohost/helpers' | grep '^ *source ' | tail -n +2"
             % self.path,
@@ -568,28 +562,28 @@ class Script(TestSuite):
             helpers_after_official.replace("source", "").replace(" ", "").strip()
         )
         if helpers_after_official:
-            helpers_after_official = helpers_after_official.split("\n")
+            helpers_after_official_list = helpers_after_official.split("\n")
             yield Warning(
                 "Please avoid sourcing additional helpers after the official helpers (in this case file %s)"
-                % ", ".join(helpers_after_official)
+                % ", ".join(helpers_after_official_list)
             )
 
     @test(only=["backup", "restore"])
-    def helpers_sourcing_backuprestore(self):
+    def helpers_sourcing_backuprestore(self) -> TestResult:
         if self.contains("source _common.sh") or self.contains("source ./_common.sh"):
             yield Error(
                 'In the context of backup and restore scripts, you should load _common.sh with "source ../settings/scripts/_common.sh"'
             )
 
     @test(only=["_common.sh"])
-    def no_progress_in_common(self):
+    def no_progress_in_common(self) -> TestResult:
         if self.contains("ynh_script_progression"):
             yield Warning(
                 "You should not use `ynh_script_progression` in _common.sh because it will produce warnings when trying to install the application."
             )
 
     @test(only=["remove"])
-    def no_log_remove(self):
+    def no_log_remove(self) -> TestResult:
         if self.containsregex(r"(ynh_secure_remove|ynh_safe_rm|rm).*(\/var\/log\/)"):
             yield Warning(
                 "Do not delete logs on app removal, else they will be erased if the app upgrade fails. This is handled by the core."

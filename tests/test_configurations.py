@@ -4,23 +4,17 @@ import json
 import os
 import re
 import subprocess
-
 import tomllib
-from lib.lib_package_linter import (
-    Error,
-    Info,
-    TestSuite,
-    Warning,
-    file_exists,
-    test,
-    tests_v1_schema,
-    validate_schema,
-)
+from typing import Any, Generator
+
+from lib.lib_package_linter import (Error, Info, TestReport, TestResult,
+                                    TestSuite, Warning, file_exists, test,
+                                    tests_v1_schema, validate_schema)
 from lib.print import _print
 
 
 class Configurations(TestSuite):
-    def __init__(self, app):
+    def __init__(self, app) -> None:
 
         self.app = app
         self.test_suite_name = "Configuration files"
@@ -36,7 +30,7 @@ class Configurations(TestSuite):
     ############################
 
     @test()
-    def tests_toml(self):
+    def tests_toml(self) -> TestResult:
 
         app = self.app
 
@@ -53,7 +47,7 @@ class Configurations(TestSuite):
             )
 
     @test()
-    def encourage_extra_php_conf(self):
+    def encourage_extra_php_conf(self) -> TestResult:
 
         app = self.app
 
@@ -69,7 +63,7 @@ class Configurations(TestSuite):
             )
 
     @test()
-    def misc_source_management(self):
+    def misc_source_management(self) -> TestResult:
 
         app = self.app
 
@@ -94,7 +88,7 @@ class Configurations(TestSuite):
             )
 
     @test()
-    def systemd_config_specific_user(self):
+    def systemd_config_specific_user(self) -> TestResult:
 
         app = self.app
         for filename in (
@@ -121,6 +115,7 @@ class Configurations(TestSuite):
             if "[Unit]" not in content:
                 continue
 
+            Level: type[TestReport]
             if re.findall(r"^ *Type=oneshot", content, flags=re.MULTILINE):
                 Level = Info
             else:
@@ -139,7 +134,7 @@ class Configurations(TestSuite):
                 )
 
     @test()
-    def systemd_config_harden_security(self):
+    def systemd_config_harden_security(self) -> TestResult:
 
         app = self.app
         for filename in (
@@ -169,7 +164,7 @@ class Configurations(TestSuite):
                 )
 
     @test()
-    def php_config_specific_user(self):
+    def php_config_specific_user(self) -> TestResult:
 
         app = self.app
         for filename in (
@@ -205,7 +200,7 @@ class Configurations(TestSuite):
                 )
 
     @test()
-    def nginx_http_host(self):
+    def nginx_http_host(self) -> TestResult:
 
         app = self.app
 
@@ -217,7 +212,7 @@ class Configurations(TestSuite):
                 )
 
     @test()
-    def nginx_https_redirect(self):
+    def nginx_https_redirect(self) -> TestResult:
 
         app = self.app
 
@@ -240,7 +235,7 @@ class Configurations(TestSuite):
                 )
 
     @test()
-    def misc_nginx_add_header(self):
+    def misc_nginx_add_header(self) -> TestResult:
 
         app = self.app
 
@@ -269,7 +264,7 @@ class Configurations(TestSuite):
                 )
 
     @test()
-    def misc_nginx_more_set_headers(self):
+    def misc_nginx_more_set_headers(self) -> TestResult:
 
         app = self.app
 
@@ -291,7 +286,7 @@ class Configurations(TestSuite):
                     zzz for zzz in lines if "more_set_headers" in zzz
                 ]
 
-                def right_syntax(line):
+                def right_syntax(line: str) -> re.Match[str] | None:
                     return re.search(
                         r"more_set_headers +[\"\'][\w-]+\s?: .*[\"\'];", line
                     )
@@ -312,7 +307,7 @@ class Configurations(TestSuite):
                     )
 
     @test()
-    def misc_nginx_check_regex_in_location(self):
+    def misc_nginx_check_regex_in_location(self) -> TestResult:
         app = self.app
         for filename in (
             os.listdir(app.path + "/conf") if os.path.exists(app.path + "/conf") else []
@@ -334,7 +329,7 @@ class Configurations(TestSuite):
                 )
 
     @test()
-    def misc_nginx_path_traversal(self):
+    def misc_nginx_path_traversal(self) -> TestResult:
 
         app = self.app
         for filename in (
@@ -350,7 +345,7 @@ class Configurations(TestSuite):
             #
             # Path traversal issues
             #
-            def find_location_with_alias(locationblock):
+            def find_location_with_alias(locationblock: Any) -> Generator[tuple[str, str], None, None]:
 
                 if locationblock[0][0] != "location":
                     return
@@ -369,7 +364,7 @@ class Configurations(TestSuite):
                     else:
                         continue
 
-            def find_path_traversal_issue(nginxconf):
+            def find_path_traversal_issue(nginxconf: list[Any]) -> Generator[str, None, None]:
 
                 for block in nginxconf:
                     for location, alias in find_location_with_alias(block):
@@ -428,7 +423,7 @@ class Configurations(TestSuite):
                 from lib.nginxparser import nginxparser
 
                 try:
-                    nginxconf = nginxparser.load(open(app.path + "/conf/" + filename))
+                    nginxconf: list[Any] = nginxparser.load(open(app.path + "/conf/" + filename))
                 except Exception as e:
                     _print("Could not parse NGINX conf...: " + str(e))
                     nginxconf = []
@@ -444,7 +439,7 @@ class Configurations(TestSuite):
                     )
 
     @test()
-    def bind_public_ip(self):
+    def bind_public_ip(self) -> TestResult:
         app = self.app
         for path, subdirs, files in (
             os.walk(app.path + "/conf") if os.path.exists(app.path + "/conf") else []
