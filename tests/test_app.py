@@ -552,7 +552,7 @@ class App(TestSuite):
             yield from validate_schema(
                 "config_panel",
                 json.loads(config_panel_v1_schema()),
-                tomllib.load(open(app.path + "/config_panel.toml", "rb")),
+                tomllib.load((app.path / "config_panel.toml").open("rb")),
             )
 
     @test()
