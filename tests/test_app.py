@@ -574,9 +574,9 @@ class App(TestSuite):
 
         content = readme.read_text()
 
-        if (
-            "This README was automatically generated" not in content
-            or (f"dash.yunohost.org/integration/{id_}.svg" not in content and f"https://apps.yunohost.org/badge/integration/{id_}" not in content)
+        if "This README was automatically generated" not in content or (
+            f"dash.yunohost.org/integration/{id_}.svg" not in content
+            and f"https://apps.yunohost.org/badge/integration/{id_}" not in content
         ):
             yield Warning(
                 "It looks like the README was not generated automatically by https://github.com/YunoHost/apps/tree/master/tools/README-generator. "

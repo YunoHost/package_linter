@@ -9,8 +9,6 @@ from lib.print import _print, set_output_json
 from tests.test_app import App
 
 
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("app_path", type=Path, help="The path to the app to lint")
