@@ -407,6 +407,8 @@ class App(TestSuite):
 
             for file in (app.path / "doc" / "screenshots").rglob("*"):
                 filename = file.name
+                if Path.is_dir(file):
+                    continue
                 if filename == ".gitkeep":
                     continue
                 if all(
