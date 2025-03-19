@@ -186,7 +186,9 @@ class Script(TestSuite):
     def deprecated_YNH_APP_ARG(self) -> TestResult:
         cmd = f"grep 'YNH_APP_ARG' '{self.path}' | grep -vq 'YNH_APP_ARG_PASSWORD'"
         if os.system(cmd) == 0:
-            yield Warning("Using the YNH_APP_ARG_ syntax is deprecated and will be removed in the future. (Except for password-type question which is a specific case). Questions are saved as settings and are directly available as bash variable $foobar (instead of $YNH_APP_ARG_FOOBAR)")
+            yield Warning(
+                "Using the YNH_APP_ARG_ syntax is deprecated and will be removed in the future. (Except for password-type question which is a specific case). Questions are saved as settings and are directly available as bash variable $foobar (instead of $YNH_APP_ARG_FOOBAR)"
+            )
 
     @test(only=["install", "upgrade"])
     def deprecated_replace_string(self) -> TestResult:
