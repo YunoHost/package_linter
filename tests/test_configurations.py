@@ -140,8 +140,13 @@ class Configurations(TestSuite):
             if not file.name.endswith(".service"):
                 continue
 
-            if os.system(f"grep -Eqi '^\s*Environment=.*(pass|secret|key)' '{file}'") == 0:
-                yield Error("Systemd configurations are world-readable and should not contain cleartext password/secrets T_T")
+            if (
+                os.system(f"grep -Eqi '^\s*Environment=.*(pass|secret|key)' '{file}'")
+                == 0
+            ):
+                yield Error(
+                    "Systemd configurations are world-readable and should not contain cleartext password/secrets T_T"
+                )
 
             if (
                 os.system(f"grep -q '^\s*CapabilityBoundingSet=' '{file}'") != 0
