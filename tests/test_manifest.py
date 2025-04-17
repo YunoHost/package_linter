@@ -81,7 +81,7 @@ class Manifest(TestSuite):
 
         # Taken from https://stackoverflow.com/a/49518779
         def check_for_duplicate_keys(
-            ordered_pairs: list[tuple[str, Any]]
+            ordered_pairs: list[tuple[str, Any]],
         ) -> dict[str, Any]:
             dict_out = {}
             for key, val in ordered_pairs:
