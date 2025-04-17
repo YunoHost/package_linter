@@ -155,7 +155,7 @@ class Configurations(TestSuite):
                 or os.system(f"grep -q '^\s*PrivateTmp=' '{file}'") != 0
             ):
                 yield Info(
-                    f"You are encouraged to harden the security of the systemd configuration {file.name}. You can have a look at https://github.com/YunoHost/example_ynh/blob/master/conf/systemd.service#L14-L46 for a baseline."
+                    f"You are encouraged to harden the security of the systemd configuration {file.name}. You can have a look at https://github.com/YunoHost/example_ynh/blob/main/conf/systemd.service#L14-L46 for a baseline."
                 )
 
     @test()
@@ -413,7 +413,7 @@ class Configurations(TestSuite):
                         "appears vulnerable to path traversal issues as explained in\n"
                         "  https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
                         "  To fix it, look at the first lines of the NGINX conf of the example app : \n"
-                        "  https://github.com/YunoHost/example_ynh/blob/master/conf/nginx.conf"
+                        "  https://github.com/YunoHost/example_ynh/blob/main/conf/nginx.conf"
                         % location
                     )
 
