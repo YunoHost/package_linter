@@ -447,7 +447,7 @@ class App(TestSuite):
         -> neant to go in the 'integration' section of the manifest.toml
 
     - Antifeatures-related infos (eg. alpha/deprecated software, arbitrary limiations, ...)
-        -> these are now formalized using the 'antifeatures' mechanism in the app catalog directly : cf https://github.com/YunoHost/apps/blob/master/antifeatures.yml and the 'antifeatures' key in apps.json
+        -> these are now formalized using the 'antifeatures' mechanism in the app catalog directly : cf https://github.com/YunoHost/apps/blob/main/antifeatures.yml and the 'antifeatures' key in apps.json
 
     - Important infos that the admin should be made aware of *before* or *after* the install
         -> infos *before* the install are meant to go in 'doc/PRE_INSTALL.md'
@@ -583,12 +583,12 @@ class App(TestSuite):
             )
             and (
                 f"https://apps.yunohost.org/app/{id_}" not in content
-                and f"https://raw.githubusercontent.com/YunoHost/apps/master/logos/{id_}.png"
+                and f"https://raw.githubusercontent.com/YunoHost/apps/main/logos/{id_}.png"
                 not in content
             )
         ):
             yield Warning(
-                "It looks like the README was not generated automatically by https://github.com/YunoHost/apps/tree/master/tools/README-generator. "
+                "It looks like the README was not generated automatically by https://github.com/YunoHost/apps/tree/main/tools/README-generator. "
                 "Note that nowadays you are not suppose to edit README.md, the yunohost bot will usually automatically update it if your app is hosted in the YunoHost-Apps org ... or you can also generate it by running the README-generator yourself."
             )
 

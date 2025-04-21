@@ -77,7 +77,7 @@ class AppCatalog(TestSuite):
         else:
             subprocess.check_call(["git", "-C", APPS_CACHE, "fetch", "--quiet"])
             subprocess.check_call(
-                ["git", "-C", APPS_CACHE, "reset", "origin/master", "--hard", "--quiet"]
+                ["git", "-C", APPS_CACHE, "reset", "origin/main", "--hard", "--quiet"]
             )
 
         flagfile.touch()
@@ -194,7 +194,7 @@ class AppCatalog(TestSuite):
                         "rev-list",
                         "-1",
                         "--before='%s'" % t.strftime("%b %d %Y"),
-                        "master",
+                        "main",
                     ]
                 )
                 if (

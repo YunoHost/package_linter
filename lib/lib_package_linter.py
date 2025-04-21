@@ -104,19 +104,19 @@ def spdx_licenses() -> str:
 
 @cache_file(Path(".manifest.v2.schema.json"), 3600)
 def manifest_v2_schema() -> str:
-    url = "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/manifest.v2.schema.json"
+    url = "https://raw.githubusercontent.com/YunoHost/apps/main/schemas/manifest.v2.schema.json"
     return urlopen(url)[1]
 
 
 @cache_file(Path(".tests.v1.schema.json"), 3600)
 def tests_v1_schema() -> str:
-    url = "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/tests.v1.schema.json"
+    url = "https://raw.githubusercontent.com/YunoHost/apps/main/schemas/tests.v1.schema.json"
     return urlopen(url)[1]
 
 
 @cache_file(Path(".config_panel.v1.schema.json"), 3600)
 def config_panel_v1_schema() -> str:
-    url = "https://raw.githubusercontent.com/YunoHost/apps/master/schemas/config_panel.v1.schema.json"
+    url = "https://raw.githubusercontent.com/YunoHost/apps/main/schemas/config_panel.v1.schema.json"
     return urlopen(url)[1]
 
 

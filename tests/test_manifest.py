@@ -143,7 +143,7 @@ class Manifest(TestSuite):
     def upstream_fields(self) -> TestResult:
         if "upstream" not in self.manifest.keys():
             yield Warning(
-                """READMEs are to be automatically generated using https://github.com/YunoHost/apps/tree/master/tools/README-generator.
+                """READMEs are to be automatically generated using https://github.com/YunoHost/apps_tools/tree/main/readme_generator.
         - You are encouraged to add an 'upstream' section in the manifest, filled with the website, demo, repo, license of the upstream app, as shown here: https://github.com/YunoHost/example_ynh/blob/7b72b7334964b504e8c901637c73ce908204d38b/manifest.json#L11-L18 . (Not all infos are mandatory, you can remove irrelevant entries)"""
             )
 
