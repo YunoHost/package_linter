@@ -604,3 +604,11 @@ class Script(TestSuite):
             yield Warning(
                 "Do not delete logs on app removal, else they will be erased if the app upgrade fails. This is handled by the core."
             )
+
+    @test(only=["install", "_common.sh"])
+    def setup_source_homedir(self) -> TestResult:
+        if self.containsregex(r"ynh_setup_source.*dest_dir=?\"?\$install_dir(\s|$)"):
+            yield Warning(
+                "Do not ynh_setup_source on $install_dir: this directory is a home directory and will be poisoned by .cache, .config, etc. "
+                "Extract and build in subdirectories instead."
+            )
