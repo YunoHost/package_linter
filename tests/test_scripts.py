@@ -204,6 +204,15 @@ class Script(TestSuite):
             )
 
     @test()
+    def bad_if_syntax(self) -> TestResult:
+
+        cmd = r"grep -Po '\[\s*\!?\s*" + '"' + r"?(\$\(|`).*(\)|`)" + '"' + r"?\s\](\s*)(;?(\s*then\s*)$|\s*&&|\s*$)' '%s' | grep -v ' == \| != \| = ' || true" % self.path
+        res = subprocess.check_output(cmd, shell=True).decode("utf-8").strip()
+        if res:
+            yield Warning('Syntaxes like « if [ $(cmd) ] » is pretty much a nonsense in bash and probably doesnt mean what you think it means ... If you want to check that the output of the command is non-empty, use « [ -n "$(cmd)" ] ». If you want to check for the return-code of the command, simply use « if cmd » (possibly with >/dev/null 2>/dev/null).\nCulprit(s):\n\n' +res)
+
+
+    @test()
     def bad_ynh_exec_syntax(self) -> TestResult:
         cmd = (
             'grep -q -IhEro "ynh_exec_(err|warn|warn_less|quiet|fully_quiet) (\\"|\').*(\\"|\')$" %s'
