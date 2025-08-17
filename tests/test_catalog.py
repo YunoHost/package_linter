@@ -21,11 +21,12 @@ from lib.lib_package_linter import (
     Warning,
     test,
     urlopen,
+    get_app_list,
+    PACKAGE_LINTER_DIR,
+    APPS_CACHE
 )
 from lib.print import _print
 
-PACKAGE_LINTER_DIR = Path(__file__).resolve().parent.parent
-APPS_CACHE = PACKAGE_LINTER_DIR / ".apps"
 
 ########################################
 #  _____       _        _              #
@@ -47,11 +48,7 @@ class AppCatalog(TestSuite):
 
         self._fetch_app_repo()
 
-        try:
-            self.app_list = tomllib.load((APPS_CACHE / "apps.toml").open("rb"))
-        except Exception:
-            _print("Failed to read apps.toml :/")
-            sys.exit(-1)
+        self.app_list = get_app_list()
 
         self.catalog_infos = self.app_list.get(app_id, {})
 

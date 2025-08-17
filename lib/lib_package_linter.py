@@ -6,8 +6,13 @@ import urllib.request
 from typing import Any, Callable, Generator, TypeVar
 
 import jsonschema
+import sys
+import tomllib
 
 from lib.print import _print
+
+PACKAGE_LINTER_DIR = Path(__file__).resolve().parent.parent
+APPS_CACHE = PACKAGE_LINTER_DIR / ".apps"
 
 # ############################################################################
 #   Utilities
@@ -73,6 +78,7 @@ def urlopen(url: str) -> tuple[int, str]:
     except urllib.error.URLError as e:
         _print("Could not fetch %s : %s" % (url, e))
         return 0, ""
+
     return 200, conn.read().decode("UTF8")
 
 
@@ -112,6 +118,14 @@ def manifest_v2_schema() -> str:
 def tests_v1_schema() -> str:
     url = "https://raw.githubusercontent.com/YunoHost/apps/main/schemas/tests.v1.schema.json"
     return urlopen(url)[1]
+
+def get_app_list() -> list[dict]:
+    try:
+        app_list = tomllib.load((APPS_CACHE / "apps.toml").open("rb"))
+    except Exception:
+        _print("Failed to read apps.toml :/")
+        sys.exit(-1)
+    return app_list
 
 
 @cache_file(Path(".config_panel.v1.schema.json"), 3600)

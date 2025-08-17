@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import json
 
 from lib.lib_package_linter import (
     Critical,
@@ -10,6 +11,10 @@ from lib.lib_package_linter import (
     not_empty,
     test,
     urlopen,
+    get_app_list,
+    PACKAGE_LINTER_DIR,
+    APPS_CACHE,
+    report_warning_not_reliable
 )
 
 
@@ -18,35 +23,38 @@ class Issues(TestSuite):
         self.app = app
         self.test_suite_name = "Issues"
 
-        repo_url = catalog[app_id]["url"]
+        self.app_list = get_app_list()
+        repo_url = self.app_list[app]["url"]
         if "github.com" not in repo_url:
-            print_warning("Can't check if there are any blocking issues pending, can only do this for apps hosted on github for now.")
+            report_warning_not_reliable("Can't check if there are any blocking issues pending, can only do this for apps hosted on github for now.")
             return
         repo = repo_url.replace("https://github.com/", "")
         issues_uri = f"https://api.github.com/repos/{repo}/issues?state=open"
 
-        self.issues:list[dict] = urlopen(issues_uri, 'json')
+        code, issues_result = urlopen(issues_uri)
+        if 200 <= code < 300:
+            self.issues:list[dict] = json.loads(issues_result)
 
 
     @test()
     def broken_issue(self) -> TestResult:
-        issues = [issue['title']
+        issues = [f"#{issue['number']} : {issue['title']}"
             for issue in self.issues
             if "broken" in [label["name"] for label in issue.get('labels', [])]
-                        ]
+        ]
 
         if issues:
-            yield Critical("There are critical pending issues on the git repo to be solved :\n  - "+"\n  - ".join(broken_issues)+"\nThe app will be considered BROKEN (level 0) as long as it's not solved.")
+            yield Critical("There are critical pending issues on the git repo to be solved :\n      - "+"\n      - ".join(issues)+"\n      The app will be considered BROKEN (level 0) as long as it's not solved.")
 
     @test()
     def low_quality_issue(self) -> TestResult:
-        issues = [issue['title']
+        issues = [f"#{issue['number']} : {issue['title']}"
             for issue in self.issues
-            if "low_quality" in [label["name"] for label in issue.get('labels', [])]
-                        ]
+            if "low quality" in [label["name"] for label in issue.get('labels', [])]
+        ]
 
         if issues:
-            yield Warning("There are important pending issues on the git repo to be solved :\n  - "+"\n  - ".join(broken_issues)+"\nThe app will be considered low quality as long as it's not solved.")
+            yield Warning("There are important pending issues on the git repo to be solved :\n      - "+"\n      - ".join(issues)+"\n      The app will be considered low quality as long as it's not solved.")
 
     @test()
     def small_bug(self) -> TestResult:
