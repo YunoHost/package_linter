@@ -57,7 +57,7 @@ class Issues(TestSuite):
         ]
 
         if issues:
-            yield Warning("There are important pending issues on the git repo to be solved :\n      - "+"\n      - ".join(issues)+"\n      The app will be considered low quality as long as it's not solved.")
+            yield Warning("There are important pending issues on the git repo to be solved :\n      - "+"\n      - ".join(issues)+"\n      The app will be considered low quality as long as it's not solved and won't be able to reach more than the level 6.")
 
     @test()
     def small_bug(self) -> TestResult:
