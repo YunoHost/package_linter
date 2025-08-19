@@ -34,6 +34,9 @@ class Issues(TestSuite):
         code, issues_result = urlopen(issues_uri)
         if 200 <= code < 300:
             self.issues:list[dict] = json.loads(issues_result)
+        else:
+            report_warning_not_reliable(f"Can't check if there are any blocking issues pending got {code} error.")
+            return
 
 
     @test()
