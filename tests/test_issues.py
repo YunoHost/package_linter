@@ -2,7 +2,7 @@
 import json
 
 from lib.lib_package_linter import (
-    Critical,
+    Error,
     Info,
     TestReport,
     TestResult,
@@ -40,28 +40,29 @@ class Issues(TestSuite):
 
 
     @test()
-    def broken_issue(self) -> TestResult:
+    def issue_marked_as_linter_error(self) -> TestResult:
         issues = [f"#{issue['number']} : {issue['title']}"
             for issue in self.issues
-            if "broken" in [label["name"] for label in issue.get('labels', [])]
+            if "linter error" in [label["name"] for label in issue.get('labels', [])]
         ]
 
         if issues:
-            yield Critical("There are critical pending issues on the git repo to be solved :\n      - "+"\n      - ".join(issues)+"\n      The app will be considered BROKEN (level 0) as long as it's not solved.")
+            yield Error("Those issues need to be solved to reach level5+ and be displayed by default on catalog:\n      - "+"\n      - ".join(issues))
 
     @test()
-    def low_quality_issue(self) -> TestResult:
+    def issue_marked_as_linter_warning(self) -> TestResult:
         issues = [f"#{issue['number']} : {issue['title']}"
             for issue in self.issues
-            if "low quality" in [label["name"] for label in issue.get('labels', [])]
+            if "linter warning" in [label["name"] for label in issue.get('labels', [])]
         ]
 
         if issues:
-            yield Warning("There are important pending issues on the git repo to be solved :\n      - "+"\n      - ".join(issues)+"\n      The app will be considered low quality as long as it's not solved and won't be able to reach more than the level 6.")
+            yield Warning("Those issues need to be solved to reach level7+ and be displayed as high quality apps:\n      - "+"\n      - ".join(issues))
+
 
     @test()
     def small_bug(self) -> TestResult:
-        ignored_labels = {"wontfix", "invalid", "broken", "low quality"}
+        ignored_labels = {"wontfix", "invalid", "upstream-issue", "core-issue", "linter error", "linter warning"}
         nb_bugs = 0
         for issue in self.issues:
             labels = [label["name"] for label in issue.get('labels', [])]
