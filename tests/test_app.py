@@ -25,6 +25,7 @@ from lib.lib_package_linter import (
 from lib.print import _print, is_json_output
 from tests.test_catalog import AppCatalog
 from tests.test_configurations import Configurations
+from tests.test_issues import Issues
 from tests.test_manifest import Manifest
 from tests.test_scripts import Script
 
@@ -249,6 +250,7 @@ class App(TestSuite):
         }
         self.configurations = Configurations(self)
         self.app_catalog = AppCatalog(self.manifest["id"])
+        self.issues = Issues(self.manifest["id"])
 
         self.test_suite_name = "General stuff, misc helper usage"
 
@@ -264,6 +266,7 @@ class App(TestSuite):
         self.run_tests()
         self.configurations.run_tests()
         self.app_catalog.run_tests()
+        self.issues.run_tests()
 
         self.report()
 
@@ -897,3 +900,4 @@ class App(TestSuite):
                 "The app seems to be storing data in the 'forbidden' locations %s. The recommended pratice is rather to store data in /home/yunohost.app/$app or /home/yunohost.multimedia (depending on the use case)"
                 % ", ".join(forbidden_locations)
             )
+
