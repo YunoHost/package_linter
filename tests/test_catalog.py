@@ -23,7 +23,7 @@ from lib.lib_package_linter import (
     urlopen,
     get_app_list,
     PACKAGE_LINTER_DIR,
-    APPS_CACHE
+    APPS_CACHE,
 )
 from lib.print import _print
 

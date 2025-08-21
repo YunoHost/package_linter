@@ -900,4 +900,3 @@ class App(TestSuite):
                 "The app seems to be storing data in the 'forbidden' locations %s. The recommended pratice is rather to store data in /home/yunohost.app/$app or /home/yunohost.multimedia (depending on the use case)"
                 % ", ".join(forbidden_locations)
             )
-

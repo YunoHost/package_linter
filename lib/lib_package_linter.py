@@ -119,6 +119,7 @@ def tests_v1_schema() -> str:
     url = "https://raw.githubusercontent.com/YunoHost/apps/main/schemas/tests.v1.schema.json"
     return urlopen(url)[1]
 
+
 def get_app_list() -> list[dict]:
     try:
         app_list = tomllib.load((APPS_CACHE / "apps.toml").open("rb"))
