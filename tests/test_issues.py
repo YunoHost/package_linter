@@ -25,6 +25,7 @@ class Issues(TestSuite):
 
         self.app_list = get_app_list()
         repo_url = self.app_list[app]["url"]
+        self.issues = [] # init blank in case lines below fail
         if "github.com" not in repo_url:
             report_warning_not_reliable(
                 "Can't check if there are any blocking issues pending, can only do this for apps hosted on github for now."
