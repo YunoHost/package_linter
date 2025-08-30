@@ -24,7 +24,7 @@ class Issues(TestSuite):
         self.test_suite_name = "Issues"
 
         self.app_list = get_app_list()
-        repo_url = self.app_list[app]["url"]
+        repo_url = self.app_list.get(app, {}).get("url", "invalid")
         self.issues = []  # init blank in case lines below fail
         if "github.com" not in repo_url:
             report_warning_not_reliable(
