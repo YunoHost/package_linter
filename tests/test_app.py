@@ -412,6 +412,11 @@ class App(TestSuite):
                 filename = file.name
                 if Path.is_dir(file):
                     continue
+                if filename == "example.jpg":
+                    yield Warning(
+                        "It tooks like the screenshot in doc/screenshots/ folder is just a default placeholder ... please replace it with something more meaningful (or remove it if screenshots are not relevant for this app)"
+                    )
+                    continue
                 if filename == ".gitkeep":
                     continue
                 if all(
