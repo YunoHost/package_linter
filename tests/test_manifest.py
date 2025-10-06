@@ -464,7 +464,7 @@ class Manifest(TestSuite):
             packages = str(packages) if isinstance(packages, list) else packages
             assert isinstance(packages, str)
             if "php7.4-" in packages:
-                yield Warning(
+                yield Error(
                     "The app currently runs on php7.4 which is pretty old (unsupported by the PHP group since January 2023). Ideally, upgrade it to at least php8.2."
                 )
             elif "php8.0-" in packages:
@@ -472,7 +472,7 @@ class Manifest(TestSuite):
                     "The app currently runs on php8.0 which is pretty old (unsupported by the PHP group since January 2024). Ideally, upgrade it to at least php8.2."
                 )
             elif "php8.1-" in packages:
-                yield Info(
+                yield Warning(
                     "The app currently runs on php8.1 which is deprecated since January 2024. Ideally, upgrade it to at least php8.2."
                 )
 
