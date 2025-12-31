@@ -237,6 +237,16 @@ deprecated_helpers_in_v2 = [
     ),
 ]
 
+deprecated_helpers_in_v2p1 = [
+    ("ynh_nodejs_install", "the nodejs resource"),
+    ("ynh_nodejs_remove", "the nodejs resource"),
+    ("ynh_ruby_install", "the ruby resource"),
+    ("ynh_ruby_remove", "the ruby resource"),
+    ("ynh_go_install", "the go resource"),
+    ("ynh_go_remove", "the go resource"),
+    ("ynh_composer_install", "the composer resource"),
+]
+
 
 class App(TestSuite):
     def __init__(self, path: Path) -> None:
@@ -725,12 +735,20 @@ class App(TestSuite):
         helpers_used = sorted(set(helpers_used))
 
         deprecated_helpers_in_v2_ = {k: v for k, v in deprecated_helpers_in_v2}
+        deprecated_helpers_in_v2p1_ = {k: v for k, v in deprecated_helpers_in_v2p1}
 
         for helper in [
             h for h in helpers_used if h in deprecated_helpers_in_v2_.keys()
         ]:
             yield Warning(
                 f"Using helper {helper} is deprecated when using packaging v2 ... It is replaced by: {deprecated_helpers_in_v2_[helper]}"
+            )
+
+        for helper in [
+            h for h in helpers_used if h in deprecated_helpers_in_v2p1_.keys()
+        ]:
+            yield Warning(
+                f"Using helper {helper} is now deprecated (assuming you're using packaging v2.1) ... It is replaced by: {deprecated_helpers_in_v2p1_[helper]}. Note that a PR should have been automatically created via yunohost-bot to help with the transition"
             )
 
     @test()
