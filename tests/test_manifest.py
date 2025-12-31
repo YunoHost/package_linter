@@ -198,6 +198,15 @@ class Manifest(TestSuite):
             )
 
     @test()
+    def helpers_version_requirement(app) -> TestResult:
+
+        helpers_version = app.manifest.get("integration", {}).get("helpers_version")
+
+        # Probably need to iterate upon this once we have packaging v3 or an hypothetical 2.2
+        if helpers_version != "2.1":
+            yield Warning("Helpers 2.0 are deprecated, please consider switching to helpers/packaging 2.1. An automatic PR should have been created via yunohost-bot to help with the transition. Don't hesitate to reach out to the team if you need help!")
+
+    @test()
     def basic_fields_format(self) -> TestResult:
 
         if self.manifest.get("packaging_format") != app_packaging_format:
