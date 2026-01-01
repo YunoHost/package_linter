@@ -418,6 +418,18 @@ class Configurations(TestSuite):
                     )
 
     @test()
+    def nginx_uwsgi(self) -> TestResult:
+        nginx_conf: Path = self.app.path / "conf" / "nginx.conf"
+        if not nginx_conf.exists():
+            return
+
+        content = nginx_conf.read_text()
+        if "uwsgi_pass" in content:
+            yield Warning(
+                    "Using uwsgi is deprecated (at least because it was never properly integrated in YunoHost, and also because the project is not really maintained anymore: https://github.com/unbit/uwsgi/blob/master/README ). Please consider switching to, for example, a gunicorn-based architecture with regular proxy_pass instead."
+            )
+
+    @test()
     def bind_public_ip(self) -> TestResult:
         conf_dir: Path = self.app.path / "conf"
         if not conf_dir.exists():
