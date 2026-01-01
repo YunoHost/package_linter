@@ -427,7 +427,7 @@ class Configurations(TestSuite):
         content = nginx_conf.read_text()
         if "uwsgi_pass" in content:
             yield Warning(
-                    "Using uwsgi is deprecated (at least because it was never properly integrated in YunoHost, and also because the project is not really maintained anymore: https://github.com/unbit/uwsgi/blob/master/README ). Please consider switching to, for example, a gunicorn-based architecture with regular proxy_pass instead."
+                "Using uwsgi is deprecated (at least because it was never properly integrated in YunoHost, and also because the project is not really maintained anymore: https://github.com/unbit/uwsgi/blob/master/README ). Please consider switching to, for example, a gunicorn-based architecture with regular proxy_pass instead."
             )
 
     @test()
@@ -437,7 +437,9 @@ class Configurations(TestSuite):
             self.app.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
         )
 
-        if not yunohost_version_req or version.parse(yunohost_version_req) < version.parse("12.1.38"):
+        if not yunohost_version_req or version.parse(
+            yunohost_version_req
+        ) < version.parse("12.1.38"):
             return
 
         conf_dir: Path = self.app.path / "conf"
@@ -451,20 +453,52 @@ class Configurations(TestSuite):
             if not file.is_file() or "nginx" not in file.name:
                 continue
 
-            has_reverse_proxy_statement = os.system(rf"grep -Iq '^\s*proxy_pass\s\|^\s*fastcgi_pass\s' '{file}'") == 0
-            include_params_no_auth = os.system(rf"grep -Iq '^\s*include\s*proxy_params_no_auth;\|^\s*include\s*fastcgi_params_no_auth;' '{file}'") == 0
-            include_params_with_auth = os.system(rf"grep -Iq '^\s*include\s*proxy_params_with_auth;\|^\s*include\s*fastcgi_params_with_auth;' '{file}'") == 0
+            has_reverse_proxy_statement = (
+                os.system(rf"grep -Iq '^\s*proxy_pass\s\|^\s*fastcgi_pass\s' '{file}'")
+                == 0
+            )
+            include_params_no_auth = (
+                os.system(
+                    rf"grep -Iq '^\s*include\s*proxy_params_no_auth;\|^\s*include\s*fastcgi_params_no_auth;' '{file}'"
+                )
+                == 0
+            )
+            include_params_with_auth = (
+                os.system(
+                    rf"grep -Iq '^\s*include\s*proxy_params_with_auth;\|^\s*include\s*fastcgi_params_with_auth;' '{file}'"
+                )
+                == 0
+            )
 
-            manual_reverse_proxy_params = subprocess.check_output(rf"grep -IhrEo '^\s*(proxy_set_header|fastcgi_param)\s*[a-zA-Z_-]+\s+' '{file}' | sed -e 's/^\s*proxy_set_header\s*//g' -e 's/^\s*fastcgi_param\s*//g' | tr -d ' ' | sort | uniq", shell=True).decode().strip()
-            manual_reverse_proxy_params = manual_reverse_proxy_params.split("\n") if manual_reverse_proxy_params else []
+            manual_reverse_proxy_params = (
+                subprocess.check_output(
+                    rf"grep -IhrEo '^\s*(proxy_set_header|fastcgi_param)\s*[a-zA-Z_-]+\s+' '{file}' | sed -e 's/^\s*proxy_set_header\s*//g' -e 's/^\s*fastcgi_param\s*//g' | tr -d ' ' | sort | uniq",
+                    shell=True,
+                )
+                .decode()
+                .strip()
+            )
+            manual_reverse_proxy_params = (
+                manual_reverse_proxy_params.split("\n")
+                if manual_reverse_proxy_params
+                else []
+            )
 
             print(has_reverse_proxy_statement)
-            if has_reverse_proxy_statement and not (include_params_no_auth or include_params_with_auth):
-                yield Warning("The nginx configuration reverse-proxies to another service (using proxy_pass or fastcgi_pass) but does not include the default set of params shipped in YunoHost, i.e: proxy_params_no/with_auth or fastcgi_params_no/with_auth, depending on what's the appropriate one for this use case.")
+            if has_reverse_proxy_statement and not (
+                include_params_no_auth or include_params_with_auth
+            ):
+                yield Warning(
+                    "The nginx configuration reverse-proxies to another service (using proxy_pass or fastcgi_pass) but does not include the default set of params shipped in YunoHost, i.e: proxy_params_no/with_auth or fastcgi_params_no/with_auth, depending on what's the appropriate one for this use case."
+                )
             elif sso is True and not include_params_with_auth:
-                yield Warning("In manifest.toml, sso integration is set to true, but the nginx conf doesn't seem to include proxy_params_with_auth or fastcgi_params_with_auth.")
+                yield Warning(
+                    "In manifest.toml, sso integration is set to true, but the nginx conf doesn't seem to include proxy_params_with_auth or fastcgi_params_with_auth."
+                )
             elif sso in [False, "not_relevant"] and include_params_with_auth:
-                yield Warning("In manifest.toml, sso integration is set to false or not_relevant, but the nginx conf seems to include proxy_params_with_auth or fastcgi_params_with_auth with suggest maybe it does?")
+                yield Warning(
+                    "In manifest.toml, sso integration is set to false or not_relevant, but the nginx conf seems to include proxy_params_with_auth or fastcgi_params_with_auth with suggest maybe it does?"
+                )
 
             reverse_proxy_params_from_includes = [
                 # Reverse proxy
@@ -502,9 +536,17 @@ class Configurations(TestSuite):
                 "SERVER_PORT",
                 "SERVER_NAME",
             ]
-            reverse_proxy_params_from_includes_that_are_manually_set = ", ".join([p for p in manual_reverse_proxy_params if p in reverse_proxy_params_from_includes])
+            reverse_proxy_params_from_includes_that_are_manually_set = ", ".join(
+                [
+                    p
+                    for p in manual_reverse_proxy_params
+                    if p in reverse_proxy_params_from_includes
+                ]
+            )
             if reverse_proxy_params_from_includes_that_are_manually_set:
-                yield Warning(f"In the nginx conf, manually defining a value for these reverse proxy params should not be necessary as they are already defined in the proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be included when using proxy_pass or fastcgi_pass: {reverse_proxy_params_from_includes_that_are_manually_set}")
+                yield Warning(
+                    f"In the nginx conf, manually defining a value for these reverse proxy params should not be necessary as they are already defined in the proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be included when using proxy_pass or fastcgi_pass: {reverse_proxy_params_from_includes_that_are_manually_set}"
+                )
 
     @test()
     def bind_public_ip(self) -> TestResult:
