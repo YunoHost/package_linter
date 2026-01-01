@@ -141,7 +141,7 @@ class Configurations(TestSuite):
                 continue
 
             if (
-                os.system(f"grep -Eqi '^\s*Environment=.*(pass|secret|key)' '{file}'")
+                os.system(rf"grep -Eqi '^\s*Environment=.*(pass|secret|key)' '{file}'")
                 == 0
             ):
                 yield Error(
@@ -149,10 +149,10 @@ class Configurations(TestSuite):
                 )
 
             if (
-                os.system(f"grep -q '^\s*CapabilityBoundingSet=' '{file}'") != 0
-                or os.system(f"grep -q '^\s*Protect.*=' '{file}'") != 0
-                or os.system(f"grep -q '^\s*SystemCallFilter=' '{file}'") != 0
-                or os.system(f"grep -q '^\s*PrivateTmp=' '{file}'") != 0
+                os.system(rf"grep -q '^\s*CapabilityBoundingSet=' '{file}'") != 0
+                or os.system(rf"grep -q '^\s*Protect.*=' '{file}'") != 0
+                or os.system(rf"grep -q '^\s*SystemCallFilter=' '{file}'") != 0
+                or os.system(rf"grep -q '^\s*PrivateTmp=' '{file}'") != 0
             ):
                 yield Info(
                     f"You are encouraged to harden the security of the systemd configuration {file.name}. You can have a look at https://github.com/YunoHost/example_ynh/blob/main/conf/systemd.service#L14-L46 for a baseline."
