@@ -484,7 +484,6 @@ class Configurations(TestSuite):
                 else []
             )
 
-            print(has_reverse_proxy_statement)
             if has_reverse_proxy_statement and not (
                 include_params_no_auth or include_params_with_auth
             ):
