@@ -486,6 +486,34 @@ class Manifest(TestSuite):
                 yield Warning(
                     "The app currently runs on php8.1 which is deprecated since January 2024. Ideally, upgrade it to at least php8.2."
                 )
+    
+    @test()
+    def require_php_fpm(self) -> TestResult:
+
+        resources = self.manifest["resources"]
+
+        found_php = False
+        found_fpm = False
+        php_version = ""
+        rgx = re.compile(r"php(?P<version>[0-9]+\.[0-9]+)")
+
+        if "apt" in list(resources.keys()):
+            packages = resources["apt"].get("packages", "")
+            packages = packages.split(",") if isinstance(packages, str) else packages
+            assert isinstance(packages, list)
+            for package in packages:
+                match = rgx.match(package.strip())
+                if match:
+                    found_php = True
+                    php_version = match.group(1)
+                if rgx.match(package.strip()) and package.strip().endswith("fpm"):
+                    found_fpm = True
+                    break
+                
+        if found_php and not found_fpm:
+            yield Warning(
+                f"The app requires PHP but doesn't seem to install php{php_version}-fpm. It's recommended to use php{php_version}-fpm for safer package resolution."
+            )
 
     @test()
     def resource_consistency(self) -> TestResult:
