@@ -494,10 +494,6 @@ class Configurations(TestSuite):
                 yield Warning(
                     "In manifest.toml, sso integration is set to true, but the nginx conf doesn't seem to include proxy_params_with_auth or fastcgi_params_with_auth."
                 )
-            elif sso in [False, "not_relevant"] and include_params_with_auth:
-                yield Warning(
-                    "In manifest.toml, sso integration is set to false or not_relevant, but the nginx conf seems to include proxy_params_with_auth or fastcgi_params_with_auth with suggest maybe it does?"
-                )
 
             reverse_proxy_params_from_includes = [
                 # Reverse proxy
