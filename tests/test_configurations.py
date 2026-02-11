@@ -448,6 +448,8 @@ class Configurations(TestSuite):
 
         sso = self.app.manifest.get("integration", {}).get("sso")
 
+        include_params_with_auth_at_last_in_one_conf = False
+
         for file in conf_dir.iterdir():
             # Ignore subdirs or filename not containing nginx in the name
             if not file.is_file() or "nginx" not in file.name:
@@ -469,6 +471,9 @@ class Configurations(TestSuite):
                 )
                 == 0
             )
+            if include_params_with_auth:
+                include_params_with_auth_at_last_in_one_conf = True
+
 
             manual_reverse_proxy_params = (
                 subprocess.check_output(
@@ -489,14 +494,6 @@ class Configurations(TestSuite):
             ):
                 yield Warning(
                     "The nginx configuration reverse-proxies to another service (using proxy_pass or fastcgi_pass) but does not include the default set of params shipped in YunoHost, i.e: proxy_params_no/with_auth or fastcgi_params_no/with_auth, depending on what's the appropriate one for this use case."
-                )
-            elif sso is True and not include_params_with_auth:
-                yield Warning(
-                    "In manifest.toml, sso integration is set to true, but the nginx conf doesn't seem to include proxy_params_with_auth or fastcgi_params_with_auth."
-                )
-            elif sso in [False, "not_relevant"] and include_params_with_auth:
-                yield Warning(
-                    "In manifest.toml, sso integration is set to false or not_relevant, but the nginx conf seems to include proxy_params_with_auth or fastcgi_params_with_auth with suggest maybe it does?"
                 )
 
             reverse_proxy_params_from_includes = [
@@ -546,6 +543,16 @@ class Configurations(TestSuite):
                 yield Warning(
                     f"In the nginx conf, manually defining a value for these reverse proxy params should not be necessary as they are already defined in the proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be included when using proxy_pass or fastcgi_pass: {reverse_proxy_params_from_includes_that_are_manually_set}"
                 )
+
+        if sso is True and not include_params_with_auth_at_last_in_one_conf:
+            yield Warning(
+                "In manifest.toml, sso integration is set to true, but the nginx conf doesn't seem to include proxy_params_with_auth or fastcgi_params_with_auth."
+            )
+        elif sso in [False, "not_relevant"] and include_params_with_auth_at_last_in_one_conf:
+            yield Warning(
+                "In manifest.toml, sso integration is set to false or not_relevant, but the nginx conf seems to include proxy_params_with_auth or fastcgi_params_with_auth with suggest maybe it does?"
+            )
+
 
     @test()
     def bind_public_ip(self) -> TestResult:
