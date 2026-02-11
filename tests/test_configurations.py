@@ -474,10 +474,9 @@ class Configurations(TestSuite):
             if include_params_with_auth:
                 include_params_with_auth_at_last_in_one_conf = True
 
-
             manual_reverse_proxy_params = (
                 subprocess.check_output(
-                    rf"grep -IhrEo '^\s*(proxy_set_header|fastcgi_param)\s*[a-zA-Z_-]+\s+' '{file}' | sed -e 's/^\s*proxy_set_header\s*//g' -e 's/^\s*fastcgi_param\s*//g' | tr -d ' ' | sort | uniq",
+                    rf"grep -IhrEo '^\s*(proxy_set_header|fastcgi_param)\s*[a-zA-Z_-]+\s+.*;' '{file}' | sed -E -e 's/^\s*proxy_set_header\s*//g' -e 's/^\s*fastcgi_param\s*//g' -e 's/\s+/ /g' -e 's/;.*//g' | sort | uniq",
                     shell=True,
                 )
                 .decode()
@@ -488,6 +487,7 @@ class Configurations(TestSuite):
                 if manual_reverse_proxy_params
                 else []
             )
+            manual_reverse_proxy_params = {i.split(' ')[0]: i.split(' ')[1] for i in manual_reverse_proxy_params}
 
             if has_reverse_proxy_statement and not (
                 include_params_no_auth or include_params_with_auth
@@ -496,7 +496,9 @@ class Configurations(TestSuite):
                     "The nginx configuration reverse-proxies to another service (using proxy_pass or fastcgi_pass) but does not include the default set of params shipped in YunoHost, i.e: proxy_params_no/with_auth or fastcgi_params_no/with_auth, depending on what's the appropriate one for this use case."
                 )
 
-            reverse_proxy_params_from_includes = [
+            # The item that we are sure that should never be customized and so always raise a warning
+            # if set in the nginx config
+            reverse_proxy_params_from_includes_blacklist = [
                 # Reverse proxy
                 "Host",
                 "X-Real-IP",
@@ -507,19 +509,7 @@ class Configurations(TestSuite):
                 "X-Forwarded-Scheme",
                 "X-Forwarded-Ssl",
                 "X-Forwarded-Server",
-                "Upgrade",
-                "Connection",
                 # Fastcgi
-                "QUERY_STRING",
-                "REQUEST_METHOD",
-                "CONTENT_TYPE",
-                "CONTENT_LENGTH",
-                "PATH_INFO",
-                "SCRIPT_FILENAME",
-                "SCRIPT_NAME",
-                "REQUEST_URI",
-                "DOCUMENT_URI",
-                "DOCUMENT_ROOT",
                 "SERVER_PROTOCOL",
                 "REQUEST_SCHEME",
                 "HTTPS",
@@ -532,17 +522,63 @@ class Configurations(TestSuite):
                 "SERVER_PORT",
                 "SERVER_NAME",
             ]
+            # The item that should generally not be customized but some app might need to override
+            # the default value and so if the non default value are used we just raise a info and not warning.
+            # Note that this list might need some adjustement depending of the use case
+            # for instance if an app are overriding a parameter which is in black list
+            # and it's justified to override it.'
+            reverse_proxy_params_from_includes_greylist = {
+                # Reverse proxy
+                "Upgrade": "$http_upgrade",
+                "Connection": "$connection_upgrade",
+                # Fastcgi
+                "QUERY_STRING": "$query_string",
+                "REQUEST_METHOD": "$request_method",
+                "CONTENT_TYPE": "$content_type",
+                "CONTENT_LENGTH": "$content_length",
+                "PATH_INFO": "$fastcgi_path_info",
+                "SCRIPT_FILENAME": "$request_filename",
+                "SCRIPT_NAME": "$fastcgi_script_name",
+                "REQUEST_URI": "$request_uri",
+                "DOCUMENT_URI": "$document_uri",
+                "DOCUMENT_ROOT": "$document_root",
+            }
             reverse_proxy_params_from_includes_that_are_manually_set = ", ".join(
                 [
                     p
-                    for p in manual_reverse_proxy_params
-                    if p in reverse_proxy_params_from_includes
+                    for p in manual_reverse_proxy_params.keys()
+                    if p in reverse_proxy_params_from_includes_blacklist
                 ]
             )
             if reverse_proxy_params_from_includes_that_are_manually_set:
                 yield Warning(
                     f"In the nginx conf, manually defining a value for these reverse proxy params should not be necessary as they are already defined in the proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be included when using proxy_pass or fastcgi_pass: {reverse_proxy_params_from_includes_that_are_manually_set}"
                 )
+
+            reverse_proxy_params_from_includes_that_are_manually_set = ", ".join(
+                [
+                    k
+                    for k, v in manual_reverse_proxy_params.items()
+                    if k in reverse_proxy_params_from_includes_greylist.keys() and reverse_proxy_params_from_includes_greylist[k] == v
+                ]
+            )
+            if reverse_proxy_params_from_includes_that_are_manually_set:
+                yield Warning(
+                    f"In the nginx conf, manually defining a value for these reverse proxy params should not be necessary as they are already defined in the proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be included when using proxy_pass or fastcgi_pass: {reverse_proxy_params_from_includes_that_are_manually_set}"
+                )
+
+            reverse_proxy_params_from_includes_that_are_manually_set = ", ".join(
+                [
+                    k
+                    for k, v in manual_reverse_proxy_params.items()
+                    if k in reverse_proxy_params_from_includes_greylist.keys() and reverse_proxy_params_from_includes_greylist[k] != v
+                ]
+            )
+            if reverse_proxy_params_from_includes_that_are_manually_set:
+                yield Info(
+                    f"In the nginx conf, manually defining a value for these reverse proxy params should not be necessary as they are already defined in the proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be included when using proxy_pass or fastcgi_pass. But in some specific case it would be useful to override the default value, if this is the case you can safely ignore this message: {reverse_proxy_params_from_includes_that_are_manually_set}"
+                )
+
 
         if sso is True and not include_params_with_auth_at_last_in_one_conf:
             yield Warning(
