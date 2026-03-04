@@ -98,7 +98,7 @@ class Configurations(TestSuite):
                 "See the helper documentation. "
                 "Original discussion happened here: "
                 "https://github.com/YunoHost/issues/issues/201#issuecomment-391549262"
-)
+            )
 
     @test()
     def systemd_config_specific_user(self) -> TestResult:
