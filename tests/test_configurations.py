@@ -56,16 +56,11 @@ class Configurations(TestSuite):
             )
 
             # Check curl_tests are configured for webapps
-            manifest_path = self.app.path / "manifest.toml"
-            try:
-                manifest_data = tomllib.load(manifest_path.open("rb"))
-                is_webapp = 'domain' in manifest_data.get('install', {})
-            except Exception:
-                is_webapp = True
+            is_webapp = 'domain' in self.app.manifest.get('install', {})
             if is_webapp and 'curl_tests' not in tests_data.get('default', {}):
                 yield Warning(
-                    "Web app tests.toml should run some curl_tests in order to validate "
-                    "the webapp is properly running.\n"
+                    "In tests.toml, you should add some curl_tests in order to"
+                    "validate the webapp is properly running.\n"
                     "See: https://github.com/YunoHost/package_check?tab=readme-ov-file#curl-tests"
                 )
 
