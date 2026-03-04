@@ -48,11 +48,27 @@ class Configurations(TestSuite):
                 "The 'check_process' file that interfaces with the app CI has now been replaced with 'tests.toml' format and is now mandatory for apps v2."
             )
         else:
+            tests_data = tomllib.load(tests_toml_file.open("rb"))
             yield from validate_schema(
                 "tests.toml",
                 json.loads(tests_v1_schema()),
-                tomllib.load(tests_toml_file.open("rb")),
+                tests_data,
             )
+
+            # Check curl_tests are configured for webapps
+            manifest_path = self.app.path / "manifest.toml"
+            try:
+                manifest_data = tomllib.load(manifest_path.open("rb"))
+                is_webapp = 'domain' in manifest_data.get('install', {})
+            except Exception:
+                is_webapp = True
+            if is_webapp and 'curl_tests' not in tests_data.get('default', {}):
+                yield Warning(
+                    "Web app tests.toml should run some curl_tests in order to validate "
+                    "the webapp is properly running.\n"
+                    "See: https://github.com/YunoHost/package_check?tab=readme-ov-file#curl-tests"
+                )
+
 
     @test()
     def encourage_extra_php_conf(self) -> TestResult:
@@ -82,7 +98,7 @@ class Configurations(TestSuite):
                 "See the helper documentation. "
                 "Original discussion happened here: "
                 "https://github.com/YunoHost/issues/issues/201#issuecomment-391549262"
-            )
+)
 
     @test()
     def systemd_config_specific_user(self) -> TestResult:
