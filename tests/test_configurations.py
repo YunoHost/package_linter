@@ -56,14 +56,14 @@ class Configurations(TestSuite):
             )
 
             # Check curl_tests are configured for webapps
-            is_webapp = 'domain' in self.app.manifest.get('install', {})
+            cmd = f"grep -q -IhEr '^[^#]*ynh_config_add_nginx' '{self.app.path}/scripts/'"
+            is_webapp = os.system(cmd) == 0
             if is_webapp and 'curl_tests' not in tests_data.get('default', {}):
                 yield Warning(
                     "In tests.toml, you should add some curl_tests in order to"
                     "validate the webapp is properly running.\n"
                     "See: https://github.com/YunoHost/package_check?tab=readme-ov-file#curl-tests"
                 )
-
 
     @test()
     def encourage_extra_php_conf(self) -> TestResult:
