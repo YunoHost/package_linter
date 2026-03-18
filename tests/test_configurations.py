@@ -476,7 +476,7 @@ class Configurations(TestSuite):
 
             manual_reverse_proxy_params = (
                 subprocess.check_output(
-                    rf"grep -IhrEo '^\s*(proxy_set_header|fastcgi_param)\s*[a-zA-Z_-]+\s+.*;' '{file}' | sed -E -e 's/^\s*proxy_set_header\s*//g' -e 's/^\s*fastcgi_param\s*//g' -e 's/\s+/ /g' -e 's/;.*//g' | sort | uniq",
+                    rf"grep -IhrEo '^\s*(proxy_set_header|fastcgi_param)\s+[a-zA-Z_-]+\s+.*;' '{file}' | sed -E -e 's/^\s*proxy_set_header\s*//g' -e 's/^\s*fastcgi_param\s+//g' -e 's/\s+/ /g' -e 's/;.*//g' | sort | uniq",
                     shell=True,
                 )
                 .decode()
