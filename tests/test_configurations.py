@@ -487,7 +487,9 @@ class Configurations(TestSuite):
                 if manual_reverse_proxy_params
                 else []
             )
-            manual_reverse_proxy_params = {i.split(' ')[0]: i.split(' ')[1] for i in manual_reverse_proxy_params}
+            manual_reverse_proxy_params = {
+                i.split(" ")[0]: i.split(" ")[1] for i in manual_reverse_proxy_params
+            }
 
             if has_reverse_proxy_statement and not (
                 include_params_no_auth or include_params_with_auth
@@ -559,7 +561,8 @@ class Configurations(TestSuite):
                 [
                     k
                     for k, v in manual_reverse_proxy_params.items()
-                    if k in reverse_proxy_params_from_includes_greylist.keys() and reverse_proxy_params_from_includes_greylist[k] == v
+                    if k in reverse_proxy_params_from_includes_greylist.keys()
+                    and reverse_proxy_params_from_includes_greylist[k] == v
                 ]
             )
             if reverse_proxy_params_from_includes_that_are_manually_set:
@@ -571,7 +574,8 @@ class Configurations(TestSuite):
                 [
                     k
                     for k, v in manual_reverse_proxy_params.items()
-                    if k in reverse_proxy_params_from_includes_greylist.keys() and reverse_proxy_params_from_includes_greylist[k] != v
+                    if k in reverse_proxy_params_from_includes_greylist.keys()
+                    and reverse_proxy_params_from_includes_greylist[k] != v
                 ]
             )
             if reverse_proxy_params_from_includes_that_are_manually_set:
@@ -579,16 +583,17 @@ class Configurations(TestSuite):
                     f"In the nginx conf, manually defining a value for these reverse proxy params should not be necessary as they are already defined in the proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be included when using proxy_pass or fastcgi_pass. But in some specific case it would be useful to override the default value, if this is the case you can safely ignore this message: {reverse_proxy_params_from_includes_that_are_manually_set}"
                 )
 
-
         if sso is True and not include_params_with_auth_at_last_in_one_conf:
             yield Warning(
                 "In manifest.toml, sso integration is set to true, but the nginx conf doesn't seem to include proxy_params_with_auth or fastcgi_params_with_auth."
             )
-        elif sso in [False, "not_relevant"] and include_params_with_auth_at_last_in_one_conf:
+        elif (
+            sso in [False, "not_relevant"]
+            and include_params_with_auth_at_last_in_one_conf
+        ):
             yield Warning(
                 "In manifest.toml, sso integration is set to false or not_relevant, but the nginx conf seems to include proxy_params_with_auth or fastcgi_params_with_auth with suggest maybe it does?"
             )
-
 
     @test()
     def bind_public_ip(self) -> TestResult:

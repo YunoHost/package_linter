@@ -27,7 +27,6 @@ from lib.lib_package_linter import (
 )
 from lib.print import _print
 
-
 ########################################
 #  _____       _        _              #
 # /  __ \     | |      | |             #
