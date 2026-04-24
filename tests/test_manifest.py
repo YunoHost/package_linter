@@ -283,14 +283,14 @@ class Manifest(TestSuite):
                 )
                 return
 
-            code_license = '<code property="spdx:licenseId">' + license + "</code>"
-
-            if code_license.startswith("LicenseRef-"):
+            if license.startswith("LicenseRef-"):
                 yield Info(
                     "The license id '%s' is a custom one. This should be used only for 'not totally free' applications or FLOSS licenses not listed in https://spdx.org/licenses. Both cases should always be discussed with other contributors for validation."
                     % license
                 )
                 return
+
+            code_license = '<code property="spdx:licenseId">' + license + "</code>"
 
             if code_license not in spdx_licenses():
                 yield Warning(
