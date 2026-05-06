@@ -284,6 +284,8 @@ class Manifest(TestSuite):
                 return
 
             if license.startswith("LicenseRef-"):
+                if not self.manifest.get("upstream", {}).get("license_url"):
+                    yield Error("Missing 'license_url' key in the upstream section: it is required if you use a custom license id.")
                 yield Info(
                     "The license id '%s' is a custom one. This should be used only for 'not totally free' applications or FLOSS licenses not listed in https://spdx.org/licenses. Both cases should always be discussed with other contributors for validation."
                     % license
