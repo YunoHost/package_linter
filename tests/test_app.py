@@ -606,8 +606,8 @@ class App(TestSuite):
             )
         ):
             yield Warning(
-                "It looks like the README was not generated automatically by https://github.com/YunoHost/apps/tree/main/tools/README-generator. "
-                "Note that nowadays you are not suppose to edit README.md, the yunohost bot will usually automatically update it if your app is hosted in the YunoHost-Apps org ... or you can also generate it by running the README-generator yourself."
+                "It looks like the README was not generated automatically by https://github.com/YunoHost/apps_tools/tree/main/readme_generator. "
+                "Note that nowadays you are not supposed to edit README.md, the yunohost bot will usually automatically update it if your app is hosted in the YunoHost-Apps org ... or you can also generate it by running the README generator yourself."
             )
 
     @test()
