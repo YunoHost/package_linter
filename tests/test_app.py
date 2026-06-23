@@ -627,22 +627,16 @@ class App(TestSuite):
 
     @test()
     def bad_encoding(self) -> TestResult:
-
-        cmd = (
-            "file --mime-encoding $(find %s/ -type f) | grep 'iso-8859-1\\|unknown-8bit' || true"
-            % self.path
-        )
-        bad_encoding_files = (
-            subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
-        )
-        for file_ in bad_encoding_files:
-            if not file_:
-                continue
-            file_ = file_.split()[0]
-            yield Error(
-                "%s appears to be encoded as latin-1 / iso-8859-1. Please convert it to utf-8 to avoid funky issues. Something like 'iconv -f iso-8859-1 -t utf-8 SOURCE > DEST' should do the trick."
-                % file_
-            )
+        for file in self.path.rglob("**/*"):
+            cmd = ["file", "--mime-encoding", file]
+            encoding = subprocess.check_output(cmd).decode("utf-8").strip().split()[1]
+            if encoding in ["iso-8859-1", "unknown-8bit"]:
+                msg = (
+                    f"{file.relative_to(self.path)} appears to be encoded as latin-1 / iso-8859-1. "
+                    "Please convert it to utf-8 to avoid funky issues. "
+                    "Something like 'iconv -f iso-8859-1 -t utf-8 SOURCE > DEST' should do the trick."
+                )
+                yield Error(msg)
 
     #######################################
     #  _    _      _                      #
