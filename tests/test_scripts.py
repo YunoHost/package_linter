@@ -452,7 +452,7 @@ class Script(TestSuite):
                 "You probably don't need to run 'yunohost app ssowatconf' in the app self. It's supposed to be ran automatically after the script."
             )
 
-        if self.name not in ["change_url", "restore"]:
+        if self.name not in ["change_url", "restore"]:  # noqa: SIM102
             if self.contains("ynh_systemd_action --service_name=nginx --action=reload"):
                 yield ReportWarning(
                     "You should not need to reload nginx at the end of the script ... it's already taken care of by ynh_add_nginx_config"
@@ -566,7 +566,7 @@ class Script(TestSuite):
 
     @test(only=["install", "_common.sh"])
     def php_deps(self) -> TestResult:
-        if self.containsregex("dependencies.*php-"):
+        if self.containsregex("dependencies.*php-"):  # noqa: SIM102
             # (Stupid hack because some apps like roundcube depend on php-pear or php-php-gettext and there's no phpx.y-pear phpx.y-php-gettext>_> ...
             if not self.contains("php-pear") or not self.contains("php-php-gettext"):
                 yield ReportWarning(

@@ -421,14 +421,14 @@ class Manifest(TestSuite):
 
             if "choices" in argument:
                 choices = [c.lower() for c in argument["choices"]]
-                if len(choices) == 2:
-                    if ("true" in choices and "false" in choices) or (
-                        "yes" in choices and "no" in choices
-                    ):
-                        yield ReportWarning(
-                            f"Argument {argname} : you might want to simply use a boolean-type argument. "
-                            "No need to specify the choices list yourself."
-                        )
+                if sorted(choices) in [
+                    sorted(["true", "false"]),
+                    sorted(["yes", "no"]),
+                ]:
+                    yield ReportWarning(
+                        f"Argument {argname} : you might want to simply use a boolean-type argument. "
+                        "No need to specify the choices list yourself."
+                    )
 
     @test()
     def obsolete_or_missing_ask_strings(self) -> TestResult:
