@@ -177,10 +177,10 @@ class AppCatalog(TestSuite):
                 date = datetime(year, month, day)
 
         def get_history(
-            N: int,
+            count: int,
         ) -> Generator[tuple[datetime, dict[str, Any]], None, None]:
 
-            for t in list(_time_points_until_today())[(-1 * N) :]:
+            for t in list(_time_points_until_today())[(-1 * count) :]:
                 loader: ModuleType
 
                 # Fetch apps.json content at this date
@@ -222,8 +222,8 @@ class AppCatalog(TestSuite):
                 yield (t, catalog_at_this_date.get(self.app_id))
 
         # We'll check the history for last 12 months (*2 points per month)
-        N = 12 * 2
-        history = list(get_history(N))
+        count = 12 * 2
+        history = list(get_history(count))
 
         # Must have been
         #   known
@@ -239,6 +239,6 @@ class AppCatalog(TestSuite):
             )
 
         score = sum([good_quality(infos) for d, infos in history])
-        rel_score = int(100 * score / N)
+        rel_score = int(100 * score / count)
         if rel_score > 80:
             yield Success("The app is long-term good quality in the catalog!")

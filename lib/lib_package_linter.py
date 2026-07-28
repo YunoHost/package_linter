@@ -20,7 +20,7 @@ APPS_CACHE = PACKAGE_LINTER_DIR / ".apps"
 # ############################################################################
 
 
-class c:
+class Color:
     HEADER = "\033[94m"
     OKBLUE = "\033[94m"
     OKGREEN = "\033[92m"
@@ -44,31 +44,31 @@ class TestReport:
 
 
 class Warning(TestReport):
-    style = c.WARNING + " ! %s " + c.END
+    style = Color.WARNING + " ! %s " + Color.END
 
 
 class Error(TestReport):
-    style = c.FAIL + " ✘ %s" + c.END
+    style = Color.FAIL + " ✘ %s" + Color.END
 
 
 class Info(TestReport):
-    style = " - %s" + c.END
+    style = " - %s" + Color.END
 
 
 class Success(TestReport):
-    style = c.OKGREEN + " ☺  %s ♥" + c.END
+    style = Color.OKGREEN + " ☺  %s ♥" + Color.END
 
 
 class Critical(TestReport):
-    style = c.FAIL + " ✘✘✘ %s" + c.END
+    style = Color.FAIL + " ✘✘✘ %s" + Color.END
 
 
 def report_warning_not_reliable(message: str) -> None:
-    _print(c.MAYBE_FAIL + "?", message, c.END)
+    _print(Color.MAYBE_FAIL + "?", message, Color.END)
 
 
 def print_happy(message: str) -> None:
-    _print(c.OKGREEN + " ☺ ", message, "♥")
+    _print(Color.OKGREEN + " ☺ ", message, "♥")
 
 
 def urlopen(url: str) -> tuple[int, str]:
@@ -202,13 +202,13 @@ class TestSuite:
             return report.__class__.__name__.lower()
 
         if any(report_type(r) in ["warning", "error", "critical"] for r in reports):
-            prefix = c.WARNING + "! "
+            prefix = Color.WARNING + "! "
         elif any(report_type(r) in ["info"] for r in reports):
             prefix = "ⓘ "
         else:
-            prefix = c.OKGREEN + "✔ "
+            prefix = Color.OKGREEN + "✔ "
 
-        _print(" " + c.BOLD + prefix + c.OKBLUE + self.test_suite_name + c.END)
+        _print(f" {Color.BOLD}{prefix}{Color.OKBLUE}{self.test_suite_name}{Color.END}")
 
         if len(reports):
             _print("")

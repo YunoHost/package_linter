@@ -10,13 +10,13 @@ from pathlib import Path
 from typing import Any
 
 from lib.lib_package_linter import (
+    Color,
     Critical,
     Error,
     Info,
     TestResult,
     TestSuite,
     Warning,
-    c,
     manifest_v2_schema,
     spdx_licenses,
     test,
@@ -96,7 +96,7 @@ class Manifest(TestSuite):
             self.manifest = tomllib.loads(self.raw_manifest)
         except Exception as e:
             print(
-                f"{c.FAIL}✘ Looks like there's a syntax issue in your manifest?\n ---> {e}"
+                f"{Color.FAIL}✘ Looks like there's a syntax issue in your manifest?\n ---> {e}"
             )
             sys.exit(1)
 
