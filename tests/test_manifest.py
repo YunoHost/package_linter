@@ -178,7 +178,7 @@ class Manifest(TestSuite):
                 )
 
     @test()
-    def FIXMEs(self) -> TestResult:
+    def FIXMEs(self) -> TestResult:  # noqa: N802
         if "FIXME" in self.raw_manifest:
             yield Warning("There are still some FIXMEs remaining in the manifest")
 

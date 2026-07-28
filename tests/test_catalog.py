@@ -83,7 +83,7 @@ class AppCatalog(TestSuite):
             yield Critical("This app is not in YunoHost's application catalog")
 
     @test()
-    def revision_is_HEAD(self) -> TestResult:
+    def revision_is_HEAD(self) -> TestResult:  # noqa: N802
         if self.catalog_infos and self.catalog_infos.get("revision", "HEAD") != "HEAD":
             yield Error(
                 "You should make sure that the revision used in YunoHost's apps catalog is HEAD..."

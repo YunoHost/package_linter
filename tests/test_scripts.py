@@ -183,7 +183,7 @@ class Script(TestSuite):
             )
 
     @test(only=["install"])
-    def deprecated_YNH_APP_ARG(self) -> TestResult:
+    def deprecated_YNH_APP_ARG(self) -> TestResult:  # noqa: N802
         cmd = f"grep 'YNH_APP_ARG' '{self.path}' | grep -vq 'YNH_APP_ARG_PASSWORD'"
         if os.system(cmd) == 0:
             yield Warning(
@@ -324,7 +324,7 @@ class Script(TestSuite):
             )
 
     @test()
-    def FIXMEs(self) -> TestResult:
+    def FIXMEs(self) -> TestResult:  # noqa: N802
         removeme = f"grep -q '#REMOVEME?' '{self.path}'"
         fixme = f"grep -q '# FIXMEhelpers2.1' '{self.path}'"
 
