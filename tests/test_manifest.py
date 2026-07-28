@@ -117,7 +117,7 @@ class Manifest(TestSuite):
         ]
 
         missing_fields = [
-            field for field in fields if field not in self.manifest.keys()
+            field for field in fields if field not in self.manifest
         ]
 
         if missing_fields:
@@ -130,7 +130,7 @@ class Manifest(TestSuite):
 
     @test()
     def maintainer_sensible_values(self) -> TestResult:
-        if "maintainers" in self.manifest.keys():
+        if "maintainers" in self.manifest:
             for value in self.manifest["maintainers"]:
                 if not value.strip():
                     yield Error("Please don't put empty string as a maintainer x_x")
@@ -141,7 +141,7 @@ class Manifest(TestSuite):
 
     @test()
     def upstream_fields(self) -> TestResult:
-        if "upstream" not in self.manifest.keys():
+        if "upstream" not in self.manifest:
             yield Warning(
                 """READMEs are to be automatically generated using https://github.com/YunoHost/apps_tools/tree/main/readme_generator.
         - You are encouraged to add an 'upstream' section in the manifest, filled with the website, demo, repo, license of the upstream app, as shown here: https://github.com/YunoHost/example_ynh/blob/7b72b7334964b504e8c901637c73ce908204d38b/manifest.json#L11-L18 . (Not all infos are mandatory, you can remove irrelevant entries)"""
@@ -149,7 +149,7 @@ class Manifest(TestSuite):
 
     @test()
     def upstream_placeholders(self) -> TestResult:
-        if "upstream" in self.manifest.keys():
+        if "upstream" in self.manifest:
             if "yunohost.org" in self.manifest["upstream"].get("admindoc", ""):
                 yield Error(
                     "The field 'admindoc' should point to the **official** admin doc, not the YunoHost documentation. If there's no official admin doc, simply remove the admindoc key entirely."
@@ -396,7 +396,7 @@ class Manifest(TestSuite):
                     "The key 'optional' value for setting %s should be a boolean (true or false)"
                     % argument["name"]
                 )
-            if "type" not in argument.keys():
+            if "type" not in argument:
                 yield Warning(
                     "You should specify the type of the argument '%s'. "
                     "You can use: %s." % (argument["name"], ", ".join(recognized_types))
@@ -425,7 +425,7 @@ class Manifest(TestSuite):
                         % argument["name"]
                     )
 
-            if "choices" in argument.keys():
+            if "choices" in argument:
                 choices = [c.lower() for c in argument["choices"]]
                 if len(choices) == 2:
                     if ("true" in choices and "false" in choices) or (
@@ -481,7 +481,7 @@ class Manifest(TestSuite):
 
         resources = self.manifest["resources"]
 
-        if "apt" in list(resources.keys()):
+        if "apt" in list(resources):
             packages = resources["apt"].get("packages", "")
             packages = str(packages) if isinstance(packages, list) else packages
             assert isinstance(packages, str)
@@ -503,14 +503,14 @@ class Manifest(TestSuite):
 
         resources = self.manifest["resources"]
 
-        if "database" in list(resources.keys()):
-            if "apt" not in list(resources.keys()):
+        if "database" in list(resources):
+            if "apt" not in list(resources):
                 yield Warning(
                     "Having an 'apt' resource is mandatory when using a 'database' resource, to also install postgresql/mysql if needed"
                 )
             else:
-                if list(resources.keys()).index("database") < list(
-                    resources.keys()
+                if list(resources).index("database") < list(
+                    resources
                 ).index("apt"):
                     yield Warning(
                         "The 'apt' resource should be placed before the 'database' resource, to install postgresql/mysql if needed *before* provisioning the database"

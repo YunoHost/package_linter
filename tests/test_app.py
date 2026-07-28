@@ -820,7 +820,7 @@ class App(TestSuite):
                         for cmd in occurences[script] or ["...None?..."]
                     )
                 )
-                for script in occurences.keys()
+                for script in occurences
             ]
             details_str = "\n".join(details)
             yield Warning(

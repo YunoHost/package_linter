@@ -550,7 +550,7 @@ class Configurations(TestSuite):
             reverse_proxy_params_from_includes_that_are_manually_set = ", ".join(
                 [
                     p
-                    for p in manual_reverse_proxy_params.keys()
+                    for p in manual_reverse_proxy_params
                     if p in reverse_proxy_params_from_includes_blacklist
                 ]
             )
