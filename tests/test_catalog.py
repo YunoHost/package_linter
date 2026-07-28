@@ -8,11 +8,11 @@ import time
 import tomllib
 from collections.abc import Generator
 from types import ModuleType
-from typing import Any
 
 from lib.lib_package_linter import (
     APPS_CACHE,
     PACKAGE_LINTER_DIR,
+    CatalogAppDescr,
     ReportCritical,
     ReportError,
     ReportInfo,
@@ -178,13 +178,13 @@ class AppCatalog(TestSuite):
 
         def get_history(
             count: int,
-        ) -> Generator[tuple[datetime.datetime, dict[str, Any]], None, None]:
+        ) -> Generator[tuple[datetime.datetime, CatalogAppDescr | None], None, None]:
 
-            for t in list(_time_points_until_today())[(-1 * count) :]:
+            for timepoint in list(_time_points_until_today())[(-1 * count) :]:
                 loader: ModuleType
 
                 # Fetch apps.json content at this date
-                time_str = t.strftime("%b %d %Y")
+                time_str = timepoint.strftime("%b %d %Y")
                 commit = git(
                     [
                         "rev-list",
@@ -213,14 +213,16 @@ class AppCatalog(TestSuite):
                     raise RuntimeError(msg)
 
                 try:
-                    catalog_at_this_date = loader.loads(raw_catalog_at_this_date)
+                    catalog_at_this_date: dict[str, CatalogAppDescr] = loader.loads(
+                        raw_catalog_at_this_date
+                    )
                 # This can happen in stupid cases where there was a temporary syntax error in the json..
                 except json.decoder.JSONDecodeError:
                     _print(
-                        f"Failed to parse apps.json/toml history for at commit {commit} / {t} ... ignoring "
+                        f"Failed to parse apps.json/toml history for at commit {commit} / {timepoint} ... ignoring "
                     )
                     continue
-                yield (t, catalog_at_this_date.get(self.app_id))
+                yield (timepoint, catalog_at_this_date.get(self.app_id))
 
         # We'll check the history for last 12 months (*2 points per month)
         count = 12 * 2
@@ -231,7 +233,7 @@ class AppCatalog(TestSuite):
         # + flagged as working
         # + level > 5
         # for the past 6 months
-        def good_quality(infos: dict[str, Any]) -> bool:
+        def good_quality(infos: CatalogAppDescr | None) -> bool:
             return (
                 bool(infos)
                 and isinstance(infos, dict)

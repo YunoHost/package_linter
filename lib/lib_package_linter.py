@@ -3,10 +3,11 @@
 import sys
 import time
 import tomllib
+import urllib.error
 import urllib.request
 from collections.abc import Callable, Generator
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, NotRequired, TypedDict
 
 import jsonschema
 
@@ -121,13 +122,27 @@ def tests_v1_schema() -> str:
     return urlopen(url)[1]
 
 
-def get_app_list() -> list[dict]:
+class CatalogAppDescr(TypedDict):
+    added_date: NotRequired[int]
+    branch: NotRequired[str]
+    category: NotRequired[str]
+    subtags: NotRequired[list[str]]
+    level: NotRequired[int]
+    potential_alternative_to: NotRequired[list[str]]
+    antifeatures: NotRequired[list[str]]
+    revision: NotRequired[str]
+    deprecated_date: NotRequired[int]
+    state: Literal["working", "notworking", "inprogress"]
+    url: str
+
+
+def get_app_list() -> dict[str, CatalogAppDescr]:
     try:
         app_list = tomllib.load((APPS_CACHE / "apps.toml").open("rb"))
     except Exception:
         _print("Failed to read apps.toml :/")
         sys.exit(-1)
-    return app_list  # type: ignore[return-value]  # ty: ignore[invalid-return-type]
+    return app_list
 
 
 @cache_file(Path(".config_panel.v1.schema.json"), 3600)
@@ -147,9 +162,8 @@ def validate_schema(
         except TypeError:
             error_path = str(error.path)
 
-        yield ReportInfo(
-            f"Error validating {name} using schema: in key {error_path}\n       {error.message}"
-        )
+        msg = f"Error validating {name} using schema: in key {error_path}\n       {error.message}"
+        yield ReportInfo(msg)
 
 
 TestResult = Generator[TestReport, None, None]
@@ -167,7 +181,7 @@ tests_reports: dict[str, list[Any]] = {
 
 def test(**kwargs: Any) -> Callable[[TestFn], TestFn]:
     def decorator(f: TestFn) -> TestFn:
-        clsname = f.__qualname__.split(".")[0]
+        clsname = getattr(f, "__qualname__", "unnamed_callable").split(".")[0]
         if clsname not in tests:
             tests[clsname] = []
         tests[clsname].append((f, kwargs))
@@ -192,7 +206,7 @@ class TestSuite:
 
             this_test_reports = list(test(self))
             for report in this_test_reports:
-                report.test_name = test.__qualname__
+                report.test_name = getattr(test, "__qualname__", "unnamed_test")
 
             reports += this_test_reports
 
@@ -231,5 +245,5 @@ class TestSuite:
 
         for report in reports:
             report.display()
-            test_name = test.__qualname__
+            test_name = getattr(test, "__qualname__", "unnamed_test")
             tests_reports[report_type(report)].append((test_name, report))
