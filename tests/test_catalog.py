@@ -48,7 +48,8 @@ class AppCatalog(TestSuite):
 
         self.app_list = get_app_list()
 
-        self.catalog_infos = self.app_list.get(app_id, {})
+        invalid_app = CatalogAppDescr(url="invalid", state="notworking")
+        self.catalog_infos = self.app_list.get(app_id, invalid_app)
 
     def _fetch_app_repo(self) -> None:
         flagfile = PACKAGE_LINTER_DIR / ".apps_git_clone_cache"
@@ -79,29 +80,26 @@ class AppCatalog(TestSuite):
 
     @test()
     def is_in_catalog(self) -> TestResult:
-        if not self.catalog_infos:
+        if self.catalog_infos["url"] == "invalid":
             yield ReportCritical("This app is not in YunoHost's application catalog")
 
     @test()
     def revision_is_HEAD(self) -> TestResult:  # noqa: N802
-        if self.catalog_infos and self.catalog_infos.get("revision", "HEAD") != "HEAD":
+        if self.catalog_infos.get("revision", "HEAD") != "HEAD":
             yield ReportError(
                 "You should make sure that the revision used in YunoHost's apps catalog is HEAD..."
             )
 
     @test()
     def state_is_working(self) -> TestResult:
-        if (
-            self.catalog_infos
-            and self.catalog_infos.get("state", "working") != "working"
-        ):
+        if self.catalog_infos.get("state", "working") != "working":
             yield ReportError(
                 "The application is not flagged as working in YunoHost's apps catalog"
             )
 
     @test()
     def has_category(self) -> TestResult:
-        if self.catalog_infos and not self.catalog_infos.get("category"):
+        if not self.catalog_infos.get("category"):
             yield ReportWarning(
                 "The application has no associated category in YunoHost's apps catalog"
             )
@@ -111,9 +109,8 @@ class AppCatalog(TestSuite):
         repo_org = f"https://github.com/YunoHost-Apps/{self.app_id}_ynh"
         repo_brique = f"https://github.com/labriqueinternet/{self.app_id}_ynh"
 
-        if self.catalog_infos:
-            repo_url = self.catalog_infos["url"]
-
+        repo_url = self.catalog_infos["url"]
+        if repo_url != "invalid":
             if repo_url.lower() not in [repo_org.lower(), repo_brique.lower()]:
                 if repo_url.lower().startswith("https://github.com/YunoHost-Apps/"):
                     yield ReportWarning(

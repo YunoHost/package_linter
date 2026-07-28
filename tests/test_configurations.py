@@ -458,13 +458,14 @@ class Configurations(TestSuite):
                 .decode()
                 .strip()
             )
-            manual_reverse_proxy_params = (
+            manual_reverse_proxy_params_list = (
                 manual_reverse_proxy_params.split("\n")
                 if manual_reverse_proxy_params
                 else []
             )
-            manual_reverse_proxy_params = {
-                i.split(" ")[0]: i.split(" ")[1] for i in manual_reverse_proxy_params
+            manual_reverse_proxy_params_dict = {
+                i.split(" ")[0]: i.split(" ")[1]
+                for i in manual_reverse_proxy_params_list
             }
 
             if has_reverse_proxy_statement and not (
@@ -524,7 +525,7 @@ class Configurations(TestSuite):
             reverse_proxy_params_from_includes_that_are_manually_set = ", ".join(
                 [
                     p
-                    for p in manual_reverse_proxy_params
+                    for p in manual_reverse_proxy_params_dict
                     if p in reverse_proxy_params_from_includes_blacklist
                 ]
             )
@@ -536,7 +537,7 @@ class Configurations(TestSuite):
             reverse_proxy_params_from_includes_that_are_manually_set = ", ".join(
                 [
                     k
-                    for k, v in manual_reverse_proxy_params.items()
+                    for k, v in manual_reverse_proxy_params_dict.items()
                     if k in reverse_proxy_params_from_includes_greylist
                     and reverse_proxy_params_from_includes_greylist[k] == v
                 ]
@@ -549,7 +550,7 @@ class Configurations(TestSuite):
             reverse_proxy_params_from_includes_that_are_manually_set = ", ".join(
                 [
                     k
-                    for k, v in manual_reverse_proxy_params.items()
+                    for k, v in manual_reverse_proxy_params_dict.items()
                     if k in reverse_proxy_params_from_includes_greylist
                     and reverse_proxy_params_from_includes_greylist[k] != v
                 ]

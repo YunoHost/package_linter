@@ -6,7 +6,7 @@ output = "plain"
 
 
 @wraps(print)
-def _print(*values: object, **kwargs) -> None:  # noqa: ANN003
+def _print(*values: object, **kwargs) -> None:  # type: ignore[no-untyped-def]  # noqa: ANN003
     if not is_json_output():
         print(*values, **kwargs)
 

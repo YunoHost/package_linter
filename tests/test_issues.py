@@ -2,6 +2,7 @@
 import json
 
 from lib.lib_package_linter import (
+    CatalogAppDescr,
     ReportError,
     ReportInfo,
     ReportWarning,
@@ -20,8 +21,10 @@ class Issues(TestSuite):
         self.test_suite_name = "Issues"
 
         self.app_list = get_app_list()
-        repo_url = self.app_list.get(app, {}).get("url", "invalid")
-        self.issues = []  # init blank in case lines below fail
+        invalid_app = CatalogAppDescr(url="invalid", state="notworking")
+        repo_url = self.app_list.get(app, invalid_app)["url"]
+        # init blank in case lines below fail
+        self.issues: list[dict] = []  # type: ignore[type-arg]  # ty: ignore[missing-type-argument]
         if "github.com" not in repo_url:
             report_warning_not_reliable(
                 "Can't check if there are any blocking issues pending, can only do this for apps hosted on github for now."
@@ -32,7 +35,7 @@ class Issues(TestSuite):
 
         code, issues_result = urlopen(issues_uri)
         if 200 <= code < 300:
-            self.issues: list[dict] = json.loads(issues_result)  # ty: ignore[missing-type-argument]
+            self.issues = json.loads(issues_result)
         else:
             report_warning_not_reliable(
                 f"Can't check if there are any blocking issues pending got {code} error."

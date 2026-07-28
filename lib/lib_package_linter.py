@@ -152,9 +152,7 @@ def config_panel_v1_schema() -> str:
 
 
 def validate_schema(
-    name: str,
-    schema: dict[str, Any],
-    data: dict[str, Any]
+    name: str, schema: dict[str, Any], data: dict[str, Any]
 ) -> Generator[ReportInfo, None, None]:
     v = jsonschema.Draft7Validator(schema)
 
@@ -172,7 +170,7 @@ TestSuiteSelf = TypeVar("TestSuiteSelf", bound="TestSuite")
 TestResult = Generator[TestReport, None, None]
 TestFn = Callable[[TestSuiteSelf], TestResult]
 
-tests: dict[str, list[tuple[TestFn, dict[str, list[str] | None]]]] = {}
+tests: dict[str, list[tuple[TestFn, dict[str, list[str] | None]]]] = {}  # type: ignore[type-arg]
 tests_reports: dict[str, list[tuple[str, TestReport]]] = {
     "success": [],
     "info": [],
@@ -185,8 +183,8 @@ tests_reports: dict[str, list[tuple[str, TestReport]]] = {
 def test(
     only: list[str] | None = None,  # noqa: PT028
     ignore: list[str] | None = None,  # noqa: PT028
-) -> Callable[[TestFn], TestFn]:
-    def decorator(f: TestFn) -> TestFn:
+) -> Callable[[TestFn], TestFn]:  # type: ignore[type-arg]
+    def decorator(f: TestFn) -> TestFn:  # type: ignore[type-arg]
         clsname = getattr(f, "__qualname__", "unnamed_callable").split(".")[0]
         if clsname not in tests:
             tests[clsname] = []
@@ -242,7 +240,7 @@ class TestSuite:
         for report in reports:
             tests_reports[report_type(report)].append((report.test_name, report))
 
-    def run_single_test(self, test: TestFn) -> None:
+    def run_single_test(self, test: TestFn) -> None:  # type: ignore[type-arg]
 
         reports = list(test(self))
 

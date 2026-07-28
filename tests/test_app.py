@@ -630,7 +630,7 @@ class App(TestSuite):
     @test()
     def bad_encoding(self) -> TestResult:
         for file in self.path.rglob("**/*"):
-            cmd = ["file", "--mime-encoding", file]
+            cmd = ["file", "--mime-encoding", str(file)]
             encoding = subprocess.check_output(cmd).decode("utf-8").strip().split()[1]
             if encoding in ["iso-8859-1", "unknown-8bit"]:
                 msg = (
