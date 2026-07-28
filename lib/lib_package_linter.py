@@ -95,9 +95,9 @@ def cache_file(
         return cachefile.exists() and time.time() - cachefile.stat().st_mtime < ttl_s
 
     def decorator(function: Callable[..., str]) -> Callable[..., str]:
-        def wrapper(*args: Any, **kwargs: Any) -> str:
+        def wrapper() -> str:
             if not cache_is_fresh():
-                cachefile.write_text(function(*args, **kwargs))
+                cachefile.write_text(function())
             return cachefile.read_text()
 
         return wrapper
