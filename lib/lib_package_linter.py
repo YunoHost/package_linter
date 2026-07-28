@@ -7,7 +7,7 @@ import urllib.error
 import urllib.request
 from collections.abc import Callable, Generator
 from pathlib import Path
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, TypeVar
 
 import jsonschema
 
@@ -166,8 +166,9 @@ def validate_schema(
         yield ReportInfo(msg)
 
 
+TestSuiteSelf = TypeVar("TestSuiteSelf", bound="TestSuite")
 TestResult = Generator[TestReport, None, None]
-TestFn = Callable[[Any], TestResult]
+TestFn = Callable[[TestSuiteSelf], TestResult]
 
 tests: dict[str, list[tuple[TestFn, dict[str, list[str] | None]]]] = {}
 tests_reports: dict[str, list[Any]] = {
