@@ -147,7 +147,7 @@ class AppCatalog(TestSuite):
 
         def git(cmd: list[str]) -> str:
             return (
-                subprocess.check_output(["git", "-C", APPS_CACHE] + cmd)
+                subprocess.check_output(["git", "-C", APPS_CACHE, *cmd])
                 .decode("utf-8")
                 .strip()
             )
@@ -208,7 +208,8 @@ class AppCatalog(TestSuite):
                     raw_catalog_at_this_date = git(["show", f"{commit}:apps.toml"])
                     loader = tomllib
                 else:
-                    raise Exception("No apps.json/toml at this point in history?")
+                    msg = "No apps.json/toml at this point in history?"
+                    raise RuntimeError(msg)
 
                 try:
                     catalog_at_this_date = loader.loads(raw_catalog_at_this_date)

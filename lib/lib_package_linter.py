@@ -203,7 +203,7 @@ class TestSuite:
 
         if any(report_type(r) in ["warning", "error", "critical"] for r in reports):
             prefix = Color.WARNING + "! "
-        elif any(report_type(r) in ["info"] for r in reports):
+        elif any(report_type(r) == "info" for r in reports):
             prefix = "ⓘ "
         else:
             prefix = Color.OKGREEN + "✔ "

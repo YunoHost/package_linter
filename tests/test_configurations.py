@@ -115,21 +115,21 @@ class Configurations(TestSuite):
             if "[Unit]" not in content:
                 continue
 
-            Level: type[TestReport]
+            level: type[TestReport]
             if re.findall(r"^ *Type=oneshot", content, flags=re.MULTILINE):
-                Level = ReportInfo
+                level = ReportInfo
             else:
-                Level = ReportWarning
+                level = ReportWarning
 
             matches = re.findall(r"^ *(User)=(\S+)", content, flags=re.MULTILINE)
             if not any(match[0] == "User" for match in matches):
-                yield Level(
+                yield level(
                     "You should specify a 'User=' directive in the systemd config !"
                 )
                 continue
 
             if any(match[1] in ["root", "www-data"] for match in matches):
-                yield Level(
+                yield level(
                     "DO NOT run the app's systemd service as root or www-data! Use a dedicated system user for this app! If your app requires administrator priviledges, you should consider adding the user to the sudoers (and restrict the commands it can use!)"
                 )
 

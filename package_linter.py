@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding: utf8 -*-
 
 import argparse
 from pathlib import Path
 
-from lib.lib_package_linter import Color
 from lib.print import _print, set_output_json
 from tests.test_app import App
 
