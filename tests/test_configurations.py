@@ -7,7 +7,7 @@ import subprocess
 import tomllib
 from collections.abc import Generator
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from packaging import version
 
@@ -26,9 +26,12 @@ from lib.lib_package_linter import (
 from lib.nginxparser import nginxparser
 from lib.print import _print
 
+if TYPE_CHECKING:
+    from tests.test_app import App
+
 
 class Configurations(TestSuite):
-    def __init__(self, app) -> None:
+    def __init__(self, app: "App") -> None:
 
         self.app = app
         self.test_suite_name = "Configuration files"

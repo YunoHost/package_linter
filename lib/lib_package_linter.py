@@ -73,7 +73,7 @@ def print_happy(message: str) -> None:
 
 def urlopen(url: str) -> tuple[int, str]:
     try:
-        conn = urllib.request.urlopen(url)
+        conn = urllib.request.urlopen(url)  # noqa: S310
     except urllib.error.HTTPError as e:
         return e.code, ""
     except urllib.error.URLError as e:

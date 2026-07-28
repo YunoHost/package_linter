@@ -15,7 +15,7 @@ from lib.lib_package_linter import (
 
 
 class Issues(TestSuite):
-    def __init__(self, app) -> None:
+    def __init__(self, app: str) -> None:
         self.app = app
         self.test_suite_name = "Issues"
 
