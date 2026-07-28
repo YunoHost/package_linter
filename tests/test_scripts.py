@@ -78,13 +78,10 @@ class Script(TestSuite):
                     continue
 
                 if not some_parsing_failed:
-                    _print(
-                        "Some lines could not be parsed in script %s. (That's probably not really critical)"
-                        % self.name
-                    )
+                    _print(f"Some lines could not be parsed in script {self.name}. (That's probably not really critical)")
                     some_parsing_failed = True
 
-                report_warning_not_reliable("%s : %s" % (e, line))
+                report_warning_not_reliable(f"{e} : {line}")
 
     def occurences(self, command: str) -> list[str]:
         return [
@@ -190,8 +187,8 @@ class Script(TestSuite):
 
     @test(only=["install", "upgrade"])
     def deprecated_replace_string(self) -> TestResult:
-        cmd1 = "grep -Ec 'ynh_replace_string' '%s' || true" % self.path
-        cmd2 = "grep -Ec 'ynh_replace_string.*__\\w+__' '%s' || true" % self.path
+        cmd1 = f"grep -Ec 'ynh_replace_string' '{self.path}' || true"
+        cmd2 = f"grep -Ec 'ynh_replace_string.*__\\w+__' '{self.path}' || true"
 
         count1 = int(subprocess.check_output(cmd1, shell=True).decode("utf-8").strip())
         count2 = int(subprocess.check_output(cmd2, shell=True).decode("utf-8").strip())
@@ -220,10 +217,7 @@ class Script(TestSuite):
 
     @test()
     def bad_ynh_exec_syntax(self) -> TestResult:
-        cmd = (
-            'grep -q -IhEro "ynh_exec_(err|warn|warn_less|quiet|fully_quiet) (\\"|\').*(\\"|\')$" %s'
-            % self.path
-        )
+        cmd = f'grep -q -IhEro "ynh_exec_(err|warn|warn_less|quiet|fully_quiet) (\\"|\').*(\\"|\')$" {self.path}'
         if os.system(cmd) == 0:
             yield ReportWarning(
                 "(Requires Yunohost 4.3) When using ynh_exec_*, please don't wrap your command between quotes (typically DONT write ynh_exec_warn_less 'foo --bar --baz')"
@@ -231,7 +225,7 @@ class Script(TestSuite):
 
     @test()
     def ynh_setup_source_keep_with_absolute_path(self) -> TestResult:
-        cmd = 'grep -q -IhEro "ynh_setup_source.*keep.*install_dir" %s' % self.path
+        cmd = f'grep -q -IhEro "ynh_setup_source.*keep.*install_dir" {self.path}'
         if os.system(cmd) == 0:
             yield ReportInfo(
                 "The --keep option of ynh_setup_source expects relative paths, not absolute path ... you do not need to prefix everything with '$install_dir' in the --keep arg ..."
@@ -585,8 +579,7 @@ class Script(TestSuite):
     @test()
     def helpers_sourcing_after_official(self) -> TestResult:
         helpers_after_official = subprocess.check_output(
-            "head -n 30 '%s' | grep -A 10 '^ *source */usr/share/yunohost/helpers' | grep '^ *source ' | tail -n +2"
-            % self.path,
+            f"head -n 30 '{self.path}' | grep -A 10 '^ *source */usr/share/yunohost/helpers' | grep '^ *source ' | tail -n +2",
             shell=True,
         ).decode("utf-8")
         helpers_after_official = (
@@ -594,9 +587,9 @@ class Script(TestSuite):
         )
         if helpers_after_official:
             helpers_after_official_list = helpers_after_official.split("\n")
+            helpers_after_official_str = ", ".join(helpers_after_official_list)
             yield ReportWarning(
-                "Please avoid sourcing additional helpers after the official helpers (in this case file %s)"
-                % ", ".join(helpers_after_official_list)
+                f"Please avoid sourcing additional helpers after the official helpers (in this case file {helpers_after_official_str})"
             )
 
     @test(only=["backup", "restore"])

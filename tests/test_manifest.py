@@ -107,9 +107,7 @@ class Manifest(TestSuite):
         missing_fields = [field for field in fields if field not in self.manifest]
 
         if missing_fields:
-            yield ReportCritical(
-                "The following mandatory fields are missing: %s" % missing_fields
-            )
+            yield ReportCritical(f"The following mandatory fields are missing: {missing_fields}")
 
         if "license" not in self.manifest.get("upstream", ""):
             yield ReportError("The license key in the upstream section is missing")
@@ -280,8 +278,9 @@ class Manifest(TestSuite):
                         "Missing 'license_url' key in the upstream section: it is required if you use a custom license id."
                     )
                 yield ReportInfo(
-                    "The license id '%s' is a custom one. This should be used only for 'not totally free' applications or FLOSS licenses not listed in https://spdx.org/licenses. Both cases should always be discussed with other contributors for validation."
-                    % license_sanitized
+                    f"The license id '{license_sanitized}' is a custom one. This should be used only"
+                    " for 'not totally free' applications or FLOSS licenses not listed in https://spdx.org/licenses."
+                    " Both cases should always be discussed with other contributors for validation."
                 )
                 return
 
@@ -290,10 +289,7 @@ class Manifest(TestSuite):
             )
 
             if code_license not in spdx_licenses():
-                yield ReportWarning(
-                    "The license id '%s' is not registered in https://spdx.org/licenses/."
-                    % license_sanitized
-                )
+                yield ReportWarning(f"The license id '{license_sanitized}' is not registered in https://spdx.org/licenses/.")
                 return
 
     @test()
@@ -384,39 +380,29 @@ class Manifest(TestSuite):
         args = keyandargs.values()
 
         for argument in args:
+            recognized_types_str = ", ".join(recognized_types)
+            argtype = argument.get("type")
+            argname = argument.get("name")
             if not isinstance(argument.get("optional", False), bool):
-                yield ReportWarning(
-                    "The key 'optional' value for setting %s should be a boolean (true or false)"
-                    % argument["name"]
-                )
+                yield ReportWarning(f"The key 'optional' value for setting {argname} should be a boolean (true or false)")
             if "type" not in argument:
+                yield ReportWarning(f"You should specify the type of the argument '{argname}'. You can use: {recognized_types_str}.")
+            elif argtype not in recognized_types:
                 yield ReportWarning(
-                    "You should specify the type of the argument '%s'. "
-                    "You can use: %s." % (argument["name"], ", ".join(recognized_types))
+                    f"The type '{argtype}' for argument '{argname}' is not recognized... "
+                    f"it probably doesn't behave as you expect? Choose among those instead: {recognized_types_str}"
                 )
-            elif argument["type"] not in recognized_types:
-                yield ReportWarning(
-                    "The type '%s' for argument '%s' is not recognized... "
-                    "it probably doesn't behave as you expect? Choose among those instead: %s"
-                    % (argument["type"], argument["name"], ", ".join(recognized_types))
-                )
-            elif argument["type"] == "boolean" and argument.get(
+            elif argtype == "boolean" and argument.get(
                 "default", True
             ) not in [True, False]:
                 yield ReportWarning(
                     "Default value for boolean-type arguments should be a boolean... (in particular, make sure it's not a string!)"
                 )
-            elif argument["type"] in ["domain", "user", "password"]:
+            elif argtype in ["domain", "user", "password"]:
                 if argument.get("default"):
-                    yield ReportInfo(
-                        "Default value for argument %s is superfluous, will be ignored"
-                        % argument["name"]
-                    )
+                    yield ReportInfo(f"Default value for argument {argname} is superfluous, will be ignored")
                 if argument.get("example"):
-                    yield ReportInfo(
-                        "Example value for argument %s is superfluous, will be ignored"
-                        % argument["name"]
-                    )
+                    yield ReportInfo(f"Example value for argument {argname} is superfluous, will be ignored")
 
             if "choices" in argument:
                 choices = [c.lower() for c in argument["choices"]]
@@ -425,9 +411,8 @@ class Manifest(TestSuite):
                         "yes" in choices and "no" in choices
                     ):
                         yield ReportWarning(
-                            "Argument %s : you might want to simply use a boolean-type argument. "
+                            f"Argument {argname} : you might want to simply use a boolean-type argument. "
                             "No need to specify the choices list yourself."
-                            % argument["name"]
                         )
 
     @test()
@@ -453,9 +438,11 @@ class Manifest(TestSuite):
                 and (argument.get("name"), argument.get("type"))
                 in ask_string_managed_by_the_core
             ):
+                argname = argument.get("name")
                 yield ReportWarning(
-                    "'ask' string for argument %s is superfluous / will be ignored. Since 4.1, the core handles the 'ask' string for some recurring arg name/type for consistency and easier i18n. See https://github.com/YunoHost/example_ynh/pull/142"
-                    % argument.get("name")
+                    f"'ask' string for argument {argname} is superfluous / will be ignored."
+                    " Since 4.1, the core handles the 'ask' string for some recurring arg name/type"
+                    " for consistency and easier i18n. See https://github.com/YunoHost/example_ynh/pull/142"
                 )
 
             elif (
@@ -463,10 +450,8 @@ class Manifest(TestSuite):
                 and (argument.get("name"), argument.get("type"))
                 not in ask_string_managed_by_the_core
             ):
-                yield ReportWarning(
-                    "You should add 'ask' strings for argument %s"
-                    % argument.get("name")
-                )
+                argname = argument.get("name")
+                yield ReportWarning(f"You should add 'ask' strings for argument {argname}")
 
     @test()
     def old_php_version(self) -> TestResult:

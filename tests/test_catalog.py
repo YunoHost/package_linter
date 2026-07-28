@@ -108,17 +108,15 @@ class AppCatalog(TestSuite):
 
     @test()
     def is_in_github_org(self) -> TestResult:
-        repo_org = "https://github.com/YunoHost-Apps/%s_ynh" % (self.app_id)
-        repo_brique = "https://github.com/labriqueinternet/%s_ynh" % (self.app_id)
+        repo_org = f"https://github.com/YunoHost-Apps/{self.app_id}_ynh"
+        repo_brique = f"https://github.com/labriqueinternet/{self.app_id}_ynh"
 
         if self.catalog_infos:
             repo_url = self.catalog_infos["url"]
 
             if repo_url.lower() not in [repo_org.lower(), repo_brique.lower()]:
                 if repo_url.lower().startswith("https://github.com/YunoHost-Apps/"):
-                    yield ReportWarning(
-                        "The URL for this app in the catalog should be %s" % repo_org
-                    )
+                    yield ReportWarning(f"The URL for this app in the catalog should be {repo_org}")
                 else:
                     yield ReportInfo(
                         "Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily"
@@ -184,11 +182,12 @@ class AppCatalog(TestSuite):
                 loader: ModuleType
 
                 # Fetch apps.json content at this date
+                time_str = t.strftime("%b %d %Y")
                 commit = git(
                     [
                         "rev-list",
                         "-1",
-                        "--before='%s'" % t.strftime("%b %d %Y"),
+                        f"--before='{time_str}'",
                         "main",
                     ]
                 )
@@ -215,10 +214,7 @@ class AppCatalog(TestSuite):
                     catalog_at_this_date = loader.loads(raw_catalog_at_this_date)
                 # This can happen in stupid cases where there was a temporary syntax error in the json..
                 except json.decoder.JSONDecodeError:
-                    _print(
-                        "Failed to parse apps.json/toml history for at commit %s / %s ... ignoring "
-                        % (commit, t)
-                    )
+                    _print(f"Failed to parse apps.json/toml history for at commit {commit} / {t} ... ignoring ")
                     continue
                 yield (t, catalog_at_this_date.get(self.app_id))
 

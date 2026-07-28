@@ -498,8 +498,7 @@ class App(TestSuite):
         if (self.path / "doc").exists():
             if (
                 os.system(
-                    r"grep -nr -q 'Any known limitations, constrains or stuff not working, such as\|Other infos that people should be' %s/doc/"
-                    % self.path
+                    rf"grep -nr -q 'Any known limitations, constrains or stuff not working, such as\|Other infos that people should be' {self.path}/doc/"
                 )
                 == 0
             ):
@@ -508,8 +507,7 @@ class App(TestSuite):
                 )
             if (
                 os.system(
-                    r"grep -nr -q 'This is a dummy\|Ceci est une fausse' %s/doc/"
-                    % self.path
+                    rf"grep -nr -q 'This is a dummy\|Ceci est une fausse' {self.path}/doc/"
                 )
                 == 0
             ):
@@ -562,17 +560,14 @@ class App(TestSuite):
             )
 
         if not_empty(self.path / "config_panel.toml"):
-            check_old_panel = os.system(
-                "grep -q 'version = \"0.1\"' '%s'" % (self.path / "config_panel.toml")
-            )
+            config_panel_path = self.path / "config_panel.toml"
+            config_script_path = self.path / "scripts" / "config"
+            check_old_panel = os.system(f"grep -q 'version = \"0.1\"' '{config_panel_path}'")
             if check_old_panel == 0:
                 yield ReportError(
                     "Config panels version 0.1 are not supported anymore, should be adapted for version 1.0"
                 )
-            elif (self.path / "scripts" / "config").exists() and os.system(
-                "grep -q 'YNH_CONFIG_\\|yunohost app action' '%s'"
-                % (self.path / "scripts" / "config")
-            ) == 0:
+            elif config_script_path.exists() and os.system(f"grep -q 'YNH_CONFIG_\\|yunohost app action' '{config_script_path}'") == 0:
                 yield ReportError(
                     "The config panel is set to version 1.x, but the config script is apparently still using some old code from 0.1 such as '$YNH_CONFIG_STUFF' or 'yunohost app action'"
                 )
@@ -612,13 +607,13 @@ class App(TestSuite):
 
     @test()
     def remaining_replacebyyourapp(self) -> TestResult:
-        if os.system("grep -I -qr 'REPLACEBYYOURAPP' %s 2>/dev/null" % self.path) == 0:
+        if os.system(f"grep -I -qr 'REPLACEBYYOURAPP' {self.path} 2>/dev/null") == 0:
             yield ReportError("You should replace all occurences of REPLACEBYYOURAPP.")
 
     @test()
     def supervisor_usage(self) -> TestResult:
         if (
-            os.system(r"grep -I -qr '^\s*supervisorctl' %s 2>/dev/null" % self.path)
+            os.system(rf"grep -I -qr '^\s*supervisorctl' {self.path} 2>/dev/null")
             == 0
         ):
             yield ReportWarning(
@@ -652,7 +647,7 @@ class App(TestSuite):
     @test()
     def helpers_now_official(self) -> TestResult:
 
-        cmd = "grep -IhEro 'ynh_\\w+ *\\( *\\)' '%s/scripts' | tr -d '() '" % self.path
+        cmd = f"grep -IhEro 'ynh_\\w+ *\\( *\\)' '{self.path}/scripts' | tr -d '() '"
         custom_helpers = (
             subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         )
@@ -660,10 +655,8 @@ class App(TestSuite):
 
         for custom_helper in custom_helpers:
             if custom_helper in official_helpers:
-                yield ReportInfo(
-                    "%s is now an official helper since version '%s'"
-                    % (custom_helper, official_helpers[custom_helper] or "?")
-                )
+                version = official_helpers[custom_helper] or "?"
+                yield ReportInfo(f"{custom_helper} is now an official helper since version '{version}'")
 
     @test()
     def git_clone_usage(self) -> TestResult:
@@ -679,7 +672,7 @@ class App(TestSuite):
     @test()
     def helpers_version_requirement(self) -> TestResult:
 
-        cmd = "grep -IhEro 'ynh_\\w+ *\\( *\\)' '%s/scripts' | tr -d '() '" % self.path
+        cmd = f"grep -IhEro 'ynh_\\w+ *\\( *\\)' '{self.path}/scripts' | tr -d '() '"
         custom_helpers = (
             subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         )
@@ -689,7 +682,7 @@ class App(TestSuite):
             self.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
         )
 
-        cmd = "grep -IhEro 'ynh_\\w+' '%s/scripts'" % self.path
+        cmd = f"grep -IhEro 'ynh_\\w+' '{self.path}/scripts'"
         helpers_used = (
             subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         )
@@ -713,10 +706,7 @@ class App(TestSuite):
             helper_req = official_helpers[helper]
             if not validate_version_requirement(helper_req):
                 major_diff = manifest_req[0] > int(helper_req[0])
-                message = (
-                    "Using official helper %s implies requiring at least version %s, but manifest only requires %s"
-                    % (helper, helper_req, yunohost_version_req)
-                )
+                message = f"Using official helper {helper} implies requiring at least version {helper_req}, but manifest only requires {yunohost_version_req}"
                 yield ReportError(message) if major_diff else ReportWarning(message)
 
     @test()
@@ -754,15 +744,9 @@ class App(TestSuite):
                 if self.scripts[name].exists and not self.scripts[name].contains(
                     "ynh_install_app_dependencies"
                 ):
-                    yield ReportWarning(
-                        "ynh_install_app_dependencies should also be in %s script"
-                        % name
-                    )
+                    yield ReportWarning(f"ynh_install_app_dependencies should also be in {name} script")
 
-        cmd = (
-            'grep -IhEr "install_extra_app_dependencies" %s/scripts | grep -v "key" | grep -q "http://"'
-            % self.path
-        )
+        cmd = f'grep -IhEr "install_extra_app_dependencies" {self.path}/scripts | grep -v "key" | grep -q "http://"'
         if os.system(cmd) == 0:
             yield ReportWarning(
                 "When installing dependencies from extra repository, please include a `--key` argument (yes, even if it's official debian repos such as backports - because systems like Raspbian do not ship Debian's key by default!"
@@ -810,9 +794,9 @@ class App(TestSuite):
         if found_inconsistency:
             details = [
                 (
-                    "   %s : " % script
+                    f"   {script} : "
                     + "".join(
-                        "\n      " + cmd
+                        f"\n      {cmd}"
                         for cmd in occurences[script] or ["...None?..."]
                     )
                 )
@@ -820,8 +804,7 @@ class App(TestSuite):
             ]
             details_str = "\n".join(details)
             yield ReportWarning(
-                "Some inconsistencies were found in the 'yunohost service add' commands between install, upgrade and restore:\n%s"
-                % details_str
+                f"Some inconsistencies were found in the 'yunohost service add' commands between install, upgrade and restore:\n{details_str}"
             )
 
         if found_legacy_logtype_option:
@@ -875,10 +858,7 @@ class App(TestSuite):
     @test()
     def conf_json_persistent_tweaking(self) -> TestResult:
         if (
-            os.system(
-                "grep -nr '/etc/ssowat/conf.json.persistent' %s | grep -vq '^%s/doc' 2>/dev/null"
-                % (self.path, self.path)
-            )
+            os.system(f"grep -nr '/etc/ssowat/conf.json.persistent' {self.path} | grep -vq '^{self.path}/doc' 2>/dev/null")
             == 0
         ):
             yield ReportError("Don't do black magic with /etc/ssowat/conf.json.persistent!")
@@ -892,10 +872,7 @@ class App(TestSuite):
             "/home/yunohost.backup",
             "/home/yunohost.multimedia",
         ]
-        cmd = (
-            "grep -IhEro '/home/yunohost[^/ ]*/|/home/\\$app' %s/scripts || true"
-            % self.path
-        )
+        cmd = f"grep -IhEro '/home/yunohost[^/ ]*/|/home/\\$app' {self.path}/scripts || true"
         home_locations = (
             subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         )
@@ -909,9 +886,10 @@ class App(TestSuite):
         )
 
         if forbidden_locations:
+            forbidden_locations_str = ", ".join(forbidden_locations)
             yield ReportWarning(
-                "The app seems to be storing data in the 'forbidden' locations %s. The recommended pratice is rather to store data in /home/yunohost.app/$app or /home/yunohost.multimedia (depending on the use case)"
-                % ", ".join(forbidden_locations)
+                f"The app seems to be storing data in the 'forbidden' locations {forbidden_locations_str}. "
+                "The recommended pratice is rather to store data in /home/yunohost.app/$app or /home/yunohost.multimedia (depending on the use case)"
             )
 
     @test()

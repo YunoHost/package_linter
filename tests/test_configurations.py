@@ -106,10 +106,10 @@ class Configurations(TestSuite):
             try:
                 content = file.read_text()
             except UnicodeDecodeError:
-                yield ReportInfo("%s does not look like a text file." % file.name)
+                yield ReportInfo(f"{file.name} does not look like a text file.")
                 continue
             except Exception as e:
-                yield ReportWarning("Can't open/read %s : %s" % (file.name, e))
+                yield ReportWarning(f"Can't open/read {file.name} : {e}")
                 continue
 
             if "[Unit]" not in content:
@@ -176,10 +176,10 @@ class Configurations(TestSuite):
             try:
                 content = file.read_text()
             except UnicodeDecodeError:
-                yield ReportInfo("%s does not look like a text file." % file.name)
+                yield ReportInfo(f"{file.name} does not look like a text file.")
                 continue
             except Exception as e:
-                yield ReportWarning("Can't open/read %s : %s" % (file.name, e))
+                yield ReportWarning(f"Can't open/read {file.name} : {e}")
                 continue
 
             matches = re.findall(
@@ -303,7 +303,7 @@ class Configurations(TestSuite):
             if not file.is_file() or "nginx" not in file.name:
                 continue
 
-            cmd = 'grep -q -IhEro "location ~ __PATH__" %s' % file
+            cmd = f'grep -q -IhEro "location ~ __PATH__" {file}'
 
             if os.system(cmd) == 0:
                 yield ReportWarning(
@@ -384,12 +384,11 @@ class Configurations(TestSuite):
 
             for location in find_path_traversal_issue(nginxconf):
                 yield ReportError(
-                    "The NGINX configuration (especially location %s) "
+                    f"The NGINX configuration (especially location {location}) "
                     "appears vulnerable to path traversal issues as explained in\n"
                     "  https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
                     "  To fix it, look at the first lines of the NGINX conf of the example app : \n"
                     "  https://github.com/YunoHost/example_ynh/blob/main/conf/nginx.conf"
-                    % location
                 )
 
     @test()
@@ -582,10 +581,10 @@ class Configurations(TestSuite):
             try:
                 content = file.read_text()
             except UnicodeDecodeError:
-                yield ReportInfo("%s does not look like a text file." % file.name)
+                yield ReportInfo(f"{file.name} does not look like a text file.")
                 continue
             except Exception as e:
-                yield ReportWarning("Can't open/read %s: %s" % (file, e))
+                yield ReportWarning(f"Can't open/read {file}: {e}")
                 continue
 
             for number, line in enumerate(content.split("\n"), 1):
