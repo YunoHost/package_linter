@@ -80,17 +80,6 @@ class Manifest(TestSuite):
 
         manifest_path = path / "manifest.toml"
 
-        # Taken from https://stackoverflow.com/a/49518779
-        def check_for_duplicate_keys(
-            ordered_pairs: list[tuple[str, Any]],
-        ) -> dict[str, Any]:
-            dict_out = {}
-            for key, val in ordered_pairs:
-                if key in dict_out:
-                    raise Exception("Duplicated key '%s' in %s" % (key, ordered_pairs))
-                dict_out[key] = val
-            return dict_out
-
         self.raw_manifest = manifest_path.read_text()
         try:
             self.manifest = tomllib.loads(self.raw_manifest)
