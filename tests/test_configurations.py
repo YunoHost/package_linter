@@ -12,12 +12,12 @@ from typing import Any
 from packaging import version
 
 from lib.lib_package_linter import (
-    Error,
-    Info,
+    ReportError,
+    ReportInfo,
+    ReportWarning,
     TestReport,
     TestResult,
     TestSuite,
-    Warning,
     not_empty,
     test,
     tests_v1_schema,
@@ -46,7 +46,7 @@ class Configurations(TestSuite):
     def tests_toml(self) -> TestResult:
         tests_toml_file = self.app.path / "tests.toml"
         if not not_empty(tests_toml_file):
-            yield Error(
+            yield ReportError(
                 "The 'check_process' file that interfaces with the app CI has now been replaced with 'tests.toml' format and is now mandatory for apps v2."
             )
         else:
@@ -60,7 +60,7 @@ class Configurations(TestSuite):
     def encourage_extra_php_conf(self) -> TestResult:
         php_conf = self.app.path / "conf" / "php-fpm.conf"
         if not_empty(php_conf):
-            yield Info(
+            yield ReportInfo(
                 "For the php configuration, consider getting rid of php-fpm.conf "
                 "and using the --usage and --footprint option of ynh_add_fpm_config. "
                 "This will use an auto-generated php conf file."
@@ -78,7 +78,7 @@ class Configurations(TestSuite):
             source_dir.exists()
             and len(list(elt for elt in source_dir.iterdir() if elt.is_file())) > 5
         ):
-            yield Error(
+            yield ReportError(
                 "Upstream app sources shouldn't be stored in this 'sources' folder of this git repository as a copy/paste\n"
                 "During installation, the package should download sources from upstream via 'ynh_setup_source'.\n"
                 "See the helper documentation. "
@@ -105,10 +105,10 @@ class Configurations(TestSuite):
             try:
                 content = file.read_text()
             except UnicodeDecodeError:
-                yield Info("%s does not look like a text file." % file.name)
+                yield ReportInfo("%s does not look like a text file." % file.name)
                 continue
             except Exception as e:
-                yield Warning("Can't open/read %s : %s" % (file.name, e))
+                yield ReportWarning("Can't open/read %s : %s" % (file.name, e))
                 continue
 
             if "[Unit]" not in content:
@@ -116,9 +116,9 @@ class Configurations(TestSuite):
 
             Level: type[TestReport]
             if re.findall(r"^ *Type=oneshot", content, flags=re.MULTILINE):
-                Level = Info
+                Level = ReportInfo
             else:
-                Level = Warning
+                Level = ReportWarning
 
             matches = re.findall(r"^ *(User)=(\S+)", content, flags=re.MULTILINE)
             if not any(match[0] == "User" for match in matches):
@@ -147,7 +147,7 @@ class Configurations(TestSuite):
                 os.system(rf"grep -Eqi '^\s*Environment=.*(pass|secret|key)' '{file}'")
                 == 0
             ):
-                yield Error(
+                yield ReportError(
                     "Systemd configurations are world-readable and should not contain cleartext password/secrets T_T"
                 )
 
@@ -157,7 +157,7 @@ class Configurations(TestSuite):
                 or os.system(rf"grep -q '^\s*SystemCallFilter=' '{file}'") != 0
                 or os.system(rf"grep -q '^\s*PrivateTmp=' '{file}'") != 0
             ):
-                yield Info(
+                yield ReportInfo(
                     f"You are encouraged to harden the security of the systemd configuration {file.name}. You can have a look at https://github.com/YunoHost/example_ynh/blob/main/conf/systemd.service#L14-L46 for a baseline."
                 )
 
@@ -175,17 +175,17 @@ class Configurations(TestSuite):
             try:
                 content = file.read_text()
             except UnicodeDecodeError:
-                yield Info("%s does not look like a text file." % file.name)
+                yield ReportInfo("%s does not look like a text file." % file.name)
                 continue
             except Exception as e:
-                yield Warning("Can't open/read %s : %s" % (file.name, e))
+                yield ReportWarning("Can't open/read %s : %s" % (file.name, e))
                 continue
 
             matches = re.findall(
                 r"^ *(user|group) = (\S+)", content, flags=re.MULTILINE
             )
             if not any(match[0] == "user" for match in matches):
-                yield Error(
+                yield ReportError(
                     "You should at least specify a 'user =' directive in your PHP conf file"
                 )
                 continue
@@ -193,7 +193,7 @@ class Configurations(TestSuite):
             if any(
                 match[1] == "root" or match == ("user", "www-data") for match in matches
             ):
-                yield Error(
+                yield ReportError(
                     "DO NOT run the app PHP worker as root or www-data! Use a dedicated system user for this app!"
                 )
 
@@ -205,7 +205,7 @@ class Configurations(TestSuite):
 
         content = nginx_conf.read_text()
         if "$http_host" in content:
-            yield Info(
+            yield ReportInfo(
                 "In nginx.conf : please don't use $http_host but $host instead. C.f. https://github.com/yandex/gixy/blob/master/docs/en/plugins/hostspoofing.md"
             )
 
@@ -222,7 +222,7 @@ class Configurations(TestSuite):
 
             content = file.read_text()
             if "if ($scheme = http)" in content and "rewrite ^ https" in content:
-                yield Error(
+                yield ReportError(
                     "Since Yunohost 4.3, the http->https redirect is handled by the core, "
                     "therefore having an if ($scheme = http) { rewrite ^ https://... } block "
                     "in the nginx config file is deprecated. (This helps with supporting Yunohost-behind-reverse-proxy use case)"
@@ -246,7 +246,7 @@ class Configurations(TestSuite):
 
             content = file.read_text()
             if "location" in content and "add_header" in content:
-                yield Error(
+                yield ReportError(
                     "Do not use 'add_header' in the NGINX conf. Use 'more_set_headers' instead. "
                     "(See https://www.peterbe.com/plog/be-very-careful-with-your-add_header-in-nginx "
                     "and https://github.com/openresty/headers-more-nginx-module#more_set_headers )"
@@ -282,7 +282,7 @@ class Configurations(TestSuite):
                     if not right_syntax(line)
                 ]
                 if lines:
-                    yield Error(
+                    yield ReportError(
                         "It looks like the syntax for the 'more_set_headers' "
                         "instruction is incorrect in the NGINX conf (N.B. "
                         ": it's different than the 'add_header' syntax!)... "
@@ -305,7 +305,7 @@ class Configurations(TestSuite):
             cmd = 'grep -q -IhEro "location ~ __PATH__" %s' % file
 
             if os.system(cmd) == 0:
-                yield Warning(
+                yield ReportWarning(
                     "When using regexp in the nginx location field (location ~ __PATH__), start the path with ^ (location ~ ^__PATH__)."
                 )
 
@@ -411,7 +411,7 @@ class Configurations(TestSuite):
                     nginxconf = []
 
                 for location in find_path_traversal_issue(nginxconf):
-                    yield Error(
+                    yield ReportError(
                         "The NGINX configuration (especially location %s) "
                         "appears vulnerable to path traversal issues as explained in\n"
                         "  https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
@@ -428,7 +428,7 @@ class Configurations(TestSuite):
 
         content = nginx_conf.read_text()
         if "uwsgi_pass" in content:
-            yield Warning(
+            yield ReportWarning(
                 "Using uwsgi is deprecated (at least because it was never properly integrated in YunoHost, and also because the project is not really maintained anymore: https://github.com/unbit/uwsgi/blob/master/README ). Please consider switching to, for example, a gunicorn-based architecture with regular proxy_pass instead."
             )
 
@@ -496,7 +496,7 @@ class Configurations(TestSuite):
             if has_reverse_proxy_statement and not (
                 include_params_no_auth or include_params_with_auth
             ):
-                yield Warning(
+                yield ReportWarning(
                     "The nginx configuration reverse-proxies to another service (using proxy_pass or fastcgi_pass) but does not include the default set of params shipped in YunoHost, i.e: proxy_params_no/with_auth or fastcgi_params_no/with_auth, depending on what's the appropriate one for this use case."
                 )
 
@@ -555,7 +555,7 @@ class Configurations(TestSuite):
                 ]
             )
             if reverse_proxy_params_from_includes_that_are_manually_set:
-                yield Warning(
+                yield ReportWarning(
                     f"In the nginx conf, manually defining a value for these reverse proxy params should not be necessary as they are already defined in the proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be included when using proxy_pass or fastcgi_pass: {reverse_proxy_params_from_includes_that_are_manually_set}"
                 )
 
@@ -568,7 +568,7 @@ class Configurations(TestSuite):
                 ]
             )
             if reverse_proxy_params_from_includes_that_are_manually_set:
-                yield Warning(
+                yield ReportWarning(
                     f"In the nginx conf, manually defining a value for these reverse proxy params should not be necessary as they are already defined in the proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be included when using proxy_pass or fastcgi_pass: {reverse_proxy_params_from_includes_that_are_manually_set}"
                 )
 
@@ -581,19 +581,19 @@ class Configurations(TestSuite):
                 ]
             )
             if reverse_proxy_params_from_includes_that_are_manually_set:
-                yield Info(
+                yield ReportInfo(
                     f"In the nginx conf, manually defining a value for these reverse proxy params should not be necessary as they are already defined in the proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be included when using proxy_pass or fastcgi_pass. But in some specific case it would be useful to override the default value, if this is the case you can safely ignore this message: {reverse_proxy_params_from_includes_that_are_manually_set}"
                 )
 
         if sso is True and not include_params_with_auth_at_last_in_one_conf:
-            yield Warning(
+            yield ReportWarning(
                 "In manifest.toml, sso integration is set to true, but the nginx conf doesn't seem to include proxy_params_with_auth or fastcgi_params_with_auth."
             )
         elif (
             sso in [False, "not_relevant"]
             and include_params_with_auth_at_last_in_one_conf
         ):
-            yield Warning(
+            yield ReportWarning(
                 "In manifest.toml, sso integration is set to false or not_relevant, but the nginx conf seems to include proxy_params_with_auth or fastcgi_params_with_auth with suggest maybe it does?"
             )
 
@@ -610,10 +610,10 @@ class Configurations(TestSuite):
             try:
                 content = file.read_text()
             except UnicodeDecodeError:
-                yield Info("%s does not look like a text file." % file.name)
+                yield ReportInfo("%s does not look like a text file." % file.name)
                 continue
             except Exception as e:
-                yield Warning("Can't open/read %s: %s" % (file, e))
+                yield ReportWarning("Can't open/read %s: %s" % (file, e))
                 continue
 
             for number, line in enumerate(content.split("\n"), 1):
@@ -623,7 +623,7 @@ class Configurations(TestSuite):
                 ):
                     for ip in re.split(r"[ \t,='\"(){}\[\]]", line):
                         if ip == "::" or ip.startswith("0.0.0.0"):
-                            yield Info(
+                            yield ReportInfo(
                                 f"{file.relative_to(self.app.path)}:{number}: "
                                 "Binding to '0.0.0.0' or '::' can result in a security issue "
                                 "as the reverse proxy and the SSO can be bypassed by knowing "

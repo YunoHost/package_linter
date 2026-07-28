@@ -13,13 +13,13 @@ from typing import Any
 from lib.lib_package_linter import (
     APPS_CACHE,
     PACKAGE_LINTER_DIR,
-    Critical,
-    Error,
-    Info,
-    Success,
+    ReportCritical,
+    ReportError,
+    ReportInfo,
+    ReportSuccess,
+    ReportWarning,
     TestResult,
     TestSuite,
-    Warning,
     get_app_list,
     test,
     urlopen,
@@ -80,12 +80,12 @@ class AppCatalog(TestSuite):
     @test()
     def is_in_catalog(self) -> TestResult:
         if not self.catalog_infos:
-            yield Critical("This app is not in YunoHost's application catalog")
+            yield ReportCritical("This app is not in YunoHost's application catalog")
 
     @test()
     def revision_is_HEAD(self) -> TestResult:  # noqa: N802
         if self.catalog_infos and self.catalog_infos.get("revision", "HEAD") != "HEAD":
-            yield Error(
+            yield ReportError(
                 "You should make sure that the revision used in YunoHost's apps catalog is HEAD..."
             )
 
@@ -95,14 +95,14 @@ class AppCatalog(TestSuite):
             self.catalog_infos
             and self.catalog_infos.get("state", "working") != "working"
         ):
-            yield Error(
+            yield ReportError(
                 "The application is not flagged as working in YunoHost's apps catalog"
             )
 
     @test()
     def has_category(self) -> TestResult:
         if self.catalog_infos and not self.catalog_infos.get("category"):
-            yield Warning(
+            yield ReportWarning(
                 "The application has no associated category in YunoHost's apps catalog"
             )
 
@@ -116,11 +116,11 @@ class AppCatalog(TestSuite):
 
             if repo_url.lower() not in [repo_org.lower(), repo_brique.lower()]:
                 if repo_url.lower().startswith("https://github.com/YunoHost-Apps/"):
-                    yield Warning(
+                    yield ReportWarning(
                         "The URL for this app in the catalog should be %s" % repo_org
                     )
                 else:
-                    yield Info(
+                    yield ReportInfo(
                         "Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily"
                     )
 
@@ -133,7 +133,7 @@ class AppCatalog(TestSuite):
                 return urlopen(repo_brique)[0] != 404
 
             if not is_in_github_org() and not is_in_brique_org():
-                yield Info(
+                yield ReportInfo(
                     "Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily"
                 )
 
@@ -241,4 +241,4 @@ class AppCatalog(TestSuite):
         score = sum([good_quality(infos) for d, infos in history])
         rel_score = int(100 * score / count)
         if rel_score > 80:
-            yield Success("The app is long-term good quality in the catalog!")
+            yield ReportSuccess("The app is long-term good quality in the catalog!")

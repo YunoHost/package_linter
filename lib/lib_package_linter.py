@@ -43,23 +43,23 @@ class TestReport:
         _print(prefix + self.style % self.message)
 
 
-class Warning(TestReport):
+class ReportWarning(TestReport):
     style = Color.WARNING + " ! %s " + Color.END
 
 
-class Error(TestReport):
+class ReportError(TestReport):
     style = Color.FAIL + " ✘ %s" + Color.END
 
 
-class Info(TestReport):
+class ReportInfo(TestReport):
     style = " - %s" + Color.END
 
 
-class Success(TestReport):
+class ReportSuccess(TestReport):
     style = Color.OKGREEN + " ☺  %s ♥" + Color.END
 
 
-class Critical(TestReport):
+class ReportCritical(TestReport):
     style = Color.FAIL + " ✘✘✘ %s" + Color.END
 
 
@@ -138,7 +138,7 @@ def config_panel_v1_schema() -> str:
 
 def validate_schema(
     name: str, schema: dict[str, Any], data: dict[str, Any]
-) -> Generator[Info, None, None]:
+) -> Generator[ReportInfo, None, None]:
     v = jsonschema.Draft7Validator(schema)
 
     for error in v.iter_errors(data):
@@ -147,7 +147,7 @@ def validate_schema(
         except TypeError:
             error_path = str(error.path)
 
-        yield Info(
+        yield ReportInfo(
             f"Error validating {name} using schema: in key {error_path}\n       {error.message}"
         )
 
@@ -199,7 +199,7 @@ class TestSuite:
         # Display part
 
         def report_type(report: TestReport) -> str:
-            return report.__class__.__name__.lower()
+            return report.__class__.__name__.lower().removeprefix("report")
 
         if any(report_type(r) in ["warning", "error", "critical"] for r in reports):
             prefix = Color.WARNING + "! "
@@ -227,7 +227,7 @@ class TestSuite:
         reports = list(test(self))
 
         def report_type(report: TestReport) -> str:
-            return report.__class__.__name__.lower()
+            return report.__class__.__name__.lower().removeprefix("report")
 
         for report in reports:
             report.display()

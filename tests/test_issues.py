@@ -2,11 +2,11 @@
 import json
 
 from lib.lib_package_linter import (
-    Error,
-    Info,
+    ReportError,
+    ReportInfo,
+    ReportWarning,
     TestResult,
     TestSuite,
-    Warning,
     get_app_list,
     report_warning_not_reliable,
     test,
@@ -48,7 +48,7 @@ class Issues(TestSuite):
         ]
 
         if issues:
-            yield Error(
+            yield ReportError(
                 "Those issues need to be solved to reach level5+ and be displayed by default on catalog:\n      - "
                 + "\n      - ".join(issues)
             )
@@ -62,7 +62,7 @@ class Issues(TestSuite):
         ]
 
         if issues:
-            yield Warning(
+            yield ReportWarning(
                 "Those issues need to be solved to reach level7+ and be displayed as high quality apps:\n      - "
                 + "\n      - ".join(issues)
             )
@@ -84,6 +84,6 @@ class Issues(TestSuite):
                 nb_bugs += 1
 
         if nb_bugs:
-            yield Info(
+            yield ReportInfo(
                 f"{nb_bugs} small bugs are known in this package, it could be useful to try to fix them or close it if not relevant anymore."
             )

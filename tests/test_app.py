@@ -10,12 +10,12 @@ from collections.abc import Generator
 from pathlib import Path
 
 from lib.lib_package_linter import (
-    Error,
-    Info,
-    Success,
+    ReportError,
+    ReportInfo,
+    ReportSuccess,
+    ReportWarning,
     TestResult,
     TestSuite,
-    Warning,
     config_panel_v1_schema,
     not_empty,
     test,
@@ -308,7 +308,7 @@ class App(TestSuite):
         if tests_reports["error"] or tests_reports["critical"]:
             sys.exit(1)
 
-    def qualify_for_level_7(self) -> Generator[Success, None, None]:
+    def qualify_for_level_7(self) -> Generator[ReportSuccess, None, None]:
 
         if tests_reports["critical"]:
             _print(" There are some critical issues in this app :(")
@@ -321,11 +321,11 @@ class App(TestSuite):
         elif len(tests_reports["warning"]) == 1:
             _print(" Only 1 warning remaining! You can do it!")
         else:
-            yield Success(
+            yield ReportSuccess(
                 "Not even a warning! Congratz and thank you for keeping this package up to date with good practices! This app qualifies for level 7!"
             )
 
-    def qualify_for_level_8(self) -> Generator[Success, None, None]:
+    def qualify_for_level_8(self) -> Generator[ReportSuccess, None, None]:
 
         successes = [test.split(".")[1] for test, _ in tests_reports["success"]]
 
@@ -349,14 +349,14 @@ class App(TestSuite):
             "qualify_for_level_7" in successes
             and "is_long_term_good_quality" in successes
         ):
-            yield Success(
+            yield ReportSuccess(
                 "The app is maintained and long-term good quality, and therefore qualifies for level 8!"
             )
 
-    def qualify_for_level_9(self) -> Generator[Success, None, None]:
+    def qualify_for_level_9(self) -> Generator[ReportSuccess, None, None]:
 
         if self.app_catalog.catalog_infos.get("high_quality", False):
-            yield Success("The app is flagged as high-quality in the app catalog")
+            yield ReportSuccess("The app is flagged as high-quality in the app catalog")
 
     #########################################
     #   _____                           _   #
@@ -382,19 +382,19 @@ class App(TestSuite):
 
         for filename in filenames:
             if not not_empty(app.path / filename):
-                yield Error("Providing %s is mandatory" % filename)
+                yield ReportError("Providing %s is mandatory" % filename)
 
         license_file = app.path / "LICENSE"
         if not_empty(license_file):
             license_content = license_file.read_text()
             if "File containing the license of your package" in license_content:
-                yield Error("You should put an actual license in LICENSE...")
+                yield ReportError("You should put an actual license in LICENSE...")
 
     @test()
     def doc_dir(app) -> TestResult:
 
         if not (app.path / "doc").exists():
-            yield Error(
+            yield ReportError(
                 """Having a doc/ folder is now mandatory in packaging v2 and is expected to contain :
 - (recommended) doc/DESCRIPTION.md : a long description of the app, typically around 5~20 lines, for example to list features
 - (recommended) doc/screenshots/ : a folder containing at least one .png (or .jpg) screenshot of the app
@@ -410,11 +410,11 @@ class App(TestSuite):
             )
             screenshots_size = int(du_output.split()[0])
             if screenshots_size > 1024 * 1000:
-                yield Warning(
+                yield ReportWarning(
                     "Please keep the content of doc/screenshots under ~512Kb. Having screenshots bigger than 512kb is probably a waste of resource and will take unecessarily long time to load on the webadmin UI and app catalog."
                 )
             elif screenshots_size > 512 * 1000:
-                yield Info(
+                yield ReportInfo(
                     "Please keep the content of doc/screenshots under ~512Kb. Having screenshots bigger than 512kb is probably a waste of resource and will take unecessarily long time to load on the webadmin UI and app catalog."
                 )
 
@@ -423,7 +423,7 @@ class App(TestSuite):
                 if Path.is_dir(file):
                     continue
                 if filename == "example.jpg":
-                    yield Warning(
+                    yield ReportWarning(
                         "It tooks like the screenshot in doc/screenshots/ folder is just a default placeholder ... please replace it with something more meaningful (or remove it if screenshots are not relevant for this app)"
                     )
                     continue
@@ -433,7 +433,7 @@ class App(TestSuite):
                     not filename.lower().endswith(ext)
                     for ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]
                 ):
-                    yield Warning(
+                    yield ReportWarning(
                         "In the doc/screenshots folder, only .jpg, .jpeg, .png, .webp and .gif are accepted"
                     )
                     break
@@ -444,7 +444,7 @@ class App(TestSuite):
         if (app.path / "doc").exists() and not (
             app.path / "doc" / "DESCRIPTION.md"
         ).exists():
-            yield Error(
+            yield ReportError(
                 "A DESCRIPTION.md is now mandatory in packaging v2 and is meant to contains an extensive description of what the app is and does. Consider also adding a '/doc/screenshots/' folder with a few screenshots of what the app looks like."
             )
         elif (
@@ -453,10 +453,10 @@ class App(TestSuite):
             )
             == 0
         ):
-            yield Error("It looks like DESCRIPTION.md just contains placeholder texts")
+            yield ReportError("It looks like DESCRIPTION.md just contains placeholder texts")
 
         if (app.path / "doc" / "DISCLAIMER.md").exists():
-            yield Warning(
+            yield ReportWarning(
                 """DISCLAIMER.md has been replaced with several files in packaging v2 to improve the UX and provide the user with key information at the appropriate step of the app install / upgrade cycles.
 
     You are encouraged to split its infos into:
@@ -489,7 +489,7 @@ class App(TestSuite):
 
         cmd = f"grep -q -IhEr '__DB_PWD__' '{app.path}/doc/'"
         if (app.path / "doc").exists() and os.system(cmd) == 0:
-            yield Warning(
+            yield ReportWarning(
                 "(doc folder) It looks like this app requires the admin to finish the install by entering DB credentials. Unless it's absolutely not easily automatizable, this should be handled automatically by the app install script using curl calls, or (CLI tools provided by the upstream maybe ?)."
             )
 
@@ -503,7 +503,7 @@ class App(TestSuite):
                 )
                 == 0
             ):
-                yield Warning(
+                yield ReportWarning(
                     "In DISCLAIMER.md: 'Any known limitations [...] such as' and 'Other infos [...] such as' are supposed to be placeholder sentences meant to explain to packagers what is the expected content, but is not an appropriate wording for end users :/"
                 )
             if (
@@ -513,7 +513,7 @@ class App(TestSuite):
                 )
                 == 0
             ):
-                yield Warning(
+                yield ReportWarning(
                     "The doc/ folder seems to still contain some dummy, placeholder messages in the .md markdown files. If those files are not useful in the context of your app, simply remove them."
                 )
 
@@ -522,7 +522,7 @@ class App(TestSuite):
 
         cmd = f"grep -q -IhEr '^[^#]*install_python' '{app.path}/scripts/'"
         if os.system(cmd) == 0:
-            yield Warning(
+            yield ReportWarning(
                 "It looks like this app installs a custom version of Python which is heavily discouraged, both because it takes a shitload amount of time to compile Python locally, and because it is likely to create complication later once the system gets upgraded to newer Debian versions..."
             )
 
@@ -537,7 +537,7 @@ class App(TestSuite):
         has_domain_arg = any(a["name"] == "domain" for a in args)
 
         if has_domain_arg and not not_empty(app.path / "scripts" / "change_url"):
-            yield Info(
+            yield ReportInfo(
                 "Consider adding a change_url script to support changing where the app can be reached"
             )
 
@@ -545,19 +545,19 @@ class App(TestSuite):
     def config_panel(app) -> TestResult:
 
         if not_empty(app.path / "config_panel.json"):
-            yield Error(
+            yield ReportError(
                 "JSON config panels are not supported anymore, should be replaced by a toml version"
             )
 
         if not_empty(app.path / "config_panel.toml.example"):
-            yield Warning(
+            yield ReportWarning(
                 "Please do not commit config_panel.toml.example ... This is just a 'documentation' for the config panel syntax meant to be kept in example_ynh"
             )
 
         if not not_empty(app.path / "config_panel.toml") and not_empty(
             app.path / "scripts" / "config"
         ):
-            yield Warning(
+            yield ReportWarning(
                 "The script 'config' exists but there is no config_panel.toml ... Please remove the 'config' script if this is just the example from example_ynh, or add a proper config_panel.toml if the point is really to have a config panel"
             )
 
@@ -566,14 +566,14 @@ class App(TestSuite):
                 "grep -q 'version = \"0.1\"' '%s'" % (app.path / "config_panel.toml")
             )
             if check_old_panel == 0:
-                yield Error(
+                yield ReportError(
                     "Config panels version 0.1 are not supported anymore, should be adapted for version 1.0"
                 )
             elif (app.path / "scripts" / "config").exists() and os.system(
                 "grep -q 'YNH_CONFIG_\\|yunohost app action' '%s'"
                 % (app.path / "scripts" / "config")
             ) == 0:
-                yield Error(
+                yield ReportError(
                     "The config panel is set to version 1.x, but the config script is apparently still using some old code from 0.1 such as '$YNH_CONFIG_STUFF' or 'yunohost app action'"
                 )
 
@@ -605,7 +605,7 @@ class App(TestSuite):
                 not in content
             )
         ):
-            yield Warning(
+            yield ReportWarning(
                 "It looks like the README was not generated automatically by https://github.com/YunoHost/apps/tree/main/tools/README-generator. "
                 "Note that nowadays you are not suppose to edit README.md, the yunohost bot will usually automatically update it if your app is hosted in the YunoHost-Apps org ... or you can also generate it by running the README-generator yourself."
             )
@@ -613,7 +613,7 @@ class App(TestSuite):
     @test()
     def remaining_replacebyyourapp(self) -> TestResult:
         if os.system("grep -I -qr 'REPLACEBYYOURAPP' %s 2>/dev/null" % self.path) == 0:
-            yield Error("You should replace all occurences of REPLACEBYYOURAPP.")
+            yield ReportError("You should replace all occurences of REPLACEBYYOURAPP.")
 
     @test()
     def supervisor_usage(self) -> TestResult:
@@ -621,7 +621,7 @@ class App(TestSuite):
             os.system(r"grep -I -qr '^\s*supervisorctl' %s 2>/dev/null" % self.path)
             == 0
         ):
-            yield Warning(
+            yield ReportWarning(
                 "Please don't rely on supervisor to run services. YunoHost is about standardization and the standard is to use systemd units..."
             )
 
@@ -636,7 +636,7 @@ class App(TestSuite):
                     "Please convert it to utf-8 to avoid funky issues. "
                     "Something like 'iconv -f iso-8859-1 -t utf-8 SOURCE > DEST' should do the trick."
                 )
-                yield Error(msg)
+                yield ReportError(msg)
 
     #######################################
     #  _    _      _                      #
@@ -660,7 +660,7 @@ class App(TestSuite):
 
         for custom_helper in custom_helpers:
             if custom_helper in official_helpers:
-                yield Info(
+                yield ReportInfo(
                     "%s is now an official helper since version '%s'"
                     % (custom_helper, official_helpers[custom_helper] or "?")
                 )
@@ -672,7 +672,7 @@ class App(TestSuite):
             r" | grep -qv 'xxenv\|rbenv\|oracledb'"
         )
         if os.system(cmd) == 0:
-            yield Warning(
+            yield ReportWarning(
                 "Using 'git clone' is not recommended ... most forge do provide the ability to download a proper archive of the code for a specific commit. Please use the 'sources' resource in the manifest.toml in combination with ynh_setup_source."
             )
 
@@ -717,7 +717,7 @@ class App(TestSuite):
                     "Using official helper %s implies requiring at least version %s, but manifest only requires %s"
                     % (helper, helper_req, yunohost_version_req)
                 )
-                yield Error(message) if major_diff else Warning(message)
+                yield ReportError(message) if major_diff else ReportWarning(message)
 
     @test()
     def helpers_deprecated_in_v2(app) -> TestResult:
@@ -732,12 +732,12 @@ class App(TestSuite):
         deprecated_helpers_in_v2p1_ = {k: v for k, v in deprecated_helpers_in_v2p1}
 
         for helper in [h for h in helpers_used if h in deprecated_helpers_in_v2_]:
-            yield Warning(
+            yield ReportWarning(
                 f"Using helper {helper} is deprecated when using packaging v2 ... It is replaced by: {deprecated_helpers_in_v2_[helper]}"
             )
 
         for helper in [h for h in helpers_used if h in deprecated_helpers_in_v2p1_]:
-            yield Warning(
+            yield ReportWarning(
                 f"Using helper {helper} is now deprecated (assuming you're using packaging v2.1) ... It is replaced by: {deprecated_helpers_in_v2p1_[helper]}. Note that a PR should have been automatically created via yunohost-bot to help with the transition"
             )
 
@@ -754,7 +754,7 @@ class App(TestSuite):
                 if app.scripts[name].exists and not app.scripts[name].contains(
                     "ynh_install_app_dependencies"
                 ):
-                    yield Warning(
+                    yield ReportWarning(
                         "ynh_install_app_dependencies should also be in %s script"
                         % name
                     )
@@ -764,7 +764,7 @@ class App(TestSuite):
             % app.path
         )
         if os.system(cmd) == 0:
-            yield Warning(
+            yield ReportWarning(
                 "When installing dependencies from extra repository, please include a `--key` argument (yes, even if it's official debian repos such as backports - because systems like Raspbian do not ship Debian's key by default!"
             )
 
@@ -819,20 +819,20 @@ class App(TestSuite):
                 for script in occurences
             ]
             details_str = "\n".join(details)
-            yield Warning(
+            yield ReportWarning(
                 "Some inconsistencies were found in the 'yunohost service add' commands between install, upgrade and restore:\n%s"
                 % details_str
             )
 
         if found_legacy_logtype_option:
-            yield Warning(
+            yield ReportWarning(
                 "Using option '--log_type systemd' with 'yunohost service add' is not relevant anymore"
             )
 
         if occurences["install"] and not app.scripts["remove"].contains(
             "yunohost service remove"
         ):
-            yield Error(
+            yield ReportError(
                 "You used 'yunohost service add' in the install script, "
                 "but not 'yunohost service remove' in the remove script."
             )
@@ -844,7 +844,7 @@ class App(TestSuite):
             for script in app.scripts.values()
             if script.exists
         ):
-            yield Error(
+            yield ReportError(
                 "The app still contains references to jessie, which could probably be cleaned up..."
             )
         if any(
@@ -852,7 +852,7 @@ class App(TestSuite):
             for script in app.scripts.values()
             if script.exists
         ):
-            yield Error(
+            yield ReportError(
                 "This app still has references to php5 (from the jessie era!!) which tends to indicate that it's not up to date with recent packaging practices."
             )
         if any(
@@ -860,7 +860,7 @@ class App(TestSuite):
             for script in app.scripts.values()
             if script.exists
         ):
-            yield Error(
+            yield ReportError(
                 "This app still has references to php7.0 (from the stretch era!!) which tends to indicate that it's not up to date with recent packaging practices."
             )
         if any(
@@ -868,7 +868,7 @@ class App(TestSuite):
             for script in app.scripts.values()
             if script.exists
         ):
-            yield Error(
+            yield ReportError(
                 "This app still has references to php7.3 (from the buster era!!) which tends to indicate that it's not up to date with recent packaging practices."
             )
 
@@ -881,7 +881,7 @@ class App(TestSuite):
             )
             == 0
         ):
-            yield Error("Don't do black magic with /etc/ssowat/conf.json.persistent!")
+            yield ReportError("Don't do black magic with /etc/ssowat/conf.json.persistent!")
 
     @test()
     def app_data_in_unofficial_dir(self) -> TestResult:
@@ -909,7 +909,7 @@ class App(TestSuite):
         )
 
         if forbidden_locations:
-            yield Warning(
+            yield ReportWarning(
                 "The app seems to be storing data in the 'forbidden' locations %s. The recommended pratice is rather to store data in /home/yunohost.app/$app or /home/yunohost.multimedia (depending on the use case)"
                 % ", ".join(forbidden_locations)
             )
@@ -922,11 +922,11 @@ class App(TestSuite):
         ldap_conf_clue_cmd = rf"grep -qIri '^[^#]*dc=yunohost,\s*dc=org' {self.path}/"
         ldap_conf_clue = os.system(ldap_conf_clue_cmd) == 0
         if ldap_flag_in_manifest is True and ldap_conf_clue is False:
-            yield Warning(
+            yield ReportWarning(
                 "The manifest contains 'ldap = true', but it looks like this apps doesn't actually configure LDAP ... or at least there's no 'dc=yunohost,dc=org' which is typical to configure LDAP integration.\n      - If the app is not integrated with LDAP, consider switching the 'ldap' flag in the manifest to false, or 'not_relevant' if the app has no user/account system at all.\n      - If the app *does* integrate with LDAP, this is a false positive ... for example if the integration is done via an external plugin which hardcodes the Yunohost LDAP parameters ... one way to work around this is to create a dummy text file in the conf/ folder explaining how the LDAP integration and with which LDAP parameters"
             )
 
         if ldap_flag_in_manifest in [False, "not_relevant"] and ldap_conf_clue is True:
-            yield Warning(
+            yield ReportWarning(
                 "The manifest contains 'ldap = false' (or not_relevant?), but it looks like this app *does* configure LDAP integration ? ... or at least there is a 'dc=yunohost,dc=org' somewhere in the code, suggesting that something LDAP-related is configured ...\n      - If the app *is* integrated with LDAP, consider switching the 'ldap' flag in manifest to true.\n      - If the app does *not* integrate with LDAP, then this is a false positive, please discuss this with the rest of the team to know how to handle this case ;)"
             )
