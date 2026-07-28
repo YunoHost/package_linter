@@ -116,7 +116,9 @@ class AppCatalog(TestSuite):
 
             if repo_url.lower() not in [repo_org.lower(), repo_brique.lower()]:
                 if repo_url.lower().startswith("https://github.com/YunoHost-Apps/"):
-                    yield ReportWarning(f"The URL for this app in the catalog should be {repo_org}")
+                    yield ReportWarning(
+                        f"The URL for this app in the catalog should be {repo_org}"
+                    )
                 else:
                     yield ReportInfo(
                         "Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily"
@@ -214,7 +216,9 @@ class AppCatalog(TestSuite):
                     catalog_at_this_date = loader.loads(raw_catalog_at_this_date)
                 # This can happen in stupid cases where there was a temporary syntax error in the json..
                 except json.decoder.JSONDecodeError:
-                    _print(f"Failed to parse apps.json/toml history for at commit {commit} / {t} ... ignoring ")
+                    _print(
+                        f"Failed to parse apps.json/toml history for at commit {commit} / {t} ... ignoring "
+                    )
                     continue
                 yield (t, catalog_at_this_date.get(self.app_id))
 

@@ -78,7 +78,9 @@ class Script(TestSuite):
                     continue
 
                 if not some_parsing_failed:
-                    _print(f"Some lines could not be parsed in script {self.name}. (That's probably not really critical)")
+                    _print(
+                        f"Some lines could not be parsed in script {self.name}. (That's probably not really critical)"
+                    )
                     some_parsing_failed = True
 
                 report_warning_not_reliable(f"{e} : {line}")
@@ -321,7 +323,9 @@ class Script(TestSuite):
         fixme = f"grep -q '# FIXMEhelpers2.1' '{self.path}'"
 
         if os.system(removeme) == 0:
-            yield ReportWarning("There are still some REMOVEME? flags to be taken care of")
+            yield ReportWarning(
+                "There are still some REMOVEME? flags to be taken care of"
+            )
         if os.system(fixme) == 0:
             yield ReportWarning(
                 "There are still some FIXMEhelpers2.1 flags to be taken care of"

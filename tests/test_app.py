@@ -453,7 +453,9 @@ class App(TestSuite):
             )
             == 0
         ):
-            yield ReportError("It looks like DESCRIPTION.md just contains placeholder texts")
+            yield ReportError(
+                "It looks like DESCRIPTION.md just contains placeholder texts"
+            )
 
         if (self.path / "doc" / "DISCLAIMER.md").exists():
             yield ReportWarning(
@@ -562,12 +564,20 @@ class App(TestSuite):
         if not_empty(self.path / "config_panel.toml"):
             config_panel_path = self.path / "config_panel.toml"
             config_script_path = self.path / "scripts" / "config"
-            check_old_panel = os.system(f"grep -q 'version = \"0.1\"' '{config_panel_path}'")
+            check_old_panel = os.system(
+                f"grep -q 'version = \"0.1\"' '{config_panel_path}'"
+            )
             if check_old_panel == 0:
                 yield ReportError(
                     "Config panels version 0.1 are not supported anymore, should be adapted for version 1.0"
                 )
-            elif config_script_path.exists() and os.system(f"grep -q 'YNH_CONFIG_\\|yunohost app action' '{config_script_path}'") == 0:
+            elif (
+                config_script_path.exists()
+                and os.system(
+                    f"grep -q 'YNH_CONFIG_\\|yunohost app action' '{config_script_path}'"
+                )
+                == 0
+            ):
                 yield ReportError(
                     "The config panel is set to version 1.x, but the config script is apparently still using some old code from 0.1 such as '$YNH_CONFIG_STUFF' or 'yunohost app action'"
                 )
@@ -612,10 +622,7 @@ class App(TestSuite):
 
     @test()
     def supervisor_usage(self) -> TestResult:
-        if (
-            os.system(rf"grep -I -qr '^\s*supervisorctl' {self.path} 2>/dev/null")
-            == 0
-        ):
+        if os.system(rf"grep -I -qr '^\s*supervisorctl' {self.path} 2>/dev/null") == 0:
             yield ReportWarning(
                 "Please don't rely on supervisor to run services. YunoHost is about standardization and the standard is to use systemd units..."
             )
@@ -656,7 +663,9 @@ class App(TestSuite):
         for custom_helper in custom_helpers:
             if custom_helper in official_helpers:
                 version = official_helpers[custom_helper] or "?"
-                yield ReportInfo(f"{custom_helper} is now an official helper since version '{version}'")
+                yield ReportInfo(
+                    f"{custom_helper} is now an official helper since version '{version}'"
+                )
 
     @test()
     def git_clone_usage(self) -> TestResult:
@@ -744,7 +753,9 @@ class App(TestSuite):
                 if self.scripts[name].exists and not self.scripts[name].contains(
                     "ynh_install_app_dependencies"
                 ):
-                    yield ReportWarning(f"ynh_install_app_dependencies should also be in {name} script")
+                    yield ReportWarning(
+                        f"ynh_install_app_dependencies should also be in {name} script"
+                    )
 
         cmd = f'grep -IhEr "install_extra_app_dependencies" {self.path}/scripts | grep -v "key" | grep -q "http://"'
         if os.system(cmd) == 0:
@@ -858,10 +869,14 @@ class App(TestSuite):
     @test()
     def conf_json_persistent_tweaking(self) -> TestResult:
         if (
-            os.system(f"grep -nr '/etc/ssowat/conf.json.persistent' {self.path} | grep -vq '^{self.path}/doc' 2>/dev/null")
+            os.system(
+                f"grep -nr '/etc/ssowat/conf.json.persistent' {self.path} | grep -vq '^{self.path}/doc' 2>/dev/null"
+            )
             == 0
         ):
-            yield ReportError("Don't do black magic with /etc/ssowat/conf.json.persistent!")
+            yield ReportError(
+                "Don't do black magic with /etc/ssowat/conf.json.persistent!"
+            )
 
     @test()
     def app_data_in_unofficial_dir(self) -> TestResult:

@@ -107,7 +107,9 @@ class Manifest(TestSuite):
         missing_fields = [field for field in fields if field not in self.manifest]
 
         if missing_fields:
-            yield ReportCritical(f"The following mandatory fields are missing: {missing_fields}")
+            yield ReportCritical(
+                f"The following mandatory fields are missing: {missing_fields}"
+            )
 
         if "license" not in self.manifest.get("upstream", ""):
             yield ReportError("The license key in the upstream section is missing")
@@ -117,7 +119,9 @@ class Manifest(TestSuite):
         if "maintainers" in self.manifest:
             for value in self.manifest["maintainers"]:
                 if not value.strip():
-                    yield ReportError("Please don't put empty string as a maintainer x_x")
+                    yield ReportError(
+                        "Please don't put empty string as a maintainer x_x"
+                    )
                 elif "," in value:
                     yield ReportError(
                         "Please don't use comma in maintainers value, this is supposed to be a list such as ['foo', bar'], not ['foo, bar'] x_x"
@@ -289,7 +293,9 @@ class Manifest(TestSuite):
             )
 
             if code_license not in spdx_licenses():
-                yield ReportWarning(f"The license id '{license_sanitized}' is not registered in https://spdx.org/licenses/.")
+                yield ReportWarning(
+                    f"The license id '{license_sanitized}' is not registered in https://spdx.org/licenses/."
+                )
                 return
 
     @test()
@@ -384,25 +390,34 @@ class Manifest(TestSuite):
             argtype = argument.get("type")
             argname = argument.get("name")
             if not isinstance(argument.get("optional", False), bool):
-                yield ReportWarning(f"The key 'optional' value for setting {argname} should be a boolean (true or false)")
+                yield ReportWarning(
+                    f"The key 'optional' value for setting {argname} should be a boolean (true or false)"
+                )
             if "type" not in argument:
-                yield ReportWarning(f"You should specify the type of the argument '{argname}'. You can use: {recognized_types_str}.")
+                yield ReportWarning(
+                    f"You should specify the type of the argument '{argname}'. You can use: {recognized_types_str}."
+                )
             elif argtype not in recognized_types:
                 yield ReportWarning(
                     f"The type '{argtype}' for argument '{argname}' is not recognized... "
                     f"it probably doesn't behave as you expect? Choose among those instead: {recognized_types_str}"
                 )
-            elif argtype == "boolean" and argument.get(
-                "default", True
-            ) not in [True, False]:
+            elif argtype == "boolean" and argument.get("default", True) not in [
+                True,
+                False,
+            ]:
                 yield ReportWarning(
                     "Default value for boolean-type arguments should be a boolean... (in particular, make sure it's not a string!)"
                 )
             elif argtype in ["domain", "user", "password"]:
                 if argument.get("default"):
-                    yield ReportInfo(f"Default value for argument {argname} is superfluous, will be ignored")
+                    yield ReportInfo(
+                        f"Default value for argument {argname} is superfluous, will be ignored"
+                    )
                 if argument.get("example"):
-                    yield ReportInfo(f"Example value for argument {argname} is superfluous, will be ignored")
+                    yield ReportInfo(
+                        f"Example value for argument {argname} is superfluous, will be ignored"
+                    )
 
             if "choices" in argument:
                 choices = [c.lower() for c in argument["choices"]]
@@ -451,7 +466,9 @@ class Manifest(TestSuite):
                 not in ask_string_managed_by_the_core
             ):
                 argname = argument.get("name")
-                yield ReportWarning(f"You should add 'ask' strings for argument {argname}")
+                yield ReportWarning(
+                    f"You should add 'ask' strings for argument {argname}"
+                )
 
     @test()
     def old_php_version(self) -> TestResult:
