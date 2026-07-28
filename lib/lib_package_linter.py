@@ -169,7 +169,7 @@ def validate_schema(
 TestResult = Generator[TestReport, None, None]
 TestFn = Callable[[Any], TestResult]
 
-tests: dict[str, list[tuple[TestFn, Any]]] = {}
+tests: dict[str, list[tuple[TestFn, dict[str, list[str] | None]]]] = {}
 tests_reports: dict[str, list[Any]] = {
     "success": [],
     "info": [],
@@ -179,19 +179,22 @@ tests_reports: dict[str, list[Any]] = {
 }
 
 
-def test(**kwargs: Any) -> Callable[[TestFn], TestFn]:
+def test(
+    only: list[str] | None = None,  # noqa: PT028
+    ignore: list[str] | None = None,  # noqa: PT028
+) -> Callable[[TestFn], TestFn]:
     def decorator(f: TestFn) -> TestFn:
         clsname = getattr(f, "__qualname__", "unnamed_callable").split(".")[0]
         if clsname not in tests:
             tests[clsname] = []
-        tests[clsname].append((f, kwargs))
+        tests[clsname].append((f, {"only": only, "ignore": ignore}))
         return f
 
     return decorator
 
 
 class TestSuite:
-    name: str
+    name: str = ""
     test_suite_name: str
 
     def run_tests(self) -> None:
@@ -199,9 +202,9 @@ class TestSuite:
         reports = []
 
         for test, options in tests[self.__class__.__name__]:
-            if "only" in options and self.name not in options["only"]:
+            if self.name and self.name not in (options["only"] or []):
                 continue
-            if "ignore" in options and self.name in options["ignore"]:
+            if self.name and self.name in (options["ignore"] or []):
                 continue
 
             this_test_reports = list(test(self))
