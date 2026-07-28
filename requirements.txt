@@ -1,3 +1,5 @@
 jsonschema
 toml
 packaging
+pyparsing
+six

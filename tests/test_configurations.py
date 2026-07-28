@@ -23,6 +23,7 @@ from lib.lib_package_linter import (
     tests_v1_schema,
     validate_schema,
 )
+from lib.nginxparser import nginxparser
 from lib.print import _print
 
 
@@ -375,50 +376,21 @@ class Configurations(TestSuite):
                         ):
                             yield location
 
-            do_path_traversal_check = False
             try:
-                import pyparsing
-                import six
+                nginxconf: list[Any] = nginxparser.load(file.open())
+            except Exception as e:
+                _print(f"Could not parse NGINX conf...: {e}")
+                nginxconf = []
 
-                do_path_traversal_check = True
-            except Exception:
-                # If inside a venv, try to magically install pyparsing
-                if "VIRTUAL_ENV" in os.environ:
-                    try:
-                        _print("(Trying to auto install pyparsing...)")
-                        subprocess.check_output(
-                            "pip3 install pyparsing six", shell=True
-                        )
-                        import pyparsing
-
-                        _print("OK!")
-                        do_path_traversal_check = True
-                    except Exception as e:
-                        _print("Failed :[ : %s" % str(e))
-
-            if not do_path_traversal_check:
-                _print(
-                    "N.B.: The package linter needs you to run 'pip3 install pyparsing six' if you want it to be able to check for path traversal issue in NGINX confs"
+            for location in find_path_traversal_issue(nginxconf):
+                yield ReportError(
+                    "The NGINX configuration (especially location %s) "
+                    "appears vulnerable to path traversal issues as explained in\n"
+                    "  https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
+                    "  To fix it, look at the first lines of the NGINX conf of the example app : \n"
+                    "  https://github.com/YunoHost/example_ynh/blob/main/conf/nginx.conf"
+                    % location
                 )
-
-            if do_path_traversal_check:
-                from lib.nginxparser import nginxparser
-
-                try:
-                    nginxconf: list[Any] = nginxparser.load(file.open())
-                except Exception as e:
-                    _print(f"Could not parse NGINX conf...: {e}")
-                    nginxconf = []
-
-                for location in find_path_traversal_issue(nginxconf):
-                    yield ReportError(
-                        "The NGINX configuration (especially location %s) "
-                        "appears vulnerable to path traversal issues as explained in\n"
-                        "  https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
-                        "  To fix it, look at the first lines of the NGINX conf of the example app : \n"
-                        "  https://github.com/YunoHost/example_ynh/blob/main/conf/nginx.conf"
-                        % location
-                    )
 
     @test()
     def nginx_uwsgi(self) -> TestResult:
