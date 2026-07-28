@@ -157,8 +157,8 @@ class AppCatalog(TestSuite):
             year = 2019
             month = 6
             day = 1
-            today = datetime.datetime.today()
-            date = datetime.datetime(year, month, day)
+            today = datetime.datetime.now(tz=datetime.UTC)
+            date = datetime.datetime(year, month, day, tzinfo=datetime.UTC)
 
             while date < today:
                 yield date
@@ -172,7 +172,7 @@ class AppCatalog(TestSuite):
                     month = 1
                     year += 1
 
-                date = datetime.datetime(year, month, day)
+                date = datetime.datetime(year, month, day, tzinfo=datetime.UTC)
 
         def get_history(
             count: int,
