@@ -328,7 +328,7 @@ class Configurations(TestSuite):
             # Path traversal issues
             #
             def find_location_with_alias(
-                locationblock: Any,
+                locationblock: list[list[Any]],
             ) -> Generator[tuple[str, str], None, None]:
 
                 if locationblock[0][0] != "location":

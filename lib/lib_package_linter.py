@@ -152,7 +152,9 @@ def config_panel_v1_schema() -> str:
 
 
 def validate_schema(
-    name: str, schema: dict[str, Any], data: dict[str, Any]
+    name: str,
+    schema: dict[str, Any],
+    data: dict[str, Any]
 ) -> Generator[ReportInfo, None, None]:
     v = jsonschema.Draft7Validator(schema)
 
@@ -171,7 +173,7 @@ TestResult = Generator[TestReport, None, None]
 TestFn = Callable[[TestSuiteSelf], TestResult]
 
 tests: dict[str, list[tuple[TestFn, dict[str, list[str] | None]]]] = {}
-tests_reports: dict[str, list[Any]] = {
+tests_reports: dict[str, list[tuple[str, TestReport]]] = {
     "success": [],
     "info": [],
     "warning": [],
@@ -200,17 +202,17 @@ class TestSuite:
 
     def run_tests(self) -> None:
 
-        reports = []
+        reports: list[TestReport] = []
 
-        for test, options in tests[self.__class__.__name__]:
+        for testfn, options in tests[self.__class__.__name__]:
             if self.name and self.name not in (options["only"] or []):
                 continue
             if self.name and self.name in (options["ignore"] or []):
                 continue
 
-            this_test_reports = list(test(self))
+            this_test_reports = list(testfn(self))
             for report in this_test_reports:
-                report.test_name = getattr(test, "__qualname__", "unnamed_test")
+                report.test_name = str(getattr(testfn, "__qualname__", "unnamed_test"))
 
             reports += this_test_reports
 
