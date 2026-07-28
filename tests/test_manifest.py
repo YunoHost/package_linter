@@ -273,33 +273,33 @@ class Manifest(TestSuite):
         # Turns out there may be multiple licenses... (c.f. Seafile)
         licenses = self.manifest.get("upstream", {}).get("license", "").split(",")
 
-        for license in licenses:
+        for manifest_license in licenses:
 
-            license = license.strip()
+            license_sanitized = manifest_license.strip()
 
-            if "nonfree" in license.replace("-", ""):
+            if "nonfree" in license_sanitized.replace("-", ""):
                 yield Warning(
                     "'non-free' apps cannot be integrated in YunoHost's app catalog."
                 )
                 return
 
-            if license.startswith("LicenseRef-"):
+            if license_sanitized.startswith("LicenseRef-"):
                 if not self.manifest.get("upstream", {}).get("license_url"):
                     yield Error(
                         "Missing 'license_url' key in the upstream section: it is required if you use a custom license id."
                     )
                 yield Info(
                     "The license id '%s' is a custom one. This should be used only for 'not totally free' applications or FLOSS licenses not listed in https://spdx.org/licenses. Both cases should always be discussed with other contributors for validation."
-                    % license
+                    % license_sanitized
                 )
                 return
 
-            code_license = '<code property="spdx:licenseId">' + license + "</code>"
+            code_license = '<code property="spdx:licenseId">' + license_sanitized + "</code>"
 
             if code_license not in spdx_licenses():
                 yield Warning(
                     "The license id '%s' is not registered in https://spdx.org/licenses/."
-                    % license
+                    % license_sanitized
                 )
                 return
 
@@ -307,7 +307,7 @@ class Manifest(TestSuite):
     def description(self) -> TestResult:
 
         descr = self.manifest.get("description", "")
-        id = self.manifest["id"].lower()
+        manifest_id = self.manifest["id"].lower()
         name = self.manifest["name"].lower()
 
         if isinstance(descr, dict):
@@ -324,7 +324,7 @@ class Manifest(TestSuite):
                 "No need to say that it is 'for YunoHost' - this is a YunoHost app "
                 "so of course we know it is for YunoHost ;-)."
             )
-        if descr.lower().startswith(id) or descr.lower().startswith(name):
+        if descr.lower().startswith(manifest_id) or descr.lower().startswith(name):
             yield Warning(
                 "Try to avoid starting the description by '$app is' "
                 "... explain what the app is/does directly!"

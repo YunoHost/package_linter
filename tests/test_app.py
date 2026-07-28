@@ -384,9 +384,9 @@ class App(TestSuite):
             if not not_empty(app.path / filename):
                 yield Error("Providing %s is mandatory" % filename)
 
-        license = app.path / "LICENSE"
-        if not_empty(license):
-            license_content = license.read_text()
+        license_file = app.path / "LICENSE"
+        if not_empty(license_file):
+            license_content = license_file.read_text()
             if "File containing the license of your package" in license_content:
                 yield Error("You should put an actual license in LICENSE...")
 
