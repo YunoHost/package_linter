@@ -20,7 +20,8 @@ def main():
     if args.json:
         set_output_json()
 
-    _print("""    [YunoHost App Package Linter]
+    _print(
+        """    [YunoHost App Package Linter]
 
  App packaging documentation - https://yunohost.org/packaging_apps
  App package example         - https://github.com/YunoHost/example_ynh
@@ -28,7 +29,8 @@ def main():
 
  If you believe this linter returns false negative (warnings / errors which shouldn't happen),
  please report them on https://github.com/YunoHost/package_linter/issues
-    """)
+    """
+    )
 
     app = App(args.app_path)
     app.analyze()

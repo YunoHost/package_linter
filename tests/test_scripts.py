@@ -57,12 +57,10 @@ class Script(TestSuite):
         some_parsing_failed = False
 
         for line in lines:
-
             try:
                 splitted_line = shlex.split(line, comments=True)
                 yield splitted_line
             except Exception as e:
-
                 ignore_pattern = [
                     "/etc/cron",
                     "admin_panel=",

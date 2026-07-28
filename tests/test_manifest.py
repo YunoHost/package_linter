@@ -7,7 +7,6 @@ import sys
 import tomllib
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
 
 from lib.lib_package_linter import (
     Color,
@@ -105,9 +104,7 @@ class Manifest(TestSuite):
             "resources",
         ]
 
-        missing_fields = [
-            field for field in fields if field not in self.manifest
-        ]
+        missing_fields = [field for field in fields if field not in self.manifest]
 
         if missing_fields:
             yield Critical(
@@ -215,10 +212,14 @@ class Manifest(TestSuite):
                 "Expected something like '>= 4.5.6'",
             ),
             "architectures": (
-                lambda v: v == "all"
-                or (
-                    isinstance(v, list)
-                    and all(subv in ["i386", "amd64", "armhf", "arm64"] for subv in v)
+                lambda v: (
+                    v == "all"
+                    or (
+                        isinstance(v, list)
+                        and all(
+                            subv in ["i386", "amd64", "armhf", "arm64"] for subv in v
+                        )
+                    )
                 ),
                 "'all' or a list of values in ['i386', 'amd64', 'armhf', 'arm64']",
             ),
@@ -236,9 +237,11 @@ class Manifest(TestSuite):
             ),
             "disk": (lambda v: isinstance(v, str), "Expected a string"),
             "ram": (
-                lambda v: isinstance(v, dict)
-                and isinstance(v.get("build"), str)
-                and isinstance(v.get("runtime"), str),
+                lambda v: (
+                    isinstance(v, dict)
+                    and isinstance(v.get("build"), str)
+                    and isinstance(v.get("runtime"), str)
+                ),
                 "Expected to find ram.build and ram.runtime with string values",
             ),
         }
@@ -263,7 +266,6 @@ class Manifest(TestSuite):
         licenses = self.manifest.get("upstream", {}).get("license", "").split(",")
 
         for manifest_license in licenses:
-
             license_sanitized = manifest_license.strip()
 
             if "nonfree" in license_sanitized.replace("-", ""):
@@ -283,7 +285,9 @@ class Manifest(TestSuite):
                 )
                 return
 
-            code_license = '<code property="spdx:licenseId">' + license_sanitized + "</code>"
+            code_license = (
+                '<code property="spdx:licenseId">' + license_sanitized + "</code>"
+            )
 
             if code_license not in spdx_licenses():
                 yield Warning(
@@ -444,7 +448,6 @@ class Manifest(TestSuite):
         args = keyandargs.values()
 
         for argument in args:
-
             if (
                 argument.get("ask")
                 and (argument.get("name"), argument.get("type"))
@@ -498,9 +501,7 @@ class Manifest(TestSuite):
                     "Having an 'apt' resource is mandatory when using a 'database' resource, to also install postgresql/mysql if needed"
                 )
             else:
-                if list(resources).index("database") < list(
-                    resources
-                ).index("apt"):
+                if list(resources).index("database") < list(resources).index("apt"):
                     yield Warning(
                         "The 'apt' resource should be placed before the 'database' resource, to install postgresql/mysql if needed *before* provisioning the database"
                     )

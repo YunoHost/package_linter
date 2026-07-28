@@ -731,16 +731,12 @@ class App(TestSuite):
         deprecated_helpers_in_v2_ = {k: v for k, v in deprecated_helpers_in_v2}
         deprecated_helpers_in_v2p1_ = {k: v for k, v in deprecated_helpers_in_v2p1}
 
-        for helper in [
-            h for h in helpers_used if h in deprecated_helpers_in_v2_
-        ]:
+        for helper in [h for h in helpers_used if h in deprecated_helpers_in_v2_]:
             yield Warning(
                 f"Using helper {helper} is deprecated when using packaging v2 ... It is replaced by: {deprecated_helpers_in_v2_[helper]}"
             )
 
-        for helper in [
-            h for h in helpers_used if h in deprecated_helpers_in_v2p1_
-        ]:
+        for helper in [h for h in helpers_used if h in deprecated_helpers_in_v2p1_]:
             yield Warning(
                 f"Using helper {helper} is now deprecated (assuming you're using packaging v2.1) ... It is replaced by: {deprecated_helpers_in_v2p1_[helper]}. Note that a PR should have been automatically created via yunohost-bot to help with the transition"
             )
