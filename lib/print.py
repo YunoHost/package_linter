@@ -11,7 +11,7 @@ def _print(*args: Any, **kwargs: Any) -> None:
 
 
 def set_output_json() -> None:
-    global output
+    global output  # noqa: PLW0603
     output = "json"
 
 
