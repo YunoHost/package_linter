@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
+import datetime
 import json
 import os
 import subprocess
 import time
 import tomllib
 from collections.abc import Generator
-from datetime import datetime
 from types import ModuleType
 from typing import Any
 
@@ -150,15 +150,15 @@ class AppCatalog(TestSuite):
                 .strip()
             )
 
-        def _time_points_until_today() -> Generator[datetime, None, None]:
+        def _time_points_until_today() -> Generator[datetime.datetime, None, None]:
 
             # Prior to April 4th, 2019, we still had official.json and community.json
             # Nowadays we only have apps.json
             year = 2019
             month = 6
             day = 1
-            today = datetime.today()
-            date = datetime(year, month, day)
+            today = datetime.datetime.today()
+            date = datetime.datetime(year, month, day)
 
             while date < today:
                 yield date
@@ -172,11 +172,11 @@ class AppCatalog(TestSuite):
                     month = 1
                     year += 1
 
-                date = datetime(year, month, day)
+                date = datetime.datetime(year, month, day)
 
         def get_history(
             count: int,
-        ) -> Generator[tuple[datetime, dict[str, Any]], None, None]:
+        ) -> Generator[tuple[datetime.datetime, dict[str, Any]], None, None]:
 
             for t in list(_time_points_until_today())[(-1 * count) :]:
                 loader: ModuleType
