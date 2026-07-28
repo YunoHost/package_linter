@@ -2,11 +2,12 @@
 
 import copy
 import json
-from pathlib import Path
 import re
 import sys
 import tomllib
-from typing import Any, Callable
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
 
 from lib.lib_package_linter import (
     Critical,

@@ -3,15 +3,16 @@
 import json
 import os
 import subprocess
-from pathlib import Path
-import sys
 import time
 import tomllib
+from collections.abc import Generator
 from datetime import datetime
 from types import ModuleType
-from typing import Any, Generator
+from typing import Any
 
 from lib.lib_package_linter import (
+    APPS_CACHE,
+    PACKAGE_LINTER_DIR,
     Critical,
     Error,
     Info,
@@ -19,11 +20,9 @@ from lib.lib_package_linter import (
     TestResult,
     TestSuite,
     Warning,
+    get_app_list,
     test,
     urlopen,
-    get_app_list,
-    PACKAGE_LINTER_DIR,
-    APPS_CACHE,
 )
 from lib.print import _print
 

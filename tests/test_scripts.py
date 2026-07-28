@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 import os
-from pathlib import Path
 import re
 import shlex
 import statistics
 import subprocess
-from typing import Generator
+from collections.abc import Generator
+from pathlib import Path
 
 from lib.lib_package_linter import (
     Critical,

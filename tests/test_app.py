@@ -3,11 +3,11 @@
 import copy
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tomllib
-from typing import Generator
+from collections.abc import Generator
+from pathlib import Path
 
 from lib.lib_package_linter import (
     Error,

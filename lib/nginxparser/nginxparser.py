@@ -7,21 +7,21 @@
 import copy
 import logging
 
+import six
 from pyparsing import (
-    Literal,
-    White,
+    Combine,
     Forward,
     Group,
-    Optional,
+    Literal,
     OneOrMore,
+    Optional,
     QuotedString,
     Regex,
+    White,
     ZeroOrMore,
-    Combine,
+    restOfLine,
+    stringEnd,
 )
-from pyparsing import stringEnd
-from pyparsing import restOfLine
-import six
 
 logger = logging.getLogger(__name__)
 

@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
-from pathlib import Path
+import sys
 import time
+import tomllib
 import urllib.request
-from typing import Any, Callable, Generator, TypeVar
+from collections.abc import Callable, Generator
+from pathlib import Path
+from typing import Any
 
 import jsonschema
-import sys
-import tomllib
 
 from lib.print import _print
 
@@ -126,7 +127,7 @@ def get_app_list() -> list[dict]:
     except Exception:
         _print("Failed to read apps.toml :/")
         sys.exit(-1)
-    return app_list
+    return app_list  # type: ignore[return-value]  # ty: ignore[invalid-return-type]
 
 
 @cache_file(Path(".config_panel.v1.schema.json"), 3600)

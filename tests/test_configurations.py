@@ -3,11 +3,13 @@
 import json
 import os
 import re
-from packaging import version
-from pathlib import Path
 import subprocess
 import tomllib
-from typing import Any, Generator
+from collections.abc import Generator
+from pathlib import Path
+from typing import Any
+
+from packaging import version
 
 from lib.lib_package_linter import (
     Error,
