@@ -77,7 +77,7 @@ def urlopen(url: str) -> tuple[int, str]:
     except urllib.error.HTTPError as e:
         return e.code, ""
     except urllib.error.URLError as e:
-        _print("Could not fetch %s : %s" % (url, e))
+        _print(f"Could not fetch {url} : {e}")
         return 0, ""
 
     return 200, conn.read().decode("UTF8")

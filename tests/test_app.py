@@ -382,7 +382,7 @@ class App(TestSuite):
 
         for filename in filenames:
             if not not_empty(app.path / filename):
-                yield ReportError("Providing %s is mandatory" % filename)
+                yield ReportError(f"Providing {filename} is mandatory")
 
         license_file = app.path / "LICENSE"
         if not_empty(license_file):
