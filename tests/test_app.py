@@ -659,7 +659,7 @@ class App(TestSuite):
         custom_helpers = [c.split("__")[0] for c in custom_helpers]
 
         for custom_helper in custom_helpers:
-            if custom_helper in official_helpers.keys():
+            if custom_helper in official_helpers:
                 yield Info(
                     "%s is now an official helper since version '%s'"
                     % (custom_helper, official_helpers[custom_helper] or "?")
@@ -701,13 +701,13 @@ class App(TestSuite):
             if helper_req == "":
                 return True
             helper_req_list = [int(i) for i in helper_req.split(".")]
-            for i in range(0, len(helper_req_list)):
+            for i in range(len(helper_req_list)):
                 if helper_req_list[i] == manifest_req[i]:
                     continue
                 return helper_req_list[i] <= manifest_req[i]
             return True
 
-        for helper in [h for h in helpers_used if h in official_helpers.keys()]:
+        for helper in [h for h in helpers_used if h in official_helpers]:
             if helper in custom_helpers:
                 continue
             helper_req = official_helpers[helper]
@@ -732,14 +732,14 @@ class App(TestSuite):
         deprecated_helpers_in_v2p1_ = {k: v for k, v in deprecated_helpers_in_v2p1}
 
         for helper in [
-            h for h in helpers_used if h in deprecated_helpers_in_v2_.keys()
+            h for h in helpers_used if h in deprecated_helpers_in_v2_
         ]:
             yield Warning(
                 f"Using helper {helper} is deprecated when using packaging v2 ... It is replaced by: {deprecated_helpers_in_v2_[helper]}"
             )
 
         for helper in [
-            h for h in helpers_used if h in deprecated_helpers_in_v2p1_.keys()
+            h for h in helpers_used if h in deprecated_helpers_in_v2p1_
         ]:
             yield Warning(
                 f"Using helper {helper} is now deprecated (assuming you're using packaging v2.1) ... It is replaced by: {deprecated_helpers_in_v2p1_[helper]}. Note that a PR should have been automatically created via yunohost-bot to help with the transition"

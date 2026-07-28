@@ -88,8 +88,7 @@ class Manifest(TestSuite):
             for key, val in ordered_pairs:
                 if key in dict_out:
                     raise Exception("Duplicated key '%s' in %s" % (key, ordered_pairs))
-                else:
-                    dict_out[key] = val
+                dict_out[key] = val
             return dict_out
 
         self.raw_manifest = manifest_path.read_text()

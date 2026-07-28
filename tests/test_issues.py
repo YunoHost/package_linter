@@ -2,16 +2,12 @@
 import json
 
 from lib.lib_package_linter import (
-    APPS_CACHE,
-    PACKAGE_LINTER_DIR,
     Error,
     Info,
-    TestReport,
     TestResult,
     TestSuite,
     Warning,
     get_app_list,
-    not_empty,
     report_warning_not_reliable,
     test,
     urlopen,

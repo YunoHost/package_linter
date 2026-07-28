@@ -26,7 +26,7 @@ from pyparsing import (
 logger = logging.getLogger(__name__)
 
 
-class RawNginxParser(object):
+class RawNginxParser:
     # pylint: disable=expression-not-assigned
     # pylint: disable=pointless-statement
     """A class that parses nginx configuration with pyparsing."""
@@ -78,7 +78,7 @@ class RawNginxParser(object):
         return self.parse().asList()
 
 
-class RawNginxDumper(object):
+class RawNginxDumper:
     # pylint: disable=too-few-public-methods
     """A class that dumps nginx configuration from the provided tree."""
 
@@ -202,10 +202,9 @@ class UnspacedList(list):
         """
         if not isinstance(inbound, list):  # str or None
             return (inbound, inbound)
-        else:
-            if not hasattr(inbound, "spaced"):
-                inbound = UnspacedList(inbound)
-            return (inbound, inbound.spaced)
+        if not hasattr(inbound, "spaced"):
+            inbound = UnspacedList(inbound)
+        return (inbound, inbound.spaced)
 
     def insert(self, i, x):
         item, spaced_item = self._coerce(x)
@@ -277,7 +276,7 @@ class UnspacedList(list):
         """Recurse through the parse tree to figure out if any sublists are dirty"""
         if self.dirty:
             return True
-        return any((isinstance(x, UnspacedList) and x.is_dirty() for x in self))
+        return any(isinstance(x, UnspacedList) and x.is_dirty() for x in self)
 
     def _spaced_position(self, idx):
         "Convert from indexes in the unspaced list to positions in the spaced one"

@@ -563,7 +563,7 @@ class Configurations(TestSuite):
                 [
                     k
                     for k, v in manual_reverse_proxy_params.items()
-                    if k in reverse_proxy_params_from_includes_greylist.keys()
+                    if k in reverse_proxy_params_from_includes_greylist
                     and reverse_proxy_params_from_includes_greylist[k] == v
                 ]
             )
@@ -576,7 +576,7 @@ class Configurations(TestSuite):
                 [
                     k
                     for k, v in manual_reverse_proxy_params.items()
-                    if k in reverse_proxy_params_from_includes_greylist.keys()
+                    if k in reverse_proxy_params_from_includes_greylist
                     and reverse_proxy_params_from_includes_greylist[k] != v
                 ]
             )
