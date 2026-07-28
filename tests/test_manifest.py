@@ -169,10 +169,10 @@ class Manifest(TestSuite):
             yield ReportWarning("There are still some FIXMEs remaining in the manifest")
 
     @test()
-    def yunohost_version_requirement_superold(app) -> TestResult:
+    def yunohost_version_requirement_superold(self) -> TestResult:
 
         yunohost_version_req = (
-            app.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
+            self.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
         )
         if yunohost_version_req.startswith("4."):
             yield ReportCritical(
@@ -184,9 +184,9 @@ class Manifest(TestSuite):
             )
 
     @test()
-    def helpers_version_requirement(app) -> TestResult:
+    def helpers_version_requirement(self) -> TestResult:
 
-        helpers_version = app.manifest.get("integration", {}).get("helpers_version")
+        helpers_version = self.manifest.get("integration", {}).get("helpers_version")
 
         # Probably need to iterate upon this once we have packaging v3 or an hypothetical 2.2
         if helpers_version != "2.1":

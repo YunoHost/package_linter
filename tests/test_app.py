@@ -369,7 +369,7 @@ class App(TestSuite):
     #########################################
 
     @test()
-    def mandatory_scripts(app) -> TestResult:
+    def mandatory_scripts(self) -> TestResult:
         filenames = (
             "LICENSE",
             "README.md",
@@ -381,19 +381,19 @@ class App(TestSuite):
         )
 
         for filename in filenames:
-            if not not_empty(app.path / filename):
+            if not not_empty(self.path / filename):
                 yield ReportError(f"Providing {filename} is mandatory")
 
-        license_file = app.path / "LICENSE"
+        license_file = self.path / "LICENSE"
         if not_empty(license_file):
             license_content = license_file.read_text()
             if "File containing the license of your package" in license_content:
                 yield ReportError("You should put an actual license in LICENSE...")
 
     @test()
-    def doc_dir(app) -> TestResult:
+    def doc_dir(self) -> TestResult:
 
-        if not (app.path / "doc").exists():
+        if not (self.path / "doc").exists():
             yield ReportError(
                 """Having a doc/ folder is now mandatory in packaging v2 and is expected to contain :
 - (recommended) doc/DESCRIPTION.md : a long description of the app, typically around 5~20 lines, for example to list features
@@ -404,9 +404,9 @@ class App(TestSuite):
 """
             )
 
-        if (app.path / "doc" / "screenshots").exists():
+        if (self.path / "doc" / "screenshots").exists():
             du_output = subprocess.check_output(
-                ["du", "-sb", app.path / "doc" / "screenshots"], shell=False
+                ["du", "-sb", self.path / "doc" / "screenshots"], shell=False
             )
             screenshots_size = int(du_output.split()[0])
             if screenshots_size > 1024 * 1000:
@@ -418,7 +418,7 @@ class App(TestSuite):
                     "Please keep the content of doc/screenshots under ~512Kb. Having screenshots bigger than 512kb is probably a waste of resource and will take unecessarily long time to load on the webadmin UI and app catalog."
                 )
 
-            for file in (app.path / "doc" / "screenshots").rglob("*"):
+            for file in (self.path / "doc" / "screenshots").rglob("*"):
                 filename = file.name
                 if Path.is_dir(file):
                     continue
@@ -439,23 +439,23 @@ class App(TestSuite):
                     break
 
     @test()
-    def doc_dir_v2(app) -> TestResult:
+    def doc_dir_v2(self) -> TestResult:
 
-        if (app.path / "doc").exists() and not (
-            app.path / "doc" / "DESCRIPTION.md"
+        if (self.path / "doc").exists() and not (
+            self.path / "doc" / "DESCRIPTION.md"
         ).exists():
             yield ReportError(
                 "A DESCRIPTION.md is now mandatory in packaging v2 and is meant to contains an extensive description of what the app is and does. Consider also adding a '/doc/screenshots/' folder with a few screenshots of what the app looks like."
             )
         elif (
             os.system(
-                rf'grep -inrq "Some long and extensive description\|lorem ipsum dolor sit amet\|Ut enim ad minim veniam" {app.path}/doc/DESCRIPTION.md'
+                rf'grep -inrq "Some long and extensive description\|lorem ipsum dolor sit amet\|Ut enim ad minim veniam" {self.path}/doc/DESCRIPTION.md'
             )
             == 0
         ):
             yield ReportError("It looks like DESCRIPTION.md just contains placeholder texts")
 
-        if (app.path / "doc" / "DISCLAIMER.md").exists():
+        if (self.path / "doc" / "DISCLAIMER.md").exists():
             yield ReportWarning(
                 """DISCLAIMER.md has been replaced with several files in packaging v2 to improve the UX and provide the user with key information at the appropriate step of the app install / upgrade cycles.
 
@@ -481,25 +481,25 @@ class App(TestSuite):
             )
 
     @test()
-    def admin_has_to_finish_install(app) -> TestResult:
+    def admin_has_to_finish_install(self) -> TestResult:
 
         # Mywebapp has a legit use case for this
-        if app.manifest.get("id") == "my_webapp":
+        if self.manifest.get("id") == "my_webapp":
             return
 
-        cmd = f"grep -q -IhEr '__DB_PWD__' '{app.path}/doc/'"
-        if (app.path / "doc").exists() and os.system(cmd) == 0:
+        cmd = f"grep -q -IhEr '__DB_PWD__' '{self.path}/doc/'"
+        if (self.path / "doc").exists() and os.system(cmd) == 0:
             yield ReportWarning(
                 "(doc folder) It looks like this app requires the admin to finish the install by entering DB credentials. Unless it's absolutely not easily automatizable, this should be handled automatically by the app install script using curl calls, or (CLI tools provided by the upstream maybe ?)."
             )
 
     @test()
-    def disclaimer_wording_or_placeholder(app) -> TestResult:
-        if (app.path / "doc").exists():
+    def disclaimer_wording_or_placeholder(self) -> TestResult:
+        if (self.path / "doc").exists():
             if (
                 os.system(
                     r"grep -nr -q 'Any known limitations, constrains or stuff not working, such as\|Other infos that people should be' %s/doc/"
-                    % app.path
+                    % self.path
                 )
                 == 0
             ):
@@ -509,7 +509,7 @@ class App(TestSuite):
             if (
                 os.system(
                     r"grep -nr -q 'This is a dummy\|Ceci est une fausse' %s/doc/"
-                    % app.path
+                    % self.path
                 )
                 == 0
             ):
@@ -518,60 +518,60 @@ class App(TestSuite):
                 )
 
     @test()
-    def custom_python_version(app) -> TestResult:
+    def custom_python_version(self) -> TestResult:
 
-        cmd = f"grep -q -IhEr '^[^#]*install_python' '{app.path}/scripts/'"
+        cmd = f"grep -q -IhEr '^[^#]*install_python' '{self.path}/scripts/'"
         if os.system(cmd) == 0:
             yield ReportWarning(
                 "It looks like this app installs a custom version of Python which is heavily discouraged, both because it takes a shitload amount of time to compile Python locally, and because it is likely to create complication later once the system gets upgraded to newer Debian versions..."
             )
 
     @test()
-    def change_url_script(app) -> TestResult:
+    def change_url_script(self) -> TestResult:
 
-        keyandargs = copy.deepcopy(app.manifest["install"])
+        keyandargs = copy.deepcopy(self.manifest["install"])
         for key, infos in keyandargs.items():
             infos["name"] = key
         args = keyandargs.values()
 
         has_domain_arg = any(a["name"] == "domain" for a in args)
 
-        if has_domain_arg and not not_empty(app.path / "scripts" / "change_url"):
+        if has_domain_arg and not not_empty(self.path / "scripts" / "change_url"):
             yield ReportInfo(
                 "Consider adding a change_url script to support changing where the app can be reached"
             )
 
     @test()
-    def config_panel(app) -> TestResult:
+    def config_panel(self) -> TestResult:
 
-        if not_empty(app.path / "config_panel.json"):
+        if not_empty(self.path / "config_panel.json"):
             yield ReportError(
                 "JSON config panels are not supported anymore, should be replaced by a toml version"
             )
 
-        if not_empty(app.path / "config_panel.toml.example"):
+        if not_empty(self.path / "config_panel.toml.example"):
             yield ReportWarning(
                 "Please do not commit config_panel.toml.example ... This is just a 'documentation' for the config panel syntax meant to be kept in example_ynh"
             )
 
-        if not not_empty(app.path / "config_panel.toml") and not_empty(
-            app.path / "scripts" / "config"
+        if not not_empty(self.path / "config_panel.toml") and not_empty(
+            self.path / "scripts" / "config"
         ):
             yield ReportWarning(
                 "The script 'config' exists but there is no config_panel.toml ... Please remove the 'config' script if this is just the example from example_ynh, or add a proper config_panel.toml if the point is really to have a config panel"
             )
 
-        if not_empty(app.path / "config_panel.toml"):
+        if not_empty(self.path / "config_panel.toml"):
             check_old_panel = os.system(
-                "grep -q 'version = \"0.1\"' '%s'" % (app.path / "config_panel.toml")
+                "grep -q 'version = \"0.1\"' '%s'" % (self.path / "config_panel.toml")
             )
             if check_old_panel == 0:
                 yield ReportError(
                     "Config panels version 0.1 are not supported anymore, should be adapted for version 1.0"
                 )
-            elif (app.path / "scripts" / "config").exists() and os.system(
+            elif (self.path / "scripts" / "config").exists() and os.system(
                 "grep -q 'YNH_CONFIG_\\|yunohost app action' '%s'"
-                % (app.path / "scripts" / "config")
+                % (self.path / "scripts" / "config")
             ) == 0:
                 yield ReportError(
                     "The config panel is set to version 1.x, but the config script is apparently still using some old code from 0.1 such as '$YNH_CONFIG_STUFF' or 'yunohost app action'"
@@ -580,15 +580,15 @@ class App(TestSuite):
             yield from validate_schema(
                 "config_panel",
                 json.loads(config_panel_v1_schema()),
-                tomllib.load((app.path / "config_panel.toml").open("rb")),
+                tomllib.load((self.path / "config_panel.toml").open("rb")),
             )
 
     @test()
-    def badges_in_readme(app) -> TestResult:
+    def badges_in_readme(self) -> TestResult:
 
-        id_ = app.manifest["id"]
+        id_ = self.manifest["id"]
 
-        readme = app.path / "README.md"
+        readme = self.path / "README.md"
         if not not_empty(readme):
             return
 
@@ -650,9 +650,9 @@ class App(TestSuite):
     #######################################
 
     @test()
-    def helpers_now_official(app) -> TestResult:
+    def helpers_now_official(self) -> TestResult:
 
-        cmd = "grep -IhEro 'ynh_\\w+ *\\( *\\)' '%s/scripts' | tr -d '() '" % app.path
+        cmd = "grep -IhEro 'ynh_\\w+ *\\( *\\)' '%s/scripts' | tr -d '() '" % self.path
         custom_helpers = (
             subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         )
@@ -666,9 +666,9 @@ class App(TestSuite):
                 )
 
     @test()
-    def git_clone_usage(app) -> TestResult:
+    def git_clone_usage(self) -> TestResult:
         cmd = (
-            f"grep -I 'git clone' '{app.path}'/scripts/install '{app.path}'/scripts/_common.sh 2>/dev/null"
+            f"grep -I 'git clone' '{self.path}'/scripts/install '{self.path}'/scripts/_common.sh 2>/dev/null"
             r" | grep -qv 'xxenv\|rbenv\|oracledb'"
         )
         if os.system(cmd) == 0:
@@ -677,19 +677,19 @@ class App(TestSuite):
             )
 
     @test()
-    def helpers_version_requirement(app) -> TestResult:
+    def helpers_version_requirement(self) -> TestResult:
 
-        cmd = "grep -IhEro 'ynh_\\w+ *\\( *\\)' '%s/scripts' | tr -d '() '" % app.path
+        cmd = "grep -IhEro 'ynh_\\w+ *\\( *\\)' '%s/scripts' | tr -d '() '" % self.path
         custom_helpers = (
             subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         )
         custom_helpers = [c.split("__")[0] for c in custom_helpers]
 
         yunohost_version_req = (
-            app.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
+            self.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
         )
 
-        cmd = "grep -IhEro 'ynh_\\w+' '%s/scripts'" % app.path
+        cmd = "grep -IhEro 'ynh_\\w+' '%s/scripts'" % self.path
         helpers_used = (
             subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         )
@@ -720,9 +720,9 @@ class App(TestSuite):
                 yield ReportError(message) if major_diff else ReportWarning(message)
 
     @test()
-    def helpers_deprecated_in_v2(app) -> TestResult:
+    def helpers_deprecated_in_v2(self) -> TestResult:
 
-        cmd = f"grep -IhEro 'ynh_\\w+' '{app.path}/scripts/install' '{app.path}/scripts/remove' '{app.path}/scripts/upgrade' '{app.path}/scripts/backup' '{app.path}/scripts/restore' || true"
+        cmd = f"grep -IhEro 'ynh_\\w+' '{self.path}/scripts/install' '{self.path}/scripts/remove' '{self.path}/scripts/upgrade' '{self.path}/scripts/backup' '{self.path}/scripts/restore' || true"
         helpers_used = (
             subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         )
@@ -742,16 +742,16 @@ class App(TestSuite):
             )
 
     @test()
-    def helper_consistency_apt_deps(app) -> TestResult:
+    def helper_consistency_apt_deps(self) -> TestResult:
         """
         Check if ynh_install_app_dependencies is present in install/upgrade/restore
         so dependencies are up to date after restoration or upgrade
         """
 
-        install_script = app.scripts["install"]
+        install_script = self.scripts["install"]
         if install_script.contains("ynh_install_app_dependencies"):
             for name in ["upgrade", "restore"]:
-                if app.scripts[name].exists and not app.scripts[name].contains(
+                if self.scripts[name].exists and not self.scripts[name].contains(
                     "ynh_install_app_dependencies"
                 ):
                     yield ReportWarning(
@@ -761,7 +761,7 @@ class App(TestSuite):
 
         cmd = (
             'grep -IhEr "install_extra_app_dependencies" %s/scripts | grep -v "key" | grep -q "http://"'
-            % app.path
+            % self.path
         )
         if os.system(cmd) == 0:
             yield ReportWarning(
@@ -769,22 +769,22 @@ class App(TestSuite):
             )
 
     @test()
-    def helper_consistency_service_add(app) -> TestResult:
+    def helper_consistency_service_add(self) -> TestResult:
 
         occurences = {
             "install": (
-                app.scripts["install"].occurences("yunohost service add")
-                if app.scripts["install"].exists
+                self.scripts["install"].occurences("yunohost service add")
+                if self.scripts["install"].exists
                 else []
             ),
             "upgrade": (
-                app.scripts["upgrade"].occurences("yunohost service add")
-                if app.scripts["upgrade"].exists
+                self.scripts["upgrade"].occurences("yunohost service add")
+                if self.scripts["upgrade"].exists
                 else []
             ),
             "restore": (
-                app.scripts["restore"].occurences("yunohost service add")
-                if app.scripts["restore"].exists
+                self.scripts["restore"].occurences("yunohost service add")
+                if self.scripts["restore"].exists
                 else []
             ),
         }
@@ -829,7 +829,7 @@ class App(TestSuite):
                 "Using option '--log_type systemd' with 'yunohost service add' is not relevant anymore"
             )
 
-        if occurences["install"] and not app.scripts["remove"].contains(
+        if occurences["install"] and not self.scripts["remove"].contains(
             "yunohost service remove"
         ):
             yield ReportError(
@@ -838,10 +838,10 @@ class App(TestSuite):
             )
 
     @test()
-    def references_to_superold_stuff(app) -> TestResult:
+    def references_to_superold_stuff(self) -> TestResult:
         if any(
             script.contains("jessie")
-            for script in app.scripts.values()
+            for script in self.scripts.values()
             if script.exists
         ):
             yield ReportError(
@@ -849,7 +849,7 @@ class App(TestSuite):
             )
         if any(
             script.contains("/etc/php5") or script.contains("php5-fpm")
-            for script in app.scripts.values()
+            for script in self.scripts.values()
             if script.exists
         ):
             yield ReportError(
@@ -857,7 +857,7 @@ class App(TestSuite):
             )
         if any(
             script.contains("/etc/php/7.0") or script.contains("php7.0-fpm")
-            for script in app.scripts.values()
+            for script in self.scripts.values()
             if script.exists
         ):
             yield ReportError(
@@ -865,7 +865,7 @@ class App(TestSuite):
             )
         if any(
             script.contains("/etc/php/7.3") or script.contains("php7.3-fpm")
-            for script in app.scripts.values()
+            for script in self.scripts.values()
             if script.exists
         ):
             yield ReportError(
