@@ -1,0 +1,63 @@
+[project]
+name = "package-linter"
+version = "0.1.0"
+description = "YunoHost apps package linter"
+readme = "README.md"
+license = { text = "AGPL-3.0-only" }
+authors = [
+    { name = "YunoHost", email = "yunohost@yunohost.org" }
+]
+urls.Repository = "https://github.com/yunohost/package_linter"
+
+requires-python = ">=3.12"
+dependencies = [
+    "jsonschema>=4.26.0",
+    "packaging>=26.2",
+    "pyparsing>=3.3.2",
+    "pytest-progress>=1.4.0",
+    "pytest-xdist>=3.8.0",
+    "six>=1.17.0",
+    "toml>=0.10.2",
+]
+
+[tool.ruff]
+line-length = 100
+
+exclude = ["lib/nginxparser/*.py"]
+
+lint.select = ["ALL"]
+
+lint.ignore = [
+    "BLE001",   # Do not catch blind exception: `Exception`
+    "C",        # Code complexity
+    "COM812",   # Missing trailing comma
+    "CPY001",   # Missing copyright notice at top of file
+    "D",        # pydocstyle
+    "ERA001",   # Found commented-out code
+    "EXE001",   # Shebang is present but file is not executable
+    "FIX002",   # TODOs
+    "PLR2004",  # Magic value used in comparison
+    "RET504",   # Unnecessary assignment before `return` statement
+    "S101",     # Use of `assert` detected
+    "S104",     # Possible binding to all interfaces
+    "S603",     # `subprocess` call: check for execution of untrusted input
+    "S607",     # Starting a process with a partial executable path
+    "T201",     # Allow calls to print
+    "TC003",    # Move standard library import into a type-checking block
+    "TD",       # TODO format
+
+    "S602",     # `subprocess` call with `shell=True` identified, security issue
+    # "S605",     # Starting a process with a shell, possible injection detected
+]
+
+[tool.ty.rules]
+all = "error"
+deprecated = "ignore"
+
+[tool.mypy]
+strict = true
+follow_imports = "normal"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = false
