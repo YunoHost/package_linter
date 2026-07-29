@@ -53,6 +53,7 @@ lint.ignore = [
 [tool.ty.rules]
 all = "error"
 deprecated = "ignore"
+missing-override-decorator = "ignore"  # Python 3.11...
 
 [tool.mypy]
 strict = true
