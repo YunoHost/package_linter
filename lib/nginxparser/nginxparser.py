@@ -12,6 +12,7 @@ from typing import IO
 from typing import Iterable
 from typing import Iterator
 from typing import overload
+from typing import override
 from typing import SupportsIndex
 from typing import Union
 
@@ -126,6 +127,7 @@ class RawNginxDumper:
                     semicolon = ""
                 yield "".join(item) + semicolon
 
+    @override
     def __str__(self) -> str:
         """Return the parsed block as a string."""
         return ''.join(self)
@@ -182,6 +184,7 @@ class UnspacedList(list[Any]):
                 inbound = UnspacedList(inbound)
             return inbound, inbound.spaced
 
+    @override
     def insert(self, i: "SupportsIndex", x: Any) -> None:
         """Insert object before index."""
         idx = operator.index(i)
@@ -192,6 +195,7 @@ class UnspacedList(list[Any]):
             super().insert(idx, item)
         self.dirty = True
 
+    @override
     def append(self, x: Any) -> None:
         """Append object to the end of the list."""
         item, spaced_item = self._coerce(x)
@@ -200,6 +204,7 @@ class UnspacedList(list[Any]):
             super().append(item)
         self.dirty = True
 
+    @override
     def extend(self, x: Any) -> None:
         """Extend list by appending elements from the iterable."""
         item, spaced_item = self._coerce(x)
@@ -207,24 +212,29 @@ class UnspacedList(list[Any]):
         super().extend(item)
         self.dirty = True
 
+    @override
     def __add__(self, other: list[Any]) -> "UnspacedList":
         new_list = copy.deepcopy(self)
         new_list.extend(other)
         new_list.dirty = True
         return new_list
 
+    @override
     def pop(self, *args: Any, **kwargs: Any) -> None:
         """Function pop() is not implemented for UnspacedList"""
         raise NotImplementedError("UnspacedList.pop() not yet implemented")
 
+    @override
     def remove(self, *args: Any, **kwargs: Any) -> None:
         """Function remove() is not implemented for UnspacedList"""
         raise NotImplementedError("UnspacedList.remove() not yet implemented")
 
+    @override
     def reverse(self) -> None:
         """Function reverse() is not implemented for UnspacedList"""
         raise NotImplementedError("UnspacedList.reverse() not yet implemented")
 
+    @override
     def sort(self, *_args: Any, **_kwargs: Any) -> None:
         """Function sort() is not implemented for UnspacedList"""
         raise NotImplementedError("UnspacedList.sort() not yet implemented")
@@ -232,6 +242,7 @@ class UnspacedList(list[Any]):
     def __setslice__(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError("Slice operations on UnspacedLists not yet implemented")
 
+    @override
     def __setitem__(self, i: Union["SupportsIndex", slice], value: Any) -> None:
         if isinstance(i, slice):
             raise NotImplementedError("Slice operations on UnspacedLists not yet implemented")
@@ -241,6 +252,7 @@ class UnspacedList(list[Any]):
             super().__setitem__(i, item)
         self.dirty = True
 
+    @override
     def __delitem__(self, i: Union["SupportsIndex", slice]) -> None:
         if isinstance(i, slice):
             raise NotImplementedError("Slice operations on UnspacedLists not yet implemented")
