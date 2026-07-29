@@ -214,7 +214,8 @@ class Script(TestSuite):
             '"'
             r"?(\$\(|`).*(\)|`)"
             '"'
-            rf"?\s\](\s*)(;?(\s*then\s*)$|\s*&&|\s*$)' '{self.path}' | grep -v ' == \| != \| = ' || true"
+            rf"?\s\](\s*)(;?(\s*then\s*)$|\s*&&|\s*$)' '{self.path}' "
+            rf"| grep -v ' == \| != \| = ' || true"
         )
         res = subprocess.check_output(cmd, shell=True).decode("utf-8").strip()
         if res:
@@ -229,7 +230,10 @@ class Script(TestSuite):
 
     @test()
     def bad_ynh_exec_syntax(self) -> TestResult:
-        cmd = f'grep -q -IhEro "ynh_exec_(err|warn|warn_less|quiet|fully_quiet) (\\"|\').*(\\"|\')$" {self.path}'
+        cmd = (
+            f'grep -q -IhEro "ynh_exec_(err|warn|warn_less|quiet|fully_quiet) '
+            f'(\\"|\').*(\\"|\')$" {self.path}'
+        )
         if os.system(cmd) == 0:
             yield ReportWarning(
                 "(Requires Yunohost 4.3) When using ynh_exec_*, please don't wrap your command "
@@ -644,7 +648,8 @@ class Script(TestSuite):
     @test()
     def helpers_sourcing_after_official(self) -> TestResult:
         helpers_after_official = subprocess.check_output(
-            f"head -n 30 '{self.path}' | grep -A 10 '^ *source */usr/share/yunohost/helpers' | grep '^ *source ' | tail -n +2",
+            f"head -n 30 '{self.path}' | grep -A 10 '^ *source */usr/share/yunohost/helpers' "
+            "| grep '^ *source ' | tail -n +2",
             shell=True,
         ).decode("utf-8")
         helpers_after_official = (

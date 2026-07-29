@@ -436,13 +436,15 @@ class Configurations(TestSuite):
             )
             include_params_no_auth = (
                 os.system(
-                    rf"grep -Iq '^\s*include\s*proxy_params_no_auth;\|^\s*include\s*fastcgi_params_no_auth;' '{file}'"
+                    rf"grep -Iq '^\s*include\s*proxy_params_no_auth;"
+                    rf"\|^\s*include\s*fastcgi_params_no_auth;' '{file}'"
                 )
                 == 0
             )
             include_params_with_auth = (
                 os.system(
-                    rf"grep -Iq '^\s*include\s*proxy_params_with_auth;\|^\s*include\s*fastcgi_params_with_auth;' '{file}'"
+                    rf"grep -Iq '^\s*include\s*proxy_params_with_auth;"
+                    rf"\|^\s*include\s*fastcgi_params_with_auth;' '{file}'"
                 )
                 == 0
             )
@@ -451,7 +453,9 @@ class Configurations(TestSuite):
 
             manual_reverse_proxy_params = (
                 subprocess.check_output(
-                    rf"grep -IhrEo '^\s*(proxy_set_header|fastcgi_param)\s+[a-zA-Z_-]+\s+.*;' '{file}' | sed -E -e 's/^\s*proxy_set_header\s*//g' -e 's/^\s*fastcgi_param\s+//g' -e 's/\s+/ /g' -e 's/;.*//g' | sort | uniq",
+                    rf"grep -IhrEo '^\s*(proxy_set_header|fastcgi_param)\s+[a-zA-Z_-]+\s+.*;' "
+                    rf"'{file}' | sed -E -e 's/^\s*proxy_set_header\s*//g' -e "
+                    rf"'s/^\s*fastcgi_param\s+//g' -e 's/\s+/ /g' -e 's/;.*//g' | sort | uniq",
                     shell=True,
                 )
                 .decode()

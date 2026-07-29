@@ -465,7 +465,8 @@ class App(TestSuite):
             )
         elif (
             os.system(
-                rf'grep -inrq "Some long and extensive description\|lorem ipsum dolor sit amet\|Ut enim ad minim veniam" {self.path}/doc/DESCRIPTION.md'
+                r'grep -inrq "Some long and extensive description\|lorem ipsum dolor sit amet'
+                rf'\|Ut enim ad minim veniam" {self.path}/doc/DESCRIPTION.md'
             )
             == 0
         ):
@@ -532,7 +533,8 @@ class App(TestSuite):
         if (self.path / "doc").exists():
             if (
                 os.system(
-                    rf"grep -nr -q 'Any known limitations, constrains or stuff not working, such as\|Other infos that people should be' {self.path}/doc/"
+                    r"grep -nr -q 'Any known limitations, constrains or stuff not working, such as"
+                    rf"\|Other infos that people should be' {self.path}/doc/"
                 )
                 == 0
             ):
@@ -715,7 +717,8 @@ class App(TestSuite):
     @test()
     def git_clone_usage(self) -> TestResult:
         cmd = (
-            f"grep -I 'git clone' '{self.path}'/scripts/install '{self.path}'/scripts/_common.sh 2>/dev/null"
+            f"grep -I 'git clone' '{self.path}'/scripts/install '{self.path}'/scripts/_common.sh "
+            "2>/dev/null"
             r" | grep -qv 'xxenv\|rbenv\|oracledb'"
         )
         if os.system(cmd) == 0:
@@ -767,7 +770,11 @@ class App(TestSuite):
     @test()
     def helpers_deprecated_in_v2(self) -> TestResult:
 
-        cmd = f"grep -IhEro 'ynh_\\w+' '{self.path}/scripts/install' '{self.path}/scripts/remove' '{self.path}/scripts/upgrade' '{self.path}/scripts/backup' '{self.path}/scripts/restore' || true"
+        cmd = (
+            f"grep -IhEro 'ynh_\\w+' '{self.path}/scripts/install' '{self.path}/scripts/remove' "
+            f"'{self.path}/scripts/upgrade' '{self.path}/scripts/backup' "
+            f"'{self.path}/scripts/restore' || true"
+        )
         helpers_used = subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         helpers_used = sorted(set(helpers_used))
 
@@ -805,7 +812,10 @@ class App(TestSuite):
                         f"ynh_install_app_dependencies should also be in {name} script"
                     )
 
-        cmd = f'grep -IhEr "install_extra_app_dependencies" {self.path}/scripts | grep -v "key" | grep -q "http://"'
+        cmd = (
+            f'grep -IhEr "install_extra_app_dependencies" {self.path}/scripts '
+            '| grep -v "key" | grep -q "http://"'
+        )
         if os.system(cmd) == 0:
             yield ReportWarning(
                 "When installing dependencies from extra repository, please include a `--key` "
@@ -911,7 +921,8 @@ class App(TestSuite):
     def conf_json_persistent_tweaking(self) -> TestResult:
         if (
             os.system(
-                f"grep -nr '/etc/ssowat/conf.json.persistent' {self.path} | grep -vq '^{self.path}/doc' 2>/dev/null"
+                f"grep -nr '/etc/ssowat/conf.json.persistent' {self.path} "
+                f"| grep -vq '^{self.path}/doc' 2>/dev/null"
             )
             == 0
         ):
