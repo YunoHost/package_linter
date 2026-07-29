@@ -2,7 +2,6 @@
 
 import copy
 import json
-import os
 import subprocess
 import sys
 import tomllib
@@ -517,7 +516,7 @@ class App(TestSuite):
             return
 
         cmd = f"grep -q -IhEr '__DB_PWD__' '{self.path}/doc/'"
-        if (self.path / "doc").exists() and os.system(cmd) == 0:
+        if (self.path / "doc").exists() and subprocess.call(cmd, shell=True) == 0:
             yield ReportWarning(
                 "(doc folder) It looks like this app requires the admin to finish the install "
                 "by entering DB credentials. Unless it's absolutely not easily automatizable, "
@@ -528,23 +527,19 @@ class App(TestSuite):
     @test()
     def disclaimer_wording_or_placeholder(self) -> TestResult:
         if (self.path / "doc").exists():
-            if (
-                os.system(
-                    r"grep -nr -q 'Any known limitations, constrains or stuff not working, such as"
-                    rf"\|Other infos that people should be' {self.path}/doc/"
-                )
-                == 0
-            ):
+            cmd = (
+                r"grep -nr -q 'Any known limitations, constrains or stuff not working, such as"
+                rf"\|Other infos that people should be' {self.path}/doc/",
+            )
+            if subprocess.call(cmd, shell=True) == 0:
                 yield ReportWarning(
                     "In DISCLAIMER.md: 'Any known limitations [...] such as' and "
                     "'Other infos [...] such as' are supposed to be placeholder sentences meant "
                     "to explain to packagers what is the expected content, but is not an "
                     "appropriate wording for end users :/"
                 )
-            if (
-                os.system(rf"grep -nr -q 'This is a dummy\|Ceci est une fausse' {self.path}/doc/")
-                == 0
-            ):
+            cmd = rf"grep -nr -q 'This is a dummy\|Ceci est une fausse' {self.path}/doc/"
+            if subprocess.call(cmd, shell=True) == 0:
                 yield ReportWarning(
                     "The doc/ folder seems to still contain some dummy, placeholder messages in "
                     "the .md markdown files. If those files are not useful in the context of your "
@@ -553,9 +548,8 @@ class App(TestSuite):
 
     @test()
     def custom_python_version(self) -> TestResult:
-
         cmd = f"grep -q -IhEr '^[^#]*install_python' '{self.path}/scripts/'"
-        if os.system(cmd) == 0:
+        if subprocess.call(cmd, shell=True) == 0:
             yield ReportWarning(
                 "It looks like this app installs a custom version of Python which is heavily "
                 "discouraged, both because it takes a shitload amount of time to compile Python "
@@ -658,12 +652,14 @@ class App(TestSuite):
 
     @test()
     def remaining_replacebyyourapp(self) -> TestResult:
-        if os.system(f"grep -I -qr 'REPLACEBYYOURAPP' {self.path} 2>/dev/null") == 0:
+        cmd = f"grep -I -qr 'REPLACEBYYOURAPP' {self.path} 2>/dev/null"
+        if subprocess.call(cmd, shell=True) == 0:
             yield ReportError("You should replace all occurences of REPLACEBYYOURAPP.")
 
     @test()
     def supervisor_usage(self) -> TestResult:
-        if os.system(rf"grep -I -qr '^\s*supervisorctl' {self.path} 2>/dev/null") == 0:
+        cmd = rf"grep -I -qr '^\s*supervisorctl' {self.path} 2>/dev/null"
+        if subprocess.call(cmd, shell=True) == 0:
             yield ReportWarning(
                 "Please don't rely on supervisor to run services. YunoHost is about "
                 "standardization and the standard is to use systemd units..."
@@ -695,7 +691,6 @@ class App(TestSuite):
 
     @test()
     def helpers_now_official(self) -> TestResult:
-
         cmd = f"grep -IhEro 'ynh_\\w+ *\\( *\\)' '{self.path}/scripts' | tr -d '() '"
         custom_helpers = (
             subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
@@ -716,7 +711,7 @@ class App(TestSuite):
             "2>/dev/null"
             r" | grep -qv 'xxenv\|rbenv\|oracledb'"
         )
-        if os.system(cmd) == 0:
+        if subprocess.call(cmd, shell=True) == 0:
             yield ReportWarning(
                 "Using 'git clone' is not recommended... most forge do provide the ability to "
                 "download a proper archive of the code for a specific commit. Please use the "
@@ -811,7 +806,7 @@ class App(TestSuite):
             f'grep -IhEr "install_extra_app_dependencies" {self.path}/scripts '
             '| grep -v "key" | grep -q "http://"'
         )
-        if os.system(cmd) == 0:
+        if subprocess.call(cmd, shell=True) == 0:
             yield ReportWarning(
                 "When installing dependencies from extra repository, please include a `--key` "
                 "argument (yes, even if it's official debian repos such as backports - because "
@@ -914,13 +909,11 @@ class App(TestSuite):
 
     @test()
     def conf_json_persistent_tweaking(self) -> TestResult:
-        if (
-            os.system(
-                f"grep -nr '/etc/ssowat/conf.json.persistent' {self.path} "
-                f"| grep -vq '^{self.path}/doc' 2>/dev/null"
-            )
-            == 0
-        ):
+        cmd = (
+            f"grep -nr '/etc/ssowat/conf.json.persistent' {self.path} "
+            f"| grep -vq '^{self.path}/doc' 2>/dev/null"
+        )
+        if subprocess.call(cmd, shell=True) == 0:
             yield ReportError("Don't do black magic with /etc/ssowat/conf.json.persistent!")
 
     @test()
@@ -959,7 +952,7 @@ class App(TestSuite):
         ldap_flag_in_manifest = self.manifest.get("integration", {}).get("ldap")
 
         ldap_conf_clue_cmd = rf"grep -qIri '^[^#]*dc=yunohost,\s*dc=org' {self.path}/"
-        ldap_conf_clue = os.system(ldap_conf_clue_cmd) == 0
+        ldap_conf_clue = subprocess.call(ldap_conf_clue_cmd, shell=True) == 0
         if ldap_flag_in_manifest is True and ldap_conf_clue is False:
             yield ReportWarning(
                 "The manifest contains 'ldap = true', but it looks like this apps doesn't actually "

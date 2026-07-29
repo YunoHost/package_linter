@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import os
 import re
 import shlex
 import statistics
@@ -184,7 +183,7 @@ class Script(TestSuite):
     @test(only=["install"])
     def deprecated_YNH_APP_ARG(self) -> TestResult:  # noqa: N802
         cmd = f"grep 'YNH_APP_ARG' '{self.path}' | grep -vq 'YNH_APP_ARG_PASSWORD'"
-        if os.system(cmd) == 0:
+        if subprocess.call(cmd, shell=True) == 0:
             yield ReportWarning(
                 "Using the YNH_APP_ARG_ syntax is deprecated and will be removed in the future. "
                 "(Except for password-type question which is a specific case). Questions are "
@@ -233,7 +232,7 @@ class Script(TestSuite):
             f'grep -q -IhEro "ynh_exec_(err|warn|warn_less|quiet|fully_quiet) '
             f'(\\"|\').*(\\"|\')$" {self.path}'
         )
-        if os.system(cmd) == 0:
+        if subprocess.call(cmd, shell=True) == 0:
             yield ReportWarning(
                 "(Requires Yunohost 4.3) When using ynh_exec_*, please don't wrap your command "
                 "between quotes (typically DONT write ynh_exec_warn_less 'foo --bar --baz')"
@@ -242,7 +241,7 @@ class Script(TestSuite):
     @test()
     def ynh_setup_source_keep_with_absolute_path(self) -> TestResult:
         cmd = f'grep -q -IhEro "ynh_setup_source.*keep.*install_dir" {self.path}'
-        if os.system(cmd) == 0:
+        if subprocess.call(cmd, shell=True) == 0:
             yield ReportInfo(
                 "The --keep option of ynh_setup_source expects relative paths, not absolute "
                 "path... you do not need to prefix everything with '$install_dir' in the "

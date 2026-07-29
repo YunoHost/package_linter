@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import json
-import os
 import re
 import subprocess
 import tomllib
@@ -151,17 +150,17 @@ class Configurations(TestSuite):
             if not file.name.endswith(".service"):
                 continue
 
-            if os.system(rf"grep -Eqi '^\s*Environment=.*(pass|secret|key)' '{file}'") == 0:
+            cmd = rf"grep -Eqi '^\s*Environment=.*(pass|secret|key)' '{file}'"
+            if subprocess.call(cmd, shell=True) == 0:
                 yield ReportError(
                     "Systemd configurations are world-readable and should not contain cleartext "
                     "password/secrets T_T"
                 )
 
-            if (
-                os.system(rf"grep -q '^\s*CapabilityBoundingSet=' '{file}'") != 0
-                or os.system(rf"grep -q '^\s*Protect.*=' '{file}'") != 0
-                or os.system(rf"grep -q '^\s*SystemCallFilter=' '{file}'") != 0
-                or os.system(rf"grep -q '^\s*PrivateTmp=' '{file}'") != 0
+            matches = ["CapabilityBoundingSet", "Protect.*", "SystemCallFilter", "PrivateTmp"]
+            if any(
+                subprocess.call(rf"grep -q '^\s{match}=' '{file}'", shell=True) != 0
+                for match in matches
             ):
                 yield ReportInfo(
                     "You are encouraged to harden the security of the systemd configuration "
@@ -303,8 +302,7 @@ class Configurations(TestSuite):
                 continue
 
             cmd = f'grep -q -IhEro "location ~ __PATH__" {file}'
-
-            if os.system(cmd) == 0:
+            if subprocess.call(cmd, shell=True) == 0:
                 yield ReportWarning(
                     "When using regexp in the nginx location field (location ~ __PATH__), start "
                     "the path with ^ (location ~ ^__PATH__)."
@@ -431,23 +429,21 @@ class Configurations(TestSuite):
             if not file.is_file() or "nginx" not in file.name:
                 continue
 
-            has_reverse_proxy_statement = (
-                os.system(rf"grep -Iq '^\s*proxy_pass\s\|^\s*fastcgi_pass\s' '{file}'") == 0
+            cmd = rf"grep -Iq '^\s*proxy_pass\s\|^\s*fastcgi_pass\s' '{file}'"
+            has_reverse_proxy_statement = subprocess.call(cmd, shell=True) == 0
+
+            cmd = (
+                rf"grep -Iq '^\s*include\s*proxy_params_no_auth;"
+                rf"\|^\s*include\s*fastcgi_params_no_auth;' '{file}'"
             )
-            include_params_no_auth = (
-                os.system(
-                    rf"grep -Iq '^\s*include\s*proxy_params_no_auth;"
-                    rf"\|^\s*include\s*fastcgi_params_no_auth;' '{file}'"
-                )
-                == 0
+            include_params_no_auth = subprocess.call(cmd, shell=True) == 0
+
+            cmd = (
+                rf"grep -Iq '^\s*include\s*proxy_params_with_auth;"
+                rf"\|^\s*include\s*fastcgi_params_with_auth;' '{file}'"
             )
-            include_params_with_auth = (
-                os.system(
-                    rf"grep -Iq '^\s*include\s*proxy_params_with_auth;"
-                    rf"\|^\s*include\s*fastcgi_params_with_auth;' '{file}'"
-                )
-                == 0
-            )
+            include_params_with_auth = subprocess.call(cmd, shell=True) == 0
+
             if include_params_with_auth:
                 include_params_with_auth_at_last_in_one_conf = True
 
