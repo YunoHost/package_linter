@@ -156,7 +156,7 @@ def validate_schema(
 
     for error in v.iter_errors(data):
         try:
-            error_path = " > ".join(error.path)
+            error_path = " > ".join([str(elt) for elt in error.path])
         except TypeError:
             error_path = str(error.path)
 
