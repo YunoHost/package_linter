@@ -1,30 +1,36 @@
 #!/usr/bin/env python3
 
 import json
-import os
 import re
-from pathlib import Path
 import subprocess
 import tomllib
-from typing import Any, Generator
+from collections.abc import Generator
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+from packaging import version
 
 from lib.lib_package_linter import (
-    Error,
-    Info,
+    ReportError,
+    ReportInfo,
+    ReportWarning,
     TestReport,
     TestResult,
     TestSuite,
-    Warning,
     not_empty,
     test,
     tests_v1_schema,
     validate_schema,
 )
+from lib.nginxparser import nginxparser
 from lib.print import _print
+
+if TYPE_CHECKING:
+    from tests.test_app import App
 
 
 class Configurations(TestSuite):
-    def __init__(self, app) -> None:
+    def __init__(self, app: "App") -> None:
 
         self.app = app
         self.test_suite_name = "Configuration files"
@@ -43,8 +49,9 @@ class Configurations(TestSuite):
     def tests_toml(self) -> TestResult:
         tests_toml_file = self.app.path / "tests.toml"
         if not not_empty(tests_toml_file):
-            yield Error(
-                "The 'check_process' file that interfaces with the app CI has now been replaced with 'tests.toml' format and is now mandatory for apps v2."
+            yield ReportError(
+                "The 'check_process' file that interfaces with the app CI has now been replaced "
+                "with 'tests.toml' format and is now mandatory for apps v2."
             )
         else:
             yield from validate_schema(
@@ -57,7 +64,7 @@ class Configurations(TestSuite):
     def encourage_extra_php_conf(self) -> TestResult:
         php_conf = self.app.path / "conf" / "php-fpm.conf"
         if not_empty(php_conf):
-            yield Info(
+            yield ReportInfo(
                 "For the php configuration, consider getting rid of php-fpm.conf "
                 "and using the --usage and --footprint option of ynh_add_fpm_config. "
                 "This will use an auto-generated php conf file."
@@ -75,9 +82,11 @@ class Configurations(TestSuite):
             source_dir.exists()
             and len(list(elt for elt in source_dir.iterdir() if elt.is_file())) > 5
         ):
-            yield Error(
-                "Upstream app sources shouldn't be stored in this 'sources' folder of this git repository as a copy/paste\n"
-                "During installation, the package should download sources from upstream via 'ynh_setup_source'.\n"
+            yield ReportError(
+                "Upstream app sources shouldn't be stored in this 'sources' folder of this "
+                "git repository as a copy/paste\n"
+                "During installation, the package should download sources from upstream "
+                "via 'ynh_setup_source'.\n"
                 "See the helper documentation. "
                 "Original discussion happened here: "
                 "https://github.com/YunoHost/issues/issues/201#issuecomment-391549262"
@@ -102,31 +111,32 @@ class Configurations(TestSuite):
             try:
                 content = file.read_text()
             except UnicodeDecodeError:
-                yield Info("%s does not look like a text file." % file.name)
+                yield ReportInfo(f"{file.name} does not look like a text file.")
                 continue
             except Exception as e:
-                yield Warning("Can't open/read %s : %s" % (file.name, e))
+                yield ReportWarning(f"Can't open/read {file.name} : {e}")
                 continue
 
             if "[Unit]" not in content:
                 continue
 
-            Level: type[TestReport]
+            level: type[TestReport]
             if re.findall(r"^ *Type=oneshot", content, flags=re.MULTILINE):
-                Level = Info
+                level = ReportInfo
             else:
-                Level = Warning
+                level = ReportWarning
 
             matches = re.findall(r"^ *(User)=(\S+)", content, flags=re.MULTILINE)
             if not any(match[0] == "User" for match in matches):
-                yield Level(
-                    "You should specify a 'User=' directive in the systemd config !"
-                )
+                yield level("You should specify a 'User=' directive in the systemd config !")
                 continue
 
             if any(match[1] in ["root", "www-data"] for match in matches):
-                yield Level(
-                    "DO NOT run the app's systemd service as root or www-data! Use a dedicated system user for this app! If your app requires administrator priviledges, you should consider adding the user to the sudoers (and restrict the commands it can use!)"
+                yield level(
+                    "DO NOT run the app's systemd service as root or www-data! Use a dedicated "
+                    "system user for this app! If your app requires administrator priviledges, "
+                    "you should consider adding the user to the sudoers (and restrict the "
+                    "commands it can use!)"
                 )
 
     @test()
@@ -140,22 +150,23 @@ class Configurations(TestSuite):
             if not file.name.endswith(".service"):
                 continue
 
-            if (
-                os.system(f"grep -Eqi '^\s*Environment=.*(pass|secret|key)' '{file}'")
-                == 0
-            ):
-                yield Error(
-                    "Systemd configurations are world-readable and should not contain cleartext password/secrets T_T"
+            cmd = rf"grep -Eqi '^\s*Environment=.*(pass|secret|key)' '{file}'"
+            if subprocess.call(cmd, shell=True) == 0:
+                yield ReportError(
+                    "Systemd configurations are world-readable and should not contain cleartext "
+                    "password/secrets T_T"
                 )
 
-            if (
-                os.system(f"grep -q '^\s*CapabilityBoundingSet=' '{file}'") != 0
-                or os.system(f"grep -q '^\s*Protect.*=' '{file}'") != 0
-                or os.system(f"grep -q '^\s*SystemCallFilter=' '{file}'") != 0
-                or os.system(f"grep -q '^\s*PrivateTmp=' '{file}'") != 0
+            matches = ["CapabilityBoundingSet", "Protect.*", "SystemCallFilter", "PrivateTmp"]
+            if any(
+                subprocess.call(rf"grep -q '^\s{match}=' '{file}'", shell=True) != 0
+                for match in matches
             ):
-                yield Info(
-                    f"You are encouraged to harden the security of the systemd configuration {file.name}. You can have a look at https://github.com/YunoHost/example_ynh/blob/main/conf/systemd.service#L14-L46 for a baseline."
+                yield ReportInfo(
+                    "You are encouraged to harden the security of the systemd configuration "
+                    f"{file.name}. You can have a look at "
+                    "https://github.com/YunoHost/example_ynh/blob/main/conf/systemd.service#L14-L46"
+                    " for a baseline."
                 )
 
     @test()
@@ -172,26 +183,23 @@ class Configurations(TestSuite):
             try:
                 content = file.read_text()
             except UnicodeDecodeError:
-                yield Info("%s does not look like a text file." % file.name)
+                yield ReportInfo(f"{file.name} does not look like a text file.")
                 continue
             except Exception as e:
-                yield Warning("Can't open/read %s : %s" % (file.name, e))
+                yield ReportWarning(f"Can't open/read {file.name} : {e}")
                 continue
 
-            matches = re.findall(
-                r"^ *(user|group) = (\S+)", content, flags=re.MULTILINE
-            )
+            matches = re.findall(r"^ *(user|group) = (\S+)", content, flags=re.MULTILINE)
             if not any(match[0] == "user" for match in matches):
-                yield Error(
+                yield ReportError(
                     "You should at least specify a 'user =' directive in your PHP conf file"
                 )
                 continue
 
-            if any(
-                match[1] == "root" or match == ("user", "www-data") for match in matches
-            ):
-                yield Error(
-                    "DO NOT run the app PHP worker as root or www-data! Use a dedicated system user for this app!"
+            if any(match[1] == "root" or match == ("user", "www-data") for match in matches):
+                yield ReportError(
+                    "DO NOT run the app PHP worker as root or www-data! Use a dedicated system "
+                    "user for this app!"
                 )
 
     @test()
@@ -202,7 +210,7 @@ class Configurations(TestSuite):
 
         content = nginx_conf.read_text()
         if "$http_host" in content:
-            yield Info(
+            yield ReportInfo(
                 "In nginx.conf : please don't use $http_host but $host instead. C.f. https://github.com/yandex/gixy/blob/master/docs/en/plugins/hostspoofing.md"
             )
 
@@ -219,10 +227,11 @@ class Configurations(TestSuite):
 
             content = file.read_text()
             if "if ($scheme = http)" in content and "rewrite ^ https" in content:
-                yield Error(
+                yield ReportError(
                     "Since Yunohost 4.3, the http->https redirect is handled by the core, "
                     "therefore having an if ($scheme = http) { rewrite ^ https://... } block "
-                    "in the nginx config file is deprecated. (This helps with supporting Yunohost-behind-reverse-proxy use case)"
+                    "in the nginx config file is deprecated. (This helps with supporting "
+                    "Yunohost-behind-reverse-proxy use case)"
                 )
 
     @test()
@@ -243,9 +252,10 @@ class Configurations(TestSuite):
 
             content = file.read_text()
             if "location" in content and "add_header" in content:
-                yield Error(
+                yield ReportError(
                     "Do not use 'add_header' in the NGINX conf. Use 'more_set_headers' instead. "
-                    "(See https://www.peterbe.com/plog/be-very-careful-with-your-add_header-in-nginx "
+                    "(See "
+                    "https://www.peterbe.com/plog/be-very-careful-with-your-add_header-in-nginx "
                     "and https://github.com/openresty/headers-more-nginx-module#more_set_headers )"
                 )
 
@@ -264,22 +274,14 @@ class Configurations(TestSuite):
 
             if "location" in content and "more_set_headers" in content:
                 lines = content.split("\n")
-                more_set_headers_lines = [
-                    zzz for zzz in lines if "more_set_headers" in zzz
-                ]
+                more_set_headers_lines = [zzz for zzz in lines if "more_set_headers" in zzz]
 
                 def right_syntax(line: str) -> re.Match[str] | None:
-                    return re.search(
-                        r"more_set_headers +[\"\'][\w-]+\s?: .*[\"\'];", line
-                    )
+                    return re.search(r"more_set_headers +[\"\'][\w-]+\s?: .*[\"\'];", line)
 
-                lines = [
-                    line.strip()
-                    for line in more_set_headers_lines
-                    if not right_syntax(line)
-                ]
+                lines = [line.strip() for line in more_set_headers_lines if not right_syntax(line)]
                 if lines:
-                    yield Error(
+                    yield ReportError(
                         "It looks like the syntax for the 'more_set_headers' "
                         "instruction is incorrect in the NGINX conf (N.B. "
                         ": it's different than the 'add_header' syntax!)... "
@@ -299,11 +301,11 @@ class Configurations(TestSuite):
             if not file.is_file() or "nginx" not in file.name:
                 continue
 
-            cmd = 'grep -q -IhEro "location ~ __PATH__" %s' % file
-
-            if os.system(cmd) == 0:
-                yield Warning(
-                    "When using regexp in the nginx location field (location ~ __PATH__), start the path with ^ (location ~ ^__PATH__)."
+            cmd = f'grep -q -IhEro "location ~ __PATH__" {file}'
+            if subprocess.call(cmd, shell=True) == 0:
+                yield ReportWarning(
+                    "When using regexp in the nginx location field (location ~ __PATH__), start "
+                    "the path with ^ (location ~ ^__PATH__)."
                 )
 
     @test()
@@ -321,7 +323,7 @@ class Configurations(TestSuite):
             # Path traversal issues
             #
             def find_location_with_alias(
-                locationblock: Any,
+                locationblock: list[list[Any]],
             ) -> Generator[tuple[str, str], None, None]:
 
                 if locationblock[0][0] != "location":
@@ -352,7 +354,8 @@ class Configurations(TestSuite):
                             continue
                         alias_path = alias[-1]
 
-                        # Ugly hack to ignore cases where aliasing to a specific file (e.g. favicon.ico or foobar.html)
+                        # Ugly hack to ignore cases where aliasing to a specific file
+                        # (e.g. favicon.ico or foobar.html)
                         if "." in alias_path[-5:]:
                             continue
 
@@ -367,55 +370,222 @@ class Configurations(TestSuite):
                         # helper, and therefore it is likely to be replaced by
                         # something ending with / ...
                         if not location.strip("'").endswith("/") and (
-                            alias_path.endswith("/")
-                            or "__INSTALL_DIR__" not in alias_path
+                            alias_path.endswith("/") or "__INSTALL_DIR__" not in alias_path
                         ):
                             yield location
 
-            do_path_traversal_check = False
             try:
-                import pyparsing
-                import six
+                nginxconf: list[Any] = nginxparser.load(file.open())
+            except Exception as e:
+                _print(f"Could not parse NGINX conf...: {e}")
+                nginxconf = []
 
-                do_path_traversal_check = True
-            except Exception:
-                # If inside a venv, try to magically install pyparsing
-                if "VIRTUAL_ENV" in os.environ:
-                    try:
-                        _print("(Trying to auto install pyparsing...)")
-                        subprocess.check_output(
-                            "pip3 install pyparsing six", shell=True
-                        )
-                        import pyparsing
-
-                        _print("OK!")
-                        do_path_traversal_check = True
-                    except Exception as e:
-                        _print("Failed :[ : %s" % str(e))
-
-            if not do_path_traversal_check:
-                _print(
-                    "N.B.: The package linter needs you to run 'pip3 install pyparsing six' if you want it to be able to check for path traversal issue in NGINX confs"
+            for location in find_path_traversal_issue(nginxconf):
+                yield ReportError(
+                    f"The NGINX configuration (especially location {location}) "
+                    "appears vulnerable to path traversal issues as explained in\n"
+                    "  https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
+                    "  To fix it, look at the first lines of the NGINX conf of the example app : \n"
+                    "  https://github.com/YunoHost/example_ynh/blob/main/conf/nginx.conf"
                 )
 
-            if do_path_traversal_check:
-                from lib.nginxparser import nginxparser
+    @test()
+    def nginx_uwsgi(self) -> TestResult:
+        nginx_conf: Path = self.app.path / "conf" / "nginx.conf"
+        if not nginx_conf.exists():
+            return
 
-                try:
-                    nginxconf: list[Any] = nginxparser.load(file.open())
-                except Exception as e:
-                    _print(f"Could not parse NGINX conf...: {e}")
-                    nginxconf = []
+        content = nginx_conf.read_text()
+        if "uwsgi_pass" in content:
+            yield ReportWarning(
+                "Using uwsgi is deprecated (at least because it was never properly integrated in "
+                "YunoHost, and also because the project is not really maintained anymore: "
+                "https://github.com/unbit/uwsgi/blob/master/README ). Please consider switching "
+                "to, for example, a gunicorn-based architecture with regular proxy_pass instead."
+            )
 
-                for location in find_path_traversal_issue(nginxconf):
-                    yield Error(
-                        "The NGINX configuration (especially location %s) "
-                        "appears vulnerable to path traversal issues as explained in\n"
-                        "  https://www.acunetix.com/vulnerabilities/web/path-traversal-via-misconfigured-nginx-alias/\n"
-                        "  To fix it, look at the first lines of the NGINX conf of the example app : \n"
-                        "  https://github.com/YunoHost/example_ynh/blob/main/conf/nginx.conf"
-                        % location
-                    )
+    @test()
+    def tests_nginx_reverse_proxy_params_and_sso_consistency(self) -> TestResult:
+
+        yunohost_version_req = (
+            self.app.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
+        )
+
+        if not yunohost_version_req or version.parse(yunohost_version_req) < version.parse(
+            "12.1.38"
+        ):
+            return
+
+        conf_dir: Path = self.app.path / "conf"
+        if not conf_dir.exists():
+            return
+
+        sso = self.app.manifest.get("integration", {}).get("sso")
+
+        include_params_with_auth_at_last_in_one_conf = False
+
+        for file in conf_dir.iterdir():
+            # Ignore subdirs or filename not containing nginx in the name
+            if not file.is_file() or "nginx" not in file.name:
+                continue
+
+            cmd = rf"grep -Iq '^\s*proxy_pass\s\|^\s*fastcgi_pass\s' '{file}'"
+            has_reverse_proxy_statement = subprocess.call(cmd, shell=True) == 0
+
+            cmd = (
+                rf"grep -Iq '^\s*include\s*proxy_params_no_auth;"
+                rf"\|^\s*include\s*fastcgi_params_no_auth;' '{file}'"
+            )
+            include_params_no_auth = subprocess.call(cmd, shell=True) == 0
+
+            cmd = (
+                rf"grep -Iq '^\s*include\s*proxy_params_with_auth;"
+                rf"\|^\s*include\s*fastcgi_params_with_auth;' '{file}'"
+            )
+            include_params_with_auth = subprocess.call(cmd, shell=True) == 0
+
+            if include_params_with_auth:
+                include_params_with_auth_at_last_in_one_conf = True
+
+            manual_reverse_proxy_params = (
+                subprocess.check_output(
+                    rf"grep -IhrEo '^\s*(proxy_set_header|fastcgi_param)\s+[a-zA-Z_-]+\s+.*;' "
+                    rf"'{file}' | sed -E -e 's/^\s*proxy_set_header\s*//g' -e "
+                    rf"'s/^\s*fastcgi_param\s+//g' -e 's/\s+/ /g' -e 's/;.*//g' | sort | uniq",
+                    shell=True,
+                )
+                .decode()
+                .strip()
+            )
+            manual_reverse_proxy_params_list = (
+                manual_reverse_proxy_params.split("\n") if manual_reverse_proxy_params else []
+            )
+            manual_reverse_proxy_params_dict = {
+                i.split(" ")[0]: i.split(" ")[1] for i in manual_reverse_proxy_params_list
+            }
+
+            if has_reverse_proxy_statement and not (
+                include_params_no_auth or include_params_with_auth
+            ):
+                yield ReportWarning(
+                    "The nginx configuration reverse-proxies to another service (using proxy_pass "
+                    "or fastcgi_pass) but does not include the default set of params shipped in "
+                    "YunoHost, i.e: proxy_params_no/with_auth or fastcgi_params_no/with_auth, "
+                    "depending on what's the appropriate one for this use case."
+                )
+
+            # The item that we are sure that should never be customized and so always
+            # raise a warning
+            # if set in the nginx config
+            reverse_proxy_params_from_includes_blacklist = [
+                # Reverse proxy
+                "Host",
+                "X-Real-IP",
+                "X-Scheme",
+                "X-Forwarded-For",
+                "X-Forwarded-Proto",
+                "X-Forwarded-Host",
+                "X-Forwarded-Scheme",
+                "X-Forwarded-Ssl",
+                "X-Forwarded-Server",
+                # Fastcgi
+                "SERVER_PROTOCOL",
+                "REQUEST_SCHEME",
+                "HTTPS",
+                "GATEWAY_INTERFACE",
+                "SERVER_SOFTWARE",
+                "REMOTE_ADDR",
+                "REMOTE_PORT",
+                "REMOTE_USER",
+                "SERVER_ADDR",
+                "SERVER_PORT",
+                "SERVER_NAME",
+            ]
+            # The item that should generally not be customized but some app might need to override
+            # the default value and so if the non default value are used we just raise a info
+            # and not warning.
+            # Note that this list might need some adjustement depending of the use case
+            # for instance if an app are overriding a parameter which is in black list
+            # and it's justified to override it.'
+            reverse_proxy_params_from_includes_greylist = {
+                # Reverse proxy
+                "Upgrade": "$http_upgrade",
+                "Connection": "$connection_upgrade",
+                # Fastcgi
+                "QUERY_STRING": "$query_string",
+                "REQUEST_METHOD": "$request_method",
+                "CONTENT_TYPE": "$content_type",
+                "CONTENT_LENGTH": "$content_length",
+                "PATH_INFO": "$fastcgi_path_info",
+                "SCRIPT_FILENAME": "$request_filename",
+                "SCRIPT_NAME": "$fastcgi_script_name",
+                "REQUEST_URI": "$request_uri",
+                "DOCUMENT_URI": "$document_uri",
+                "DOCUMENT_ROOT": "$document_root",
+            }
+            reverse_proxy_params_from_includes_that_are_manually_set = ", ".join(
+                [
+                    p
+                    for p in manual_reverse_proxy_params_dict
+                    if p in reverse_proxy_params_from_includes_blacklist
+                ]
+            )
+            if reverse_proxy_params_from_includes_that_are_manually_set:
+                yield ReportWarning(
+                    "In the nginx conf, manually defining a value for these reverse proxy params "
+                    "should not be necessary as they are already defined in the "
+                    "proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be "
+                    "included when using proxy_pass or fastcgi_pass: "
+                    f"{reverse_proxy_params_from_includes_that_are_manually_set}"
+                )
+
+            reverse_proxy_params_from_includes_that_are_manually_set = ", ".join(
+                [
+                    k
+                    for k, v in manual_reverse_proxy_params_dict.items()
+                    if k in reverse_proxy_params_from_includes_greylist
+                    and reverse_proxy_params_from_includes_greylist[k] == v
+                ]
+            )
+            if reverse_proxy_params_from_includes_that_are_manually_set:
+                yield ReportWarning(
+                    "In the nginx conf, manually defining a value for these reverse proxy params "
+                    "should not be necessary as they are already defined in the "
+                    "proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be "
+                    "included when using proxy_pass or fastcgi_pass: "
+                    f"{reverse_proxy_params_from_includes_that_are_manually_set}"
+                )
+
+            reverse_proxy_params_from_includes_that_are_manually_set = ", ".join(
+                [
+                    k
+                    for k, v in manual_reverse_proxy_params_dict.items()
+                    if k in reverse_proxy_params_from_includes_greylist
+                    and reverse_proxy_params_from_includes_greylist[k] != v
+                ]
+            )
+            if reverse_proxy_params_from_includes_that_are_manually_set:
+                yield ReportInfo(
+                    "In the nginx conf, manually defining a value for these reverse proxy params "
+                    "should not be necessary as they are already defined in the "
+                    "proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be "
+                    "included when using proxy_pass or fastcgi_pass. But in some specific case it "
+                    "would be useful to override the default value, if this is the case you can "
+                    "safely ignore this message: "
+                    f"{reverse_proxy_params_from_includes_that_are_manually_set}"
+                )
+
+        if sso is True and not include_params_with_auth_at_last_in_one_conf:
+            yield ReportWarning(
+                "In manifest.toml, sso integration is set to true, but the nginx conf doesn't "
+                "seem to include proxy_params_with_auth or fastcgi_params_with_auth."
+            )
+        elif sso in [False, "not_relevant"] and include_params_with_auth_at_last_in_one_conf:
+            yield ReportWarning(
+                "In manifest.toml, sso integration is set to false or not_relevant, but the nginx "
+                "conf seems to include proxy_params_with_auth or fastcgi_params_with_auth with "
+                "suggest maybe it does?"
+            )
 
     @test()
     def bind_public_ip(self) -> TestResult:
@@ -430,20 +600,18 @@ class Configurations(TestSuite):
             try:
                 content = file.read_text()
             except UnicodeDecodeError:
-                yield Info("%s does not look like a text file." % file.name)
+                yield ReportInfo(f"{file.name} does not look like a text file.")
                 continue
             except Exception as e:
-                yield Warning("Can't open/read %s: %s" % (file, e))
+                yield ReportWarning(f"Can't open/read {file}: {e}")
                 continue
 
             for number, line in enumerate(content.split("\n"), 1):
                 comment = ("#", "//", ";", "/*", "*")
-                if ("0.0.0.0" in line or "::" in line) and not line.strip().startswith(
-                    comment
-                ):
+                if ("0.0.0.0" in line or "::" in line) and not line.strip().startswith(comment):
                     for ip in re.split(r"[ \t,='\"(){}\[\]]", line):
                         if ip == "::" or ip.startswith("0.0.0.0"):
-                            yield Info(
+                            yield ReportInfo(
                                 f"{file.relative_to(self.app.path)}:{number}: "
                                 "Binding to '0.0.0.0' or '::' can result in a security issue "
                                 "as the reverse proxy and the SSO can be bypassed by knowing "

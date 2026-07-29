@@ -2,33 +2,33 @@
 import json
 
 from lib.lib_package_linter import (
-    Error,
-    Info,
-    TestReport,
+    CatalogAppDescr,
+    ReportError,
+    ReportInfo,
+    ReportWarning,
     TestResult,
     TestSuite,
-    Warning,
-    not_empty,
+    get_app_list,
+    report_warning_not_reliable,
     test,
     urlopen,
-    get_app_list,
-    PACKAGE_LINTER_DIR,
-    APPS_CACHE,
-    report_warning_not_reliable,
 )
 
 
 class Issues(TestSuite):
-    def __init__(self, app) -> None:
+    def __init__(self, app: str) -> None:
         self.app = app
         self.test_suite_name = "Issues"
 
         self.app_list = get_app_list()
-        repo_url = self.app_list.get(app, {}).get("url", "invalid")
-        self.issues = []  # init blank in case lines below fail
+        invalid_app = CatalogAppDescr(url="invalid", state="notworking")
+        repo_url = self.app_list.get(app, invalid_app)["url"]
+        # init blank in case lines below fail
+        self.issues: list[dict] = []  # type: ignore[type-arg]  # ty: ignore[missing-type-argument]
         if "github.com" not in repo_url:
             report_warning_not_reliable(
-                "Can't check if there are any blocking issues pending, can only do this for apps hosted on github for now."
+                "Can't check if there are any blocking issues pending, can only do this for "
+                "apps hosted on github for now."
             )
             return
         repo = repo_url.replace("https://github.com/", "")
@@ -36,7 +36,7 @@ class Issues(TestSuite):
 
         code, issues_result = urlopen(issues_uri)
         if 200 <= code < 300:
-            self.issues: list[dict] = json.loads(issues_result)
+            self.issues = json.loads(issues_result)
         else:
             report_warning_not_reliable(
                 f"Can't check if there are any blocking issues pending got {code} error."
@@ -52,9 +52,11 @@ class Issues(TestSuite):
         ]
 
         if issues:
-            yield Error(
-                "Those issues need to be solved to reach level5+ and be displayed by default on catalog:\n      - "
-                + "\n      - ".join(issues)
+            issues_str = "\n".join(f"      - {issue}" for issue in issues)
+            yield ReportError(
+                "Those issues need to be solved to reach level5+ and be displayed by default "
+                "on catalog:\n"
+                f"{issues_str}"
             )
 
     @test()
@@ -66,9 +68,11 @@ class Issues(TestSuite):
         ]
 
         if issues:
-            yield Warning(
-                "Those issues need to be solved to reach level7+ and be displayed as high quality apps:\n      - "
-                + "\n      - ".join(issues)
+            issues_str = "\n".join(f"      - {issue}" for issue in issues)
+            yield ReportWarning(
+                "Those issues need to be solved to reach level7+ and be displayed as high "
+                "quality apps:\n"
+                f"{issues_str}"
             )
 
     @test()
@@ -88,6 +92,7 @@ class Issues(TestSuite):
                 nb_bugs += 1
 
         if nb_bugs:
-            yield Info(
-                f"{nb_bugs} small bugs are known in this package, it could be useful to try to fix them or close it if not relevant anymore."
+            yield ReportInfo(
+                f"{nb_bugs} small bugs are known in this package, it could be useful to try to "
+                "fix them or close it if not relevant anymore."
             )

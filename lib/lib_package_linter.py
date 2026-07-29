@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
-from pathlib import Path
+import sys
 import time
+import tomllib
+import urllib.error
 import urllib.request
-from typing import Any, Callable, Generator, TypeVar
+from collections.abc import Callable, Generator
+from pathlib import Path
+from typing import Any, Literal, NotRequired, TypedDict, TypeVar
 
 import jsonschema
-import sys
-import tomllib
 
 from lib.print import _print
 
@@ -19,7 +21,7 @@ APPS_CACHE = PACKAGE_LINTER_DIR / ".apps"
 # ############################################################################
 
 
-class c:
+class Color:
     HEADER = "\033[94m"
     OKBLUE = "\033[94m"
     OKGREEN = "\033[92m"
@@ -42,41 +44,41 @@ class TestReport:
         _print(prefix + self.style % self.message)
 
 
-class Warning(TestReport):
-    style = c.WARNING + " ! %s " + c.END
+class ReportWarning(TestReport):
+    style = Color.WARNING + " ! %s " + Color.END
 
 
-class Error(TestReport):
-    style = c.FAIL + " ✘ %s" + c.END
+class ReportError(TestReport):
+    style = Color.FAIL + " ✘ %s" + Color.END
 
 
-class Info(TestReport):
-    style = " - %s" + c.END
+class ReportInfo(TestReport):
+    style = " - %s" + Color.END
 
 
-class Success(TestReport):
-    style = c.OKGREEN + " ☺  %s ♥" + c.END
+class ReportSuccess(TestReport):
+    style = Color.OKGREEN + " ☺  %s ♥" + Color.END
 
 
-class Critical(TestReport):
-    style = c.FAIL + " ✘✘✘ %s" + c.END
+class ReportCritical(TestReport):
+    style = Color.FAIL + " ✘✘✘ %s" + Color.END
 
 
 def report_warning_not_reliable(message: str) -> None:
-    _print(c.MAYBE_FAIL + "?", message, c.END)
+    _print(Color.MAYBE_FAIL + "?", message, Color.END)
 
 
 def print_happy(message: str) -> None:
-    _print(c.OKGREEN + " ☺ ", message, "♥")
+    _print(Color.OKGREEN + " ☺ ", message, "♥")
 
 
 def urlopen(url: str) -> tuple[int, str]:
     try:
-        conn = urllib.request.urlopen(url)
+        conn = urllib.request.urlopen(url)  # noqa: S310
     except urllib.error.HTTPError as e:
         return e.code, ""
     except urllib.error.URLError as e:
-        _print("Could not fetch %s : %s" % (url, e))
+        _print(f"Could not fetch {url} : {e}")
         return 0, ""
 
     return 200, conn.read().decode("UTF8")
@@ -86,16 +88,14 @@ def not_empty(file: Path) -> bool:
     return file.is_file() and file.stat().st_size > 0
 
 
-def cache_file(
-    cachefile: Path, ttl_s: int
-) -> Callable[[Callable[..., str]], Callable[..., str]]:
+def cache_file(cachefile: Path, ttl_s: int) -> Callable[[Callable[..., str]], Callable[..., str]]:
     def cache_is_fresh() -> bool:
         return cachefile.exists() and time.time() - cachefile.stat().st_mtime < ttl_s
 
     def decorator(function: Callable[..., str]) -> Callable[..., str]:
-        def wrapper(*args: Any, **kwargs: Any) -> str:
+        def wrapper() -> str:
             if not cache_is_fresh():
-                cachefile.write_text(function(*args, **kwargs))
+                cachefile.write_text(function())
             return cachefile.read_text()
 
         return wrapper
@@ -120,7 +120,21 @@ def tests_v1_schema() -> str:
     return urlopen(url)[1]
 
 
-def get_app_list() -> list[dict]:
+class CatalogAppDescr(TypedDict):
+    added_date: NotRequired[int]
+    branch: NotRequired[str]
+    category: NotRequired[str]
+    subtags: NotRequired[list[str]]
+    level: NotRequired[int]
+    potential_alternative_to: NotRequired[list[str]]
+    antifeatures: NotRequired[list[str]]
+    revision: NotRequired[str]
+    deprecated_date: NotRequired[int]
+    state: Literal["working", "notworking", "inprogress"]
+    url: str
+
+
+def get_app_list() -> dict[str, CatalogAppDescr]:
     try:
         app_list = tomllib.load((APPS_CACHE / "apps.toml").open("rb"))
     except Exception:
@@ -137,7 +151,7 @@ def config_panel_v1_schema() -> str:
 
 def validate_schema(
     name: str, schema: dict[str, Any], data: dict[str, Any]
-) -> Generator[Info, None, None]:
+) -> Generator[ReportInfo, None, None]:
     v = jsonschema.Draft7Validator(schema)
 
     for error in v.iter_errors(data):
@@ -146,16 +160,16 @@ def validate_schema(
         except TypeError:
             error_path = str(error.path)
 
-        yield Info(
-            f"Error validating {name} using schema: in key {error_path}\n       {error.message}"
-        )
+        msg = f"Error validating {name} using schema: in key {error_path}\n       {error.message}"
+        yield ReportInfo(msg)
 
 
+TestSuiteSelf = TypeVar("TestSuiteSelf", bound="TestSuite")
 TestResult = Generator[TestReport, None, None]
-TestFn = Callable[[Any], TestResult]
+TestFn = Callable[[TestSuiteSelf], TestResult]
 
-tests: dict[str, list[tuple[TestFn, Any]]] = {}
-tests_reports: dict[str, list[Any]] = {
+tests: dict[str, list[tuple[TestFn, dict[str, list[str] | None]]]] = {}  # type: ignore[type-arg]
+tests_reports: dict[str, list[tuple[str, TestReport]]] = {
     "success": [],
     "info": [],
     "warning": [],
@@ -164,50 +178,53 @@ tests_reports: dict[str, list[Any]] = {
 }
 
 
-def test(**kwargs: Any) -> Callable[[TestFn], TestFn]:
-    def decorator(f: TestFn) -> TestFn:
-        clsname = f.__qualname__.split(".")[0]
+def test(
+    only: list[str] | None = None,  # noqa: PT028
+    ignore: list[str] | None = None,  # noqa: PT028
+) -> Callable[[TestFn], TestFn]:  # type: ignore[type-arg]
+    def decorator(f: TestFn) -> TestFn:  # type: ignore[type-arg]
+        clsname = getattr(f, "__qualname__", "unnamed_callable").split(".")[0]
         if clsname not in tests:
             tests[clsname] = []
-        tests[clsname].append((f, kwargs))
+        tests[clsname].append((f, {"only": only, "ignore": ignore}))
         return f
 
     return decorator
 
 
 class TestSuite:
-    name: str
+    name: str = ""
     test_suite_name: str
 
     def run_tests(self) -> None:
 
-        reports = []
+        reports: list[TestReport] = []
 
-        for test, options in tests[self.__class__.__name__]:
-            if "only" in options and self.name not in options["only"]:
+        for testfn, options in tests[self.__class__.__name__]:
+            if self.name and self.name not in (options["only"] or []):
                 continue
-            if "ignore" in options and self.name in options["ignore"]:
+            if self.name and self.name in (options["ignore"] or []):
                 continue
 
-            this_test_reports = list(test(self))
+            this_test_reports = list(testfn(self))
             for report in this_test_reports:
-                report.test_name = test.__qualname__
+                report.test_name = str(getattr(testfn, "__qualname__", "unnamed_test"))
 
             reports += this_test_reports
 
         # Display part
 
         def report_type(report: TestReport) -> str:
-            return report.__class__.__name__.lower()
+            return report.__class__.__name__.lower().removeprefix("report")
 
         if any(report_type(r) in ["warning", "error", "critical"] for r in reports):
-            prefix = c.WARNING + "! "
-        elif any(report_type(r) in ["info"] for r in reports):
+            prefix = Color.WARNING + "! "
+        elif any(report_type(r) == "info" for r in reports):
             prefix = "ⓘ "
         else:
-            prefix = c.OKGREEN + "✔ "
+            prefix = Color.OKGREEN + "✔ "
 
-        _print(" " + c.BOLD + prefix + c.OKBLUE + self.test_suite_name + c.END)
+        _print(f" {Color.BOLD}{prefix}{Color.OKBLUE}{self.test_suite_name}{Color.END}")
 
         if len(reports):
             _print("")
@@ -221,14 +238,14 @@ class TestSuite:
         for report in reports:
             tests_reports[report_type(report)].append((report.test_name, report))
 
-    def run_single_test(self, test: TestFn) -> None:
+    def run_single_test(self, test: TestFn) -> None:  # type: ignore[type-arg]
 
         reports = list(test(self))
 
         def report_type(report: TestReport) -> str:
-            return report.__class__.__name__.lower()
+            return report.__class__.__name__.lower().removeprefix("report")
 
         for report in reports:
             report.display()
-            test_name = test.__qualname__
+            test_name = getattr(test, "__qualname__", "unnamed_test")
             tests_reports[report_type(report)].append((test_name, report))

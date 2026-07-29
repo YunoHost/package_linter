@@ -2,20 +2,19 @@
 
 import copy
 import json
-import os
-from pathlib import Path
 import subprocess
 import sys
 import tomllib
-from typing import Generator
+from collections.abc import Generator
+from pathlib import Path
 
 from lib.lib_package_linter import (
-    Error,
-    Info,
-    Success,
+    ReportError,
+    ReportInfo,
+    ReportSuccess,
+    ReportWarning,
     TestResult,
     TestSuite,
-    Warning,
     config_panel_v1_schema,
     not_empty,
     test,
@@ -38,7 +37,14 @@ scriptnames = ["_common.sh", "install", "remove", "upgrade", "backup", "restore"
 
 # Generated May 20 2024 using:
 # cat /path/to/yunohost/data/helpers.d/* | grep  "^ynh_" | tr -d '(){ ' > helperlist 2>/dev/null
-# for HELPER in $(cat helperlist); do REQUIRE=$(grep -whB5 "^$HELPER" /path/to/yunohost/data/helpers.d/* 2>/dev/null | grep "Requires .* or higher\." | grep -o -E "[0-9].[0-9].[0-9]"); echo "'$HELPER': '$REQUIRE'",; done | tr "'" '"'
+# for HELPER in $(cat helperlist); do
+#    REQUIRE=$(
+#        grep -whB5 "^$HELPER" /path/to/yunohost/data/helpers.d/* 2>/dev/null \
+#        | grep "Requires .* or higher\." \
+#        | grep -o -E "[0-9].[0-9].[0-9]"
+#     )
+#     echo "'$HELPER': '$REQUIRE'",
+# done | tr "'" '"'
 
 official_helpers = {
     "ynh_install_apps": "",
@@ -237,17 +243,25 @@ deprecated_helpers_in_v2 = [
     ),
 ]
 
+deprecated_helpers_in_v2p1 = [
+    ("ynh_nodejs_install", "the nodejs resource"),
+    ("ynh_nodejs_remove", "the nodejs resource"),
+    ("ynh_ruby_install", "the ruby resource"),
+    ("ynh_ruby_remove", "the ruby resource"),
+    ("ynh_go_install", "the go resource"),
+    ("ynh_go_remove", "the go resource"),
+    ("ynh_composer_install", "the composer resource"),
+]
+
 
 class App(TestSuite):
     def __init__(self, path: Path) -> None:
 
-        _print(f"  Analyzing app {path} ...")
+        _print(f"  Analyzing app {path}...")
         self.path = path
         self.manifest_ = Manifest(self.path)
         self.manifest = self.manifest_.manifest
-        self.scripts = {
-            f: Script(self.path, f, self.manifest.get("id", "")) for f in scriptnames
-        }
+        self.scripts = {f: Script(self.path, f, self.manifest.get("id", "")) for f in scriptnames}
         self.configurations = Configurations(self)
         self.app_catalog = AppCatalog(self.manifest["id"])
         self.issues = Issues(self.manifest["id"])
@@ -298,7 +312,7 @@ class App(TestSuite):
         if tests_reports["error"] or tests_reports["critical"]:
             sys.exit(1)
 
-    def qualify_for_level_7(self) -> Generator[Success, None, None]:
+    def qualify_for_level_7(self) -> Generator[ReportSuccess, None, None]:
 
         if tests_reports["critical"]:
             _print(" There are some critical issues in this app :(")
@@ -311,11 +325,12 @@ class App(TestSuite):
         elif len(tests_reports["warning"]) == 1:
             _print(" Only 1 warning remaining! You can do it!")
         else:
-            yield Success(
-                "Not even a warning! Congratz and thank you for keeping this package up to date with good practices! This app qualifies for level 7!"
+            yield ReportSuccess(
+                "Not even a warning! Congratz and thank you for keeping this package up to date "
+                "with good practices! This app qualifies for level 7!"
             )
 
-    def qualify_for_level_8(self) -> Generator[Success, None, None]:
+    def qualify_for_level_8(self) -> Generator[ReportSuccess, None, None]:
 
         successes = [test.split(".")[1] for test, _ in tests_reports["success"]]
 
@@ -333,20 +348,19 @@ class App(TestSuite):
             ]
         ):
             _print(
-                " In the catalog, the app is flagged as not maintained / deprecated / alpha or replaced by another app, therefore does not qualify for level 8"
+                "In the catalog, the app is flagged as not maintained / deprecated / alpha or "
+                "replaced by another app, therefore does not qualify for level 8"
             )
-        elif (
-            "qualify_for_level_7" in successes
-            and "is_long_term_good_quality" in successes
-        ):
-            yield Success(
-                "The app is maintained and long-term good quality, and therefore qualifies for level 8!"
+        elif "qualify_for_level_7" in successes and "is_long_term_good_quality" in successes:
+            yield ReportSuccess(
+                "The app is maintained and long-term good quality, and therefore qualifies "
+                "for level 8!"
             )
 
-    def qualify_for_level_9(self) -> Generator[Success, None, None]:
+    def qualify_for_level_9(self) -> Generator[ReportSuccess, None, None]:
 
         if self.app_catalog.catalog_infos.get("high_quality", False):
-            yield Success("The app is flagged as high-quality in the app catalog")
+            yield ReportSuccess("The app is flagged as high-quality in the app catalog")
 
     #########################################
     #   _____                           _   #
@@ -359,7 +373,7 @@ class App(TestSuite):
     #########################################
 
     @test()
-    def mandatory_scripts(app) -> TestResult:
+    def mandatory_scripts(self) -> TestResult:
         filenames = (
             "LICENSE",
             "README.md",
@@ -371,214 +385,247 @@ class App(TestSuite):
         )
 
         for filename in filenames:
-            if not not_empty(app.path / filename):
-                yield Error("Providing %s is mandatory" % filename)
+            if not not_empty(self.path / filename):
+                yield ReportError(f"Providing {filename} is mandatory")
 
-        license = app.path / "LICENSE"
-        if not_empty(license):
-            license_content = license.read_text()
+        license_file = self.path / "LICENSE"
+        if not_empty(license_file):
+            license_content = license_file.read_text()
             if "File containing the license of your package" in license_content:
-                yield Error("You should put an actual license in LICENSE...")
+                yield ReportError("You should put an actual license in LICENSE...")
 
     @test()
-    def doc_dir(app) -> TestResult:
+    def doc_dir(self) -> TestResult:
 
-        if not (app.path / "doc").exists():
-            yield Error(
-                """Having a doc/ folder is now mandatory in packaging v2 and is expected to contain :
-- (recommended) doc/DESCRIPTION.md : a long description of the app, typically around 5~20 lines, for example to list features
-- (recommended) doc/screenshots/ : a folder containing at least one .png (or .jpg) screenshot of the app
-- (if relevant) doc/ADMIN.md : an admin doc page meant to provide general info about adminstrating this app, will be available in yunohost's webadmin
-- (if relevant) doc/SOME_OTHER_PAGE.md : an arbitrarily named admin doc page meant to provide info on a specific topic, will be available in yunohost's webadmin
-- (if relevant) doc/PRE_INSTALL.md, POST_INSTALL.md : important informations to display to the user before/after the install (similar mechanism exists for upgrade)
-"""
+        if not (self.path / "doc").exists():
+            yield ReportError(
+                "Having a doc folder is now mandatory in packaging v2 and is expected to contain:\n"
+                "- (recommended) doc/DESCRIPTION.md : a long description of the app, typically "
+                "around 5~20 lines, for example to list features\n"
+                "- (recommended) doc/screenshots/ : a folder containing at least one .png "
+                "(or .jpg) screenshot of the app\n"
+                "- (if relevant) doc/ADMIN.md : an admin doc page meant to provide general info "
+                "about adminstrating this app, will be available in yunohost's webadmin\n"
+                "- (if relevant) doc/SOME_OTHER_PAGE.md : an arbitrarily named admin doc page "
+                "meant to provide info on a specific topic, will be available in "
+                "yunohost's webadmin\n"
+                "- (if relevant) doc/PRE_INSTALL.md, POST_INSTALL.md : important informations "
+                "to display to the user before/after the install (similar mechanism exists "
+                "for upgrade)"
             )
 
-        if (app.path / "doc" / "screenshots").exists():
+        if (self.path / "doc" / "screenshots").exists():
             du_output = subprocess.check_output(
-                ["du", "-sb", app.path / "doc" / "screenshots"], shell=False
+                ["du", "-sb", self.path / "doc" / "screenshots"], shell=False
             )
             screenshots_size = int(du_output.split()[0])
             if screenshots_size > 1024 * 1000:
-                yield Warning(
-                    "Please keep the content of doc/screenshots under ~512Kb. Having screenshots bigger than 512kb is probably a waste of resource and will take unecessarily long time to load on the webadmin UI and app catalog."
+                yield ReportWarning(
+                    "Please keep the content of doc/screenshots under ~512Kb. Having screenshots "
+                    "bigger than 512kb is probably a waste of resource and will take unecessarily "
+                    "long time to load on the webadmin UI and app catalog."
                 )
             elif screenshots_size > 512 * 1000:
-                yield Info(
-                    "Please keep the content of doc/screenshots under ~512Kb. Having screenshots bigger than 512kb is probably a waste of resource and will take unecessarily long time to load on the webadmin UI and app catalog."
+                yield ReportInfo(
+                    "Please keep the content of doc/screenshots under ~512Kb. Having screenshots "
+                    "bigger than 512kb is probably a waste of resource and will take unecessarily "
+                    "long time to load on the webadmin UI and app catalog."
                 )
 
-            for file in (app.path / "doc" / "screenshots").rglob("*"):
+            for file in (self.path / "doc" / "screenshots").rglob("*"):
                 filename = file.name
                 if Path.is_dir(file):
                     continue
                 if filename == "example.jpg":
-                    yield Warning(
-                        "It tooks like the screenshot in doc/screenshots/ folder is just a default placeholder ... please replace it with something more meaningful (or remove it if screenshots are not relevant for this app)"
+                    yield ReportWarning(
+                        "It tooks like the screenshot in doc/screenshots/ folder is just a "
+                        "default placeholder... please replace it with something more meaningful "
+                        "(or remove it if screenshots are not relevant for this app)"
                     )
                     continue
                 if filename == ".gitkeep":
                     continue
-                if all(
-                    not filename.lower().endswith(ext)
-                    for ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]
-                ):
-                    yield Warning(
-                        "In the doc/screenshots folder, only .jpg, .jpeg, .png, .webp and .gif are accepted"
+                accepted_exts = [".jpg", ".jpeg", ".png", ".gif", ".webp"]
+                if not any(filename.lower().endswith(ext) for ext in accepted_exts):
+                    yield ReportWarning(
+                        "In the doc/screenshots folder, only .jpg, .jpeg, .png, .webp and "
+                        ".gif are accepted"
                     )
                     break
 
     @test()
-    def doc_dir_v2(app) -> TestResult:
+    def doc_dir_v2(self) -> TestResult:
 
-        if (app.path / "doc").exists() and not (
-            app.path / "doc" / "DESCRIPTION.md"
-        ).exists():
-            yield Error(
-                "A DESCRIPTION.md is now mandatory in packaging v2 and is meant to contains an extensive description of what the app is and does. Consider also adding a '/doc/screenshots/' folder with a few screenshots of what the app looks like."
+        if (self.path / "doc").exists() and not (self.path / "doc" / "DESCRIPTION.md").exists():
+            yield ReportError(
+                "A DESCRIPTION.md is now mandatory in packaging v2 and is meant to contains an "
+                "extensive description of what the app is and does. Consider also adding a "
+                "'/doc/screenshots/' folder with a few screenshots of what the app looks like."
             )
-        elif (
-            os.system(
-                rf'grep -inrq "Some long and extensive description\|lorem ipsum dolor sit amet\|Ut enim ad minim veniam" {app.path}/doc/DESCRIPTION.md'
-            )
-            == 0
-        ):
-            yield Error("It looks like DESCRIPTION.md just contains placeholder texts")
+        else:
+            description = (self.path / "doc" / "DESCRIPTION.md").read_text()
+            tokens = ["Some long and extensive description", "lorem ipsum dolor sit amet"]
+            if any(token in description for token in tokens):
+                yield ReportError("It looks like DESCRIPTION.md just contains placeholder texts")
 
-        if (app.path / "doc" / "DISCLAIMER.md").exists():
-            yield Warning(
-                """DISCLAIMER.md has been replaced with several files in packaging v2 to improve the UX and provide the user with key information at the appropriate step of the app install / upgrade cycles.
-
-    You are encouraged to split its infos into:
-
-    - Integration-related infos (eg. LDAP/SSO support, arch support, resource usage, ...)
-        -> neant to go in the 'integration' section of the manifest.toml
-
-    - Antifeatures-related infos (eg. alpha/deprecated software, arbitrary limiations, ...)
-        -> these are now formalized using the 'antifeatures' mechanism in the app catalog directly : cf https://github.com/YunoHost/apps/blob/main/antifeatures.yml and the 'antifeatures' key in apps.json
-
-    - Important infos that the admin should be made aware of *before* or *after* the install
-        -> infos *before* the install are meant to go in 'doc/PRE_INSTALL.md'
-        -> infos *after* the install are meant to go in 'doc/POST_INSTALL.md' (mostly meant to replace ynh_send_readme_to_admin, typically tips about how to login for the first time on the app / finish the install, ...).
-        -> these will be shown to the admin before/after the install (and the post_install notif will also be available in the app info page)
-        -> note that in these files, the __FOOBAR__ syntax is supported and replaced with the corresponding 'foobar' setting.
-
-    - General admin-related infos (eg. how to access the admin interface of the app, how to install plugin, etc)
-        -> meant to go in 'doc/ADMIN.md' which shall be made available in the app info page in the webadmin after installation.
-        -> if relevant, you can also create custom doc page, just create 'doc/WHATEVER.MD' and this will correspond to a specific documentation tab in the webadmin.
-        -> note that in these files, the __FOOBAR__ syntax is supported and replaced with the corresponding 'foobar' setting.
-"""
+        if (self.path / "doc" / "DISCLAIMER.md").exists():
+            yield ReportWarning(
+                "DISCLAIMER.md has been replaced with several files in packaging v2 to improve "
+                "the UX and provide the user with key information at the appropriate step of the "
+                "app install / upgrade cycles.\n"
+                "\n"
+                "You are encouraged to split its infos into:\n"
+                "\n"
+                "- Integration-related infos (eg. LDAP/SSO support, arch support, resource "
+                "usage,...)\n"
+                "    -> neant to go in the 'integration' section of the manifest.toml\n"
+                "\n"
+                "- Antifeatures-related infos (eg. alpha/deprecated software, arbitrary "
+                "limitations,...)\n"
+                "    -> these are now formalized using the 'antifeatures' mechanism in the app "
+                "catalog directly: cf https://github.com/YunoHost/apps/blob/main/antifeatures.yml "
+                "and the 'antifeatures' key in apps.json\n"
+                "\n"
+                "- Important infos that the admin should be made aware of *before* or *after* "
+                "the install\n"
+                "    -> infos *before* the install are meant to go in 'doc/PRE_INSTALL.md'\n"
+                "    -> infos *after* the install are meant to go in 'doc/POST_INSTALL.md' "
+                "(mostly meant to replace ynh_send_readme_to_admin, typically tips about how to "
+                "login for the first time on the app / finish the install,...).\n"
+                "    -> these will be shown to the admin before/after the install (and the "
+                "post_install notif will also be available in the app info page)\n"
+                "    -> note that in these files, the __FOOBAR__ syntax is supported and replaced "
+                "with the corresponding 'foobar' setting.\n"
+                "\n"
+                "- General admin-related infos (eg. how to access the admin interface of the app, "
+                "how to install plugin, etc)\n"
+                "    -> meant to go in 'doc/ADMIN.md' which shall be made available in the app "
+                "info page in the webadmin after installation.\n"
+                "    -> if relevant, you can also create custom doc page, just create "
+                "'doc/WHATEVER.MD' and this will correspond to a specific documentation tab "
+                "in the webadmin.\n"
+                "    -> note that in these files, the __FOOBAR__ syntax is supported and replaced "
+                "with the corresponding 'foobar' setting."
             )
 
     @test()
-    def admin_has_to_finish_install(app) -> TestResult:
+    def admin_has_to_finish_install(self) -> TestResult:
 
         # Mywebapp has a legit use case for this
-        if app.manifest.get("id") == "my_webapp":
+        if self.manifest.get("id") == "my_webapp":
             return
 
-        cmd = f"grep -q -IhEr '__DB_PWD__' '{app.path}/doc/'"
-        if (app.path / "doc").exists() and os.system(cmd) == 0:
-            yield Warning(
-                "(doc folder) It looks like this app requires the admin to finish the install by entering DB credentials. Unless it's absolutely not easily automatizable, this should be handled automatically by the app install script using curl calls, or (CLI tools provided by the upstream maybe ?)."
+        cmd = f"grep -q -IhEr '__DB_PWD__' '{self.path}/doc/'"
+        if (self.path / "doc").exists() and subprocess.call(cmd, shell=True) == 0:
+            yield ReportWarning(
+                "(doc folder) It looks like this app requires the admin to finish the install "
+                "by entering DB credentials. Unless it's absolutely not easily automatizable, "
+                "this should be handled automatically by the app install script using curl calls, "
+                "or (CLI tools provided by the upstream maybe ?)."
             )
 
     @test()
-    def disclaimer_wording_or_placeholder(app) -> TestResult:
-        if (app.path / "doc").exists():
-            if (
-                os.system(
-                    r"grep -nr -q 'Any known limitations, constrains or stuff not working, such as\|Other infos that people should be' %s/doc/"
-                    % app.path
+    def disclaimer_wording_or_placeholder(self) -> TestResult:
+        if (self.path / "doc").exists():
+            cmd = (
+                r"grep -nr -q 'Any known limitations, constrains or stuff not working, such as"
+                rf"\|Other infos that people should be' {self.path}/doc/",
+            )
+            if subprocess.call(cmd, shell=True) == 0:
+                yield ReportWarning(
+                    "In DISCLAIMER.md: 'Any known limitations [...] such as' and "
+                    "'Other infos [...] such as' are supposed to be placeholder sentences meant "
+                    "to explain to packagers what is the expected content, but is not an "
+                    "appropriate wording for end users :/"
                 )
-                == 0
-            ):
-                yield Warning(
-                    "In DISCLAIMER.md: 'Any known limitations [...] such as' and 'Other infos [...] such as' are supposed to be placeholder sentences meant to explain to packagers what is the expected content, but is not an appropriate wording for end users :/"
-                )
-            if (
-                os.system(
-                    r"grep -nr -q 'This is a dummy\|Ceci est une fausse' %s/doc/"
-                    % app.path
-                )
-                == 0
-            ):
-                yield Warning(
-                    "The doc/ folder seems to still contain some dummy, placeholder messages in the .md markdown files. If those files are not useful in the context of your app, simply remove them."
+            cmd = rf"grep -nr -q 'This is a dummy\|Ceci est une fausse' {self.path}/doc/"
+            if subprocess.call(cmd, shell=True) == 0:
+                yield ReportWarning(
+                    "The doc/ folder seems to still contain some dummy, placeholder messages in "
+                    "the .md markdown files. If those files are not useful in the context of your "
+                    "app, simply remove them."
                 )
 
     @test()
-    def custom_python_version(app) -> TestResult:
-
-        cmd = f"grep -q -IhEr '^[^#]*install_python' '{app.path}/scripts/'"
-        if os.system(cmd) == 0:
-            yield Warning(
-                "It looks like this app installs a custom version of Python which is heavily discouraged, both because it takes a shitload amount of time to compile Python locally, and because it is likely to create complication later once the system gets upgraded to newer Debian versions..."
+    def custom_python_version(self) -> TestResult:
+        cmd = f"grep -q -IhEr '^[^#]*install_python' '{self.path}/scripts/'"
+        if subprocess.call(cmd, shell=True) == 0:
+            yield ReportWarning(
+                "It looks like this app installs a custom version of Python which is heavily "
+                "discouraged, both because it takes a shitload amount of time to compile Python "
+                "locally, and because it is likely to create complication later once the system "
+                "gets upgraded to newer Debian versions..."
             )
 
     @test()
-    def change_url_script(app) -> TestResult:
+    def change_url_script(self) -> TestResult:
 
-        keyandargs = copy.deepcopy(app.manifest["install"])
+        keyandargs = copy.deepcopy(self.manifest["install"])
         for key, infos in keyandargs.items():
             infos["name"] = key
         args = keyandargs.values()
 
         has_domain_arg = any(a["name"] == "domain" for a in args)
 
-        if has_domain_arg and not not_empty(app.path / "scripts" / "change_url"):
-            yield Info(
-                "Consider adding a change_url script to support changing where the app can be reached"
+        if has_domain_arg and not not_empty(self.path / "scripts" / "change_url"):
+            yield ReportInfo(
+                "Consider adding a change_url script to support changing where the app can be "
+                "reached"
             )
 
     @test()
-    def config_panel(app) -> TestResult:
+    def config_panel(self) -> TestResult:
 
-        if not_empty(app.path / "config_panel.json"):
-            yield Error(
+        if not_empty(self.path / "config_panel.json"):
+            yield ReportError(
                 "JSON config panels are not supported anymore, should be replaced by a toml version"
             )
 
-        if not_empty(app.path / "config_panel.toml.example"):
-            yield Warning(
-                "Please do not commit config_panel.toml.example ... This is just a 'documentation' for the config panel syntax meant to be kept in example_ynh"
+        if not_empty(self.path / "config_panel.toml.example"):
+            yield ReportWarning(
+                "Please do not commit config_panel.toml.example... This is just a 'documentation' "
+                "for the config panel syntax meant to be kept in example_ynh"
             )
 
-        if not not_empty(app.path / "config_panel.toml") and not_empty(
-            app.path / "scripts" / "config"
+        if not not_empty(self.path / "config_panel.toml") and not_empty(
+            self.path / "scripts" / "config"
         ):
-            yield Warning(
-                "The script 'config' exists but there is no config_panel.toml ... Please remove the 'config' script if this is just the example from example_ynh, or add a proper config_panel.toml if the point is really to have a config panel"
+            yield ReportWarning(
+                "The script 'config' exists but there is no config_panel.toml... Please remove "
+                "the 'config' script if this is just the example from example_ynh, or add a "
+                "proper config_panel.toml if the point is really to have a config panel"
             )
 
-        if not_empty(app.path / "config_panel.toml"):
-            check_old_panel = os.system(
-                "grep -q 'version = \"0.1\"' '%s'" % (app.path / "config_panel.toml")
-            )
-            if check_old_panel == 0:
-                yield Error(
-                    "Config panels version 0.1 are not supported anymore, should be adapted for version 1.0"
+        if not_empty(self.path / "config_panel.toml"):
+            config_panel_path = self.path / "config_panel.toml"
+            config_script_path = self.path / "scripts" / "config"
+            check_old_panel = 'version = "0.1"' in config_panel_path.read_text()
+            if check_old_panel:
+                yield ReportError(
+                    "Config panels version 0.1 are not supported anymore, should be adapted for "
+                    "version 1.0"
                 )
-            elif (app.path / "scripts" / "config").exists() and os.system(
-                "grep -q 'YNH_CONFIG_\\|yunohost app action' '%s'"
-                % (app.path / "scripts" / "config")
-            ) == 0:
-                yield Error(
-                    "The config panel is set to version 1.x, but the config script is apparently still using some old code from 0.1 such as '$YNH_CONFIG_STUFF' or 'yunohost app action'"
-                )
+            elif config_script_path.exists():
+                content = config_script_path.read_text()
+                if "YNH_CONFIG_" in content or "yunohost app action" in content:
+                    yield ReportError(
+                        "The config panel is set to version 1.x, but the config script is "
+                        "apparently still using some old code from 0.1 such as '$YNH_CONFIG_STUFF' "
+                        "or 'yunohost app action'"
+                    )
 
             yield from validate_schema(
                 "config_panel",
                 json.loads(config_panel_v1_schema()),
-                tomllib.load((app.path / "config_panel.toml").open("rb")),
+                tomllib.load((self.path / "config_panel.toml").open("rb")),
             )
 
     @test()
-    def badges_in_readme(app) -> TestResult:
+    def badges_in_readme(self) -> TestResult:
 
-        id_ = app.manifest["id"]
+        id_ = self.manifest["id"]
 
-        readme = app.path / "README.md"
+        readme = self.path / "README.md"
         if not not_empty(readme):
             return
 
@@ -595,44 +642,41 @@ class App(TestSuite):
                 not in content
             )
         ):
-            yield Warning(
-                "It looks like the README was not generated automatically by https://github.com/YunoHost/apps/tree/main/tools/README-generator. "
-                "Note that nowadays you are not suppose to edit README.md, the yunohost bot will usually automatically update it if your app is hosted in the YunoHost-Apps org ... or you can also generate it by running the README-generator yourself."
+            yield ReportWarning(
+                "It looks like the README was not generated automatically by "
+                "https://github.com/YunoHost/apps/tree/main/tools/README-generator. "
+                "Note that nowadays you are not suppose to edit README.md, the yunohost bot "
+                "will usually automatically update it if your app is hosted in the YunoHost-Apps "
+                "org... or you can also generate it by running the README-generator yourself."
             )
 
     @test()
     def remaining_replacebyyourapp(self) -> TestResult:
-        if os.system("grep -I -qr 'REPLACEBYYOURAPP' %s 2>/dev/null" % self.path) == 0:
-            yield Error("You should replace all occurences of REPLACEBYYOURAPP.")
+        cmd = f"grep -I -qr 'REPLACEBYYOURAPP' {self.path} 2>/dev/null"
+        if subprocess.call(cmd, shell=True) == 0:
+            yield ReportError("You should replace all occurences of REPLACEBYYOURAPP.")
 
     @test()
     def supervisor_usage(self) -> TestResult:
-        if (
-            os.system(r"grep -I -qr '^\s*supervisorctl' %s 2>/dev/null" % self.path)
-            == 0
-        ):
-            yield Warning(
-                "Please don't rely on supervisor to run services. YunoHost is about standardization and the standard is to use systemd units..."
+        cmd = rf"grep -I -qr '^\s*supervisorctl' {self.path} 2>/dev/null"
+        if subprocess.call(cmd, shell=True) == 0:
+            yield ReportWarning(
+                "Please don't rely on supervisor to run services. YunoHost is about "
+                "standardization and the standard is to use systemd units..."
             )
 
     @test()
     def bad_encoding(self) -> TestResult:
-
-        cmd = (
-            "file --mime-encoding $(find %s/ -type f) | grep 'iso-8859-1\\|unknown-8bit' || true"
-            % self.path
-        )
-        bad_encoding_files = (
-            subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
-        )
-        for file_ in bad_encoding_files:
-            if not file_:
-                continue
-            file_ = file_.split()[0]
-            yield Error(
-                "%s appears to be encoded as latin-1 / iso-8859-1. Please convert it to utf-8 to avoid funky issues. Something like 'iconv -f iso-8859-1 -t utf-8 SOURCE > DEST' should do the trick."
-                % file_
-            )
+        for file in self.path.rglob("**/*"):
+            cmd = ["file", "--mime-encoding", str(file)]
+            encoding = subprocess.check_output(cmd).decode("utf-8").strip().split()[1]
+            if encoding in ["iso-8859-1", "unknown-8bit"]:
+                msg = (
+                    f"{file.relative_to(self.path)} appears to be encoded as latin-1 / iso-8859-1. "
+                    "Please convert it to utf-8 to avoid funky issues. Something like "
+                    "'iconv -f iso-8859-1 -t utf-8 SOURCE > DEST' should do the trick."
+                )
+                yield ReportError(msg)
 
     #######################################
     #  _    _      _                      #
@@ -646,49 +690,47 @@ class App(TestSuite):
     #######################################
 
     @test()
-    def helpers_now_official(app) -> TestResult:
-
-        cmd = "grep -IhEro 'ynh_\\w+ *\\( *\\)' '%s/scripts' | tr -d '() '" % app.path
+    def helpers_now_official(self) -> TestResult:
+        cmd = f"grep -IhEro 'ynh_\\w+ *\\( *\\)' '{self.path}/scripts' | tr -d '() '"
         custom_helpers = (
             subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         )
         custom_helpers = [c.split("__")[0] for c in custom_helpers]
 
         for custom_helper in custom_helpers:
-            if custom_helper in official_helpers.keys():
-                yield Info(
-                    "%s is now an official helper since version '%s'"
-                    % (custom_helper, official_helpers[custom_helper] or "?")
+            if custom_helper in official_helpers:
+                version = official_helpers[custom_helper] or "?"
+                yield ReportInfo(
+                    f"{custom_helper} is now an official helper since version '{version}'"
                 )
 
     @test()
-    def git_clone_usage(app) -> TestResult:
+    def git_clone_usage(self) -> TestResult:
         cmd = (
-            f"grep -I 'git clone' '{app.path}'/scripts/install '{app.path}'/scripts/_common.sh 2>/dev/null"
+            f"grep -I 'git clone' '{self.path}'/scripts/install '{self.path}'/scripts/_common.sh "
+            "2>/dev/null"
             r" | grep -qv 'xxenv\|rbenv\|oracledb'"
         )
-        if os.system(cmd) == 0:
-            yield Warning(
-                "Using 'git clone' is not recommended ... most forge do provide the ability to download a proper archive of the code for a specific commit. Please use the 'sources' resource in the manifest.toml in combination with ynh_setup_source."
+        if subprocess.call(cmd, shell=True) == 0:
+            yield ReportWarning(
+                "Using 'git clone' is not recommended... most forge do provide the ability to "
+                "download a proper archive of the code for a specific commit. Please use the "
+                "'sources' resource in the manifest.toml in combination with ynh_setup_source."
             )
 
     @test()
-    def helpers_version_requirement(app) -> TestResult:
+    def helpers_version_requirement(self) -> TestResult:
 
-        cmd = "grep -IhEro 'ynh_\\w+ *\\( *\\)' '%s/scripts' | tr -d '() '" % app.path
+        cmd = f"grep -IhEro 'ynh_\\w+ *\\( *\\)' '{self.path}/scripts' | tr -d '() '"
         custom_helpers = (
             subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         )
         custom_helpers = [c.split("__")[0] for c in custom_helpers]
 
-        yunohost_version_req = (
-            app.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
-        )
+        yunohost_version_req = self.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
 
-        cmd = "grep -IhEro 'ynh_\\w+' '%s/scripts'" % app.path
-        helpers_used = (
-            subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
-        )
+        cmd = f"grep -IhEro 'ynh_\\w+' '{self.path}/scripts'"
+        helpers_used = subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         helpers_used = sorted(set(helpers_used))
 
         manifest_req = [int(i) for i in yunohost_version_req.split(".")] + [0, 0, 0]
@@ -697,104 +739,110 @@ class App(TestSuite):
             if helper_req == "":
                 return True
             helper_req_list = [int(i) for i in helper_req.split(".")]
-            for i in range(0, len(helper_req_list)):
+            for i in range(len(helper_req_list)):
                 if helper_req_list[i] == manifest_req[i]:
                     continue
                 return helper_req_list[i] <= manifest_req[i]
             return True
 
-        for helper in [h for h in helpers_used if h in official_helpers.keys()]:
+        for helper in [h for h in helpers_used if h in official_helpers]:
             if helper in custom_helpers:
                 continue
             helper_req = official_helpers[helper]
             if not validate_version_requirement(helper_req):
                 major_diff = manifest_req[0] > int(helper_req[0])
                 message = (
-                    "Using official helper %s implies requiring at least version %s, but manifest only requires %s"
-                    % (helper, helper_req, yunohost_version_req)
+                    f"Using official helper {helper} implies requiring at least version "
+                    f"{helper_req}, but manifest only requires {yunohost_version_req}"
                 )
-                yield Error(message) if major_diff else Warning(message)
+                yield ReportError(message) if major_diff else ReportWarning(message)
 
     @test()
-    def helpers_deprecated_in_v2(app) -> TestResult:
+    def helpers_deprecated_in_v2(self) -> TestResult:
 
-        cmd = f"grep -IhEro 'ynh_\\w+' '{app.path}/scripts/install' '{app.path}/scripts/remove' '{app.path}/scripts/upgrade' '{app.path}/scripts/backup' '{app.path}/scripts/restore' || true"
-        helpers_used = (
-            subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
+        cmd = (
+            f"grep -IhEro 'ynh_\\w+' '{self.path}/scripts/install' '{self.path}/scripts/remove' "
+            f"'{self.path}/scripts/upgrade' '{self.path}/scripts/backup' "
+            f"'{self.path}/scripts/restore' || true"
         )
+        helpers_used = subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         helpers_used = sorted(set(helpers_used))
 
         deprecated_helpers_in_v2_ = {k: v for k, v in deprecated_helpers_in_v2}
+        deprecated_helpers_in_v2p1_ = {k: v for k, v in deprecated_helpers_in_v2p1}
 
-        for helper in [
-            h for h in helpers_used if h in deprecated_helpers_in_v2_.keys()
-        ]:
-            yield Warning(
-                f"Using helper {helper} is deprecated when using packaging v2 ... It is replaced by: {deprecated_helpers_in_v2_[helper]}"
+        for helper in [h for h in helpers_used if h in deprecated_helpers_in_v2_]:
+            yield ReportWarning(
+                f"Using helper {helper} is deprecated when using packaging v2... "
+                f"It is replaced by: {deprecated_helpers_in_v2_[helper]}"
+            )
+
+        for helper in [h for h in helpers_used if h in deprecated_helpers_in_v2p1_]:
+            yield ReportWarning(
+                f"Using helper {helper} is now deprecated (assuming you're using packaging "
+                f"v2.1)... It is replaced by: {deprecated_helpers_in_v2p1_[helper]}. Note that a "
+                "PR should have been automatically created via yunohost-bot to help with "
+                "the transition"
             )
 
     @test()
-    def helper_consistency_apt_deps(app) -> TestResult:
+    def helper_consistency_apt_deps(self) -> TestResult:
         """
         Check if ynh_install_app_dependencies is present in install/upgrade/restore
         so dependencies are up to date after restoration or upgrade
         """
 
-        install_script = app.scripts["install"]
+        install_script = self.scripts["install"]
         if install_script.contains("ynh_install_app_dependencies"):
             for name in ["upgrade", "restore"]:
-                if app.scripts[name].exists and not app.scripts[name].contains(
+                if self.scripts[name].exists and not self.scripts[name].contains(
                     "ynh_install_app_dependencies"
                 ):
-                    yield Warning(
-                        "ynh_install_app_dependencies should also be in %s script"
-                        % name
+                    yield ReportWarning(
+                        f"ynh_install_app_dependencies should also be in {name} script"
                     )
 
         cmd = (
-            'grep -IhEr "install_extra_app_dependencies" %s/scripts | grep -v "key" | grep -q "http://"'
-            % app.path
+            f'grep -IhEr "install_extra_app_dependencies" {self.path}/scripts '
+            '| grep -v "key" | grep -q "http://"'
         )
-        if os.system(cmd) == 0:
-            yield Warning(
-                "When installing dependencies from extra repository, please include a `--key` argument (yes, even if it's official debian repos such as backports - because systems like Raspbian do not ship Debian's key by default!"
+        if subprocess.call(cmd, shell=True) == 0:
+            yield ReportWarning(
+                "When installing dependencies from extra repository, please include a `--key` "
+                "argument (yes, even if it's official debian repos such as backports - because "
+                "systems like Raspbian do not ship Debian's key by default!"
             )
 
     @test()
-    def helper_consistency_service_add(app) -> TestResult:
+    def helper_consistency_service_add(self) -> TestResult:
 
         occurences = {
             "install": (
-                app.scripts["install"].occurences("yunohost service add")
-                if app.scripts["install"].exists
+                self.scripts["install"].occurences("yunohost service add")
+                if self.scripts["install"].exists
                 else []
             ),
             "upgrade": (
-                app.scripts["upgrade"].occurences("yunohost service add")
-                if app.scripts["upgrade"].exists
+                self.scripts["upgrade"].occurences("yunohost service add")
+                if self.scripts["upgrade"].exists
                 else []
             ),
             "restore": (
-                app.scripts["restore"].occurences("yunohost service add")
-                if app.scripts["restore"].exists
+                self.scripts["restore"].occurences("yunohost service add")
+                if self.scripts["restore"].exists
                 else []
             ),
         }
 
         occurences = {
-            k: [sub_v.replace('"$app"', "$app") for sub_v in v]
-            for k, v in occurences.items()
+            k: [sub_v.replace('"$app"', "$app") for sub_v in v] for k, v in occurences.items()
         }
 
-        all_occurences = (
-            occurences["install"] + occurences["upgrade"] + occurences["restore"]
-        )
+        all_occurences = occurences["install"] + occurences["upgrade"] + occurences["restore"]
         found_inconsistency = False
         found_legacy_logtype_option = False
         for cmd in all_occurences:
-            if any(
-                cmd not in occurences_list for occurences_list in occurences.values()
-            ):
+            if any(cmd not in occurences_list for occurences_list in occurences.values()):
                 found_inconsistency = True
             if "--log_type systemd" in cmd:
                 found_legacy_logtype_option = True
@@ -802,78 +850,71 @@ class App(TestSuite):
         if found_inconsistency:
             details = [
                 (
-                    "   %s : " % script
-                    + "".join(
-                        "\n      " + cmd
-                        for cmd in occurences[script] or ["...None?..."]
-                    )
+                    f"   {script} : "
+                    + "".join(f"\n      {cmd}" for cmd in occurences[script] or ["...None?..."])
                 )
-                for script in occurences.keys()
+                for script in occurences
             ]
             details_str = "\n".join(details)
-            yield Warning(
-                "Some inconsistencies were found in the 'yunohost service add' commands between install, upgrade and restore:\n%s"
-                % details_str
+            yield ReportWarning(
+                "Some inconsistencies were found in the 'yunohost service add' commands between "
+                f"install, upgrade and restore:\n{details_str}"
             )
 
         if found_legacy_logtype_option:
-            yield Warning(
-                "Using option '--log_type systemd' with 'yunohost service add' is not relevant anymore"
+            yield ReportWarning(
+                "Using option '--log_type systemd' with 'yunohost service add' is not "
+                "relevant anymore"
             )
 
-        if occurences["install"] and not app.scripts["remove"].contains(
-            "yunohost service remove"
-        ):
-            yield Error(
+        if occurences["install"] and not self.scripts["remove"].contains("yunohost service remove"):
+            yield ReportError(
                 "You used 'yunohost service add' in the install script, "
                 "but not 'yunohost service remove' in the remove script."
             )
 
     @test()
-    def references_to_superold_stuff(app) -> TestResult:
-        if any(
-            script.contains("jessie")
-            for script in app.scripts.values()
-            if script.exists
-        ):
-            yield Error(
+    def references_to_superold_stuff(self) -> TestResult:
+        if any(script.contains("jessie") for script in self.scripts.values() if script.exists):
+            yield ReportError(
                 "The app still contains references to jessie, which could probably be cleaned up..."
             )
         if any(
             script.contains("/etc/php5") or script.contains("php5-fpm")
-            for script in app.scripts.values()
+            for script in self.scripts.values()
             if script.exists
         ):
-            yield Error(
-                "This app still has references to php5 (from the jessie era!!) which tends to indicate that it's not up to date with recent packaging practices."
+            yield ReportError(
+                "This app still has references to php5 (from the jessie era!!) which tends to "
+                "indicate that it's not up to date with recent packaging practices."
             )
         if any(
             script.contains("/etc/php/7.0") or script.contains("php7.0-fpm")
-            for script in app.scripts.values()
+            for script in self.scripts.values()
             if script.exists
         ):
-            yield Error(
-                "This app still has references to php7.0 (from the stretch era!!) which tends to indicate that it's not up to date with recent packaging practices."
+            yield ReportError(
+                "This app still has references to php7.0 (from the stretch era!!) which tends to "
+                "indicate that it's not up to date with recent packaging practices."
             )
         if any(
             script.contains("/etc/php/7.3") or script.contains("php7.3-fpm")
-            for script in app.scripts.values()
+            for script in self.scripts.values()
             if script.exists
         ):
-            yield Error(
-                "This app still has references to php7.3 (from the buster era!!) which tends to indicate that it's not up to date with recent packaging practices."
+            yield ReportError(
+                "This app still has references to php7.3 (from the buster era!!) which tends to "
+                "indicate that it's not up to date with recent packaging practices."
             )
 
     @test()
     def conf_json_persistent_tweaking(self) -> TestResult:
-        if (
-            os.system(
-                "grep -nr '/etc/ssowat/conf.json.persistent' %s | grep -vq '^%s/doc' 2>/dev/null"
-                % (self.path, self.path)
-            )
-            == 0
-        ):
-            yield Error("Don't do black magic with /etc/ssowat/conf.json.persistent!")
+        cmd = (
+            f"grep -nr '/etc/ssowat/conf.json.persistent' {self.path} "
+            f"| grep -vq '^{self.path}/doc' 2>/dev/null"
+        )
+        if subprocess.call(cmd, shell=True) == 0:
+            yield ReportError("Don't do black magic with /etc/ssowat/conf.json.persistent!")
 
     @test()
     def app_data_in_unofficial_dir(self) -> TestResult:
@@ -884,10 +925,7 @@ class App(TestSuite):
             "/home/yunohost.backup",
             "/home/yunohost.multimedia",
         ]
-        cmd = (
-            "grep -IhEro '/home/yunohost[^/ ]*/|/home/\\$app' %s/scripts || true"
-            % self.path
-        )
+        cmd = f"grep -IhEro '/home/yunohost[^/ ]*/|/home/\\$app' {self.path}/scripts || true"
         home_locations = (
             subprocess.check_output(cmd, shell=True).decode("utf-8").strip().split("\n")
         )
@@ -901,9 +939,11 @@ class App(TestSuite):
         )
 
         if forbidden_locations:
-            yield Warning(
-                "The app seems to be storing data in the 'forbidden' locations %s. The recommended pratice is rather to store data in /home/yunohost.app/$app or /home/yunohost.multimedia (depending on the use case)"
-                % ", ".join(forbidden_locations)
+            forbidden_locations_str = ", ".join(forbidden_locations)
+            yield ReportWarning(
+                "The app seems to be storing data in the 'forbidden' locations "
+                f"{forbidden_locations_str}. The recommended pratice is rather to store data in "
+                "/home/yunohost.app/$app or /home/yunohost.multimedia (depending on the use case)"
             )
 
     @test()
@@ -912,13 +952,30 @@ class App(TestSuite):
         ldap_flag_in_manifest = self.manifest.get("integration", {}).get("ldap")
 
         ldap_conf_clue_cmd = rf"grep -qIri '^[^#]*dc=yunohost,\s*dc=org' {self.path}/"
-        ldap_conf_clue = os.system(ldap_conf_clue_cmd) == 0
+        ldap_conf_clue = subprocess.call(ldap_conf_clue_cmd, shell=True) == 0
         if ldap_flag_in_manifest is True and ldap_conf_clue is False:
-            yield Warning(
-                "The manifest contains 'ldap = true', but it looks like this apps doesn't actually configure LDAP ... or at least there's no 'dc=yunohost,dc=org' which is typical to configure LDAP integration.\n      - If the app is not integrated with LDAP, consider switching the 'ldap' flag in the manifest to false, or 'not_relevant' if the app has no user/account system at all.\n      - If the app *does* integrate with LDAP, this is a false positive ... for example if the integration is done via an external plugin which hardcodes the Yunohost LDAP parameters ... one way to work around this is to create a dummy text file in the conf/ folder explaining how the LDAP integration and with which LDAP parameters"
+            yield ReportWarning(
+                "The manifest contains 'ldap = true', but it looks like this apps doesn't actually "
+                "configure LDAP... or at least there's no 'dc=yunohost,dc=org' which is typical to "
+                "configure LDAP integration.\n"
+                "      - If the app is not integrated with LDAP, consider switching the 'ldap' "
+                "flag in the manifest to false, or 'not_relevant' if the app has no user/account "
+                "system at all.\n"
+                "      - If the app *does* integrate with LDAP, this is a false positive... for "
+                "example if the integration is done via an external plugin which hardcodes the "
+                "Yunohost LDAP parameters... one way to work around this is to create a dummy "
+                "text file in the conf/ folder explaining how the LDAP integration and with which "
+                "LDAP parameters"
             )
 
         if ldap_flag_in_manifest in [False, "not_relevant"] and ldap_conf_clue is True:
-            yield Warning(
-                "The manifest contains 'ldap = false' (or not_relevant?), but it looks like this app *does* configure LDAP integration ? ... or at least there is a 'dc=yunohost,dc=org' somewhere in the code, suggesting that something LDAP-related is configured ...\n      - If the app *is* integrated with LDAP, consider switching the 'ldap' flag in manifest to true.\n      - If the app does *not* integrate with LDAP, then this is a false positive, please discuss this with the rest of the team to know how to handle this case ;)"
+            yield ReportWarning(
+                "The manifest contains 'ldap = false' (or not_relevant?), but it looks like this "
+                "app *does* configure LDAP integration ?... or at least there is a "
+                "'dc=yunohost,dc=org' somewhere in the code, suggesting that something "
+                "LDAP-related is configured...\n"
+                "      - If the app *is* integrated with LDAP, consider switching the 'ldap' flag "
+                "in manifest to true.\n"
+                "      - If the app does *not* integrate with LDAP, then this is a false positive, "
+                "please discuss this with the rest of the team to know how to handle this case ;)"
             )

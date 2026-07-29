@@ -7,26 +7,26 @@
 import copy
 import logging
 
+import six
 from pyparsing import (
-    Literal,
-    White,
+    Combine,
     Forward,
     Group,
-    Optional,
+    Literal,
     OneOrMore,
+    Optional,
     QuotedString,
     Regex,
+    White,
     ZeroOrMore,
-    Combine,
+    restOfLine,
+    stringEnd,
 )
-from pyparsing import stringEnd
-from pyparsing import restOfLine
-import six
 
 logger = logging.getLogger(__name__)
 
 
-class RawNginxParser(object):
+class RawNginxParser:
     # pylint: disable=expression-not-assigned
     # pylint: disable=pointless-statement
     """A class that parses nginx configuration with pyparsing."""
@@ -78,7 +78,7 @@ class RawNginxParser(object):
         return self.parse().asList()
 
 
-class RawNginxDumper(object):
+class RawNginxDumper:
     # pylint: disable=too-few-public-methods
     """A class that dumps nginx configuration from the provided tree."""
 
@@ -101,8 +101,8 @@ class RawNginxDumper(object):
             if isinstance(item[0], list):  # block
                 yield "".join(item.pop(0)) + "{"
                 for parameter in item.pop(0):
-                    for line in self.__iter__([parameter]):  # negate "for b0 in blocks"
-                        yield line
+                    # negate "for b0 in blocks"
+                    yield from self.__iter__([parameter])
                 yield "}"
             else:  # not a block - list of strings
                 semicolon = ";"
@@ -202,10 +202,9 @@ class UnspacedList(list):
         """
         if not isinstance(inbound, list):  # str or None
             return (inbound, inbound)
-        else:
-            if not hasattr(inbound, "spaced"):
-                inbound = UnspacedList(inbound)
-            return (inbound, inbound.spaced)
+        if not hasattr(inbound, "spaced"):
+            inbound = UnspacedList(inbound)
+        return (inbound, inbound.spaced)
 
     def insert(self, i, x):
         item, spaced_item = self._coerce(x)
@@ -235,27 +234,29 @@ class UnspacedList(list):
         return zzz
 
     def pop(self, _i=None):
-        raise NotImplementedError("UnspacedList.pop() not yet implemented")
+        msg = "UnspacedList.pop() not yet implemented"
+        raise NotImplementedError(msg)
 
     def remove(self, _):
-        raise NotImplementedError("UnspacedList.remove() not yet implemented")
+        msg = "UnspacedList.remove() not yet implemented"
+        raise NotImplementedError(msg)
 
     def reverse(self):
-        raise NotImplementedError("UnspacedList.reverse() not yet implemented")
+        msg = "UnspacedList.reverse() not yet implemented"
+        raise NotImplementedError(msg)
 
     def sort(self, _cmp=None, _key=None, _Rev=None):
-        raise NotImplementedError("UnspacedList.sort() not yet implemented")
+        msg = "UnspacedList.sort() not yet implemented"
+        raise NotImplementedError(msg)
 
     def __setslice__(self, _i, _j, _newslice):
-        raise NotImplementedError(
-            "Slice operations on UnspacedLists not yet implemented"
-        )
+        msg = "Slice operations on UnspacedLists not yet implemented"
+        raise NotImplementedError(msg)
 
     def __setitem__(self, i, value):
         if isinstance(i, slice):
-            raise NotImplementedError(
-                "Slice operations on UnspacedLists not yet implemented"
-            )
+            msg = "Slice operations on UnspacedLists not yet implemented"
+            raise NotImplementedError(msg)
         item, spaced_item = self._coerce(value)
         self.spaced.__setitem__(self._spaced_position(i), spaced_item)
         if not spacey(item):
@@ -277,7 +278,7 @@ class UnspacedList(list):
         """Recurse through the parse tree to figure out if any sublists are dirty"""
         if self.dirty:
             return True
-        return any((isinstance(x, UnspacedList) and x.is_dirty() for x in self))
+        return any(isinstance(x, UnspacedList) and x.is_dirty() for x in self)
 
     def _spaced_position(self, idx):
         "Convert from indexes in the unspaced list to positions in the spaced one"
@@ -286,7 +287,8 @@ class UnspacedList(list):
         if idx < 0:
             idx = len(self) + idx
         if not 0 <= idx < len(self):
-            raise IndexError("list index out of range")
+            msg = "list index out of range"
+            raise IndexError(msg)
         idx0 = idx
         # Count the number of spaces in the spaced list before idx in the unspaced one
         while idx != -1:

@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 
-from typing import Any
+from functools import wraps
 
 output = "plain"
 
 
-def _print(*args: Any, **kwargs: Any) -> None:
+@wraps(print)
+def _print(*values: object, **kwargs) -> None:  # type: ignore[no-untyped-def]  # noqa: ANN003
     if not is_json_output():
-        print(*args, **kwargs)
+        print(*values, **kwargs)
 
 
 def set_output_json() -> None:
-    global output
+    global output  # noqa: PLW0603
     output = "json"
 
 
