@@ -529,7 +529,7 @@ class App(TestSuite):
         if (self.path / "doc").exists():
             cmd = (
                 r"grep -nr -q 'Any known limitations, constrains or stuff not working, such as"
-                rf"\|Other infos that people should be' {self.path}/doc/",
+                rf"\|Other infos that people should be' {self.path}/doc/"
             )
             if subprocess.call(cmd, shell=True) == 0:
                 yield ReportWarning(

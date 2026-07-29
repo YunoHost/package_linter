@@ -40,9 +40,10 @@ from lib.print import _print
 
 
 @wraps(subprocess.check_output)
-def git(*args: str, **kwargs) -> str:  # noqa: ANN003
-    cmd = ["git", "-C", APPS_CACHE, *args]
-    return subprocess.check_output(cmd, **kwargs).decode("utf-8").strip()
+def git(*args: str, **kwargs) -> str:  # type: ignore[no-untyped-def]  # noqa: ANN003
+    cmd = ["git", "-C", str(APPS_CACHE), *args]
+    output = subprocess.check_output(cmd, **kwargs).decode("utf-8")
+    return str(output).strip()
 
 
 class AppCatalog(TestSuite):
@@ -67,7 +68,7 @@ class AppCatalog(TestSuite):
             return
 
         if not APPS_CACHE.exists():
-            cmd = ["git", "clone", "https://github.com/YunoHost/apps", APPS_CACHE, "--quiet"]
+            cmd = ["git", "clone", "https://github.com/YunoHost/apps", str(APPS_CACHE), "--quiet"]
             subprocess.check_call(cmd)
         else:
             git("fetch", "--quiet")
