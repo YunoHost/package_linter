@@ -1,0 +1,36 @@
+name: Lint code
+on:
+  pull_request:
+  push:
+    branches:
+    - main
+
+jobs:
+  ruff:
+    name: Ruff check
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: astral-sh/ruff-action@v3
+
+  ty:
+    name: Ty check
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: JacobCoffee/ty-action@v1
+
+  mypy:
+    name: Mypy check
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install mypy
+      run: pip install mypy
+
+    - name: Run Mypy
+      run: |
+        mypy --install-types --non-interactive --strict .
