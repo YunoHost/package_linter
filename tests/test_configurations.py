@@ -51,7 +51,8 @@ class Configurations(TestSuite):
         tests_toml_file = self.app.path / "tests.toml"
         if not not_empty(tests_toml_file):
             yield ReportError(
-                "The 'check_process' file that interfaces with the app CI has now been replaced with 'tests.toml' format and is now mandatory for apps v2."
+                "The 'check_process' file that interfaces with the app CI has now been replaced "
+                "with 'tests.toml' format and is now mandatory for apps v2."
             )
         else:
             yield from validate_schema(
@@ -83,8 +84,10 @@ class Configurations(TestSuite):
             and len(list(elt for elt in source_dir.iterdir() if elt.is_file())) > 5
         ):
             yield ReportError(
-                "Upstream app sources shouldn't be stored in this 'sources' folder of this git repository as a copy/paste\n"
-                "During installation, the package should download sources from upstream via 'ynh_setup_source'.\n"
+                "Upstream app sources shouldn't be stored in this 'sources' folder of this "
+                "git repository as a copy/paste\n"
+                "During installation, the package should download sources from upstream "
+                "via 'ynh_setup_source'.\n"
                 "See the helper documentation. "
                 "Original discussion happened here: "
                 "https://github.com/YunoHost/issues/issues/201#issuecomment-391549262"
@@ -126,14 +129,15 @@ class Configurations(TestSuite):
 
             matches = re.findall(r"^ *(User)=(\S+)", content, flags=re.MULTILINE)
             if not any(match[0] == "User" for match in matches):
-                yield level(
-                    "You should specify a 'User=' directive in the systemd config !"
-                )
+                yield level("You should specify a 'User=' directive in the systemd config !")
                 continue
 
             if any(match[1] in ["root", "www-data"] for match in matches):
                 yield level(
-                    "DO NOT run the app's systemd service as root or www-data! Use a dedicated system user for this app! If your app requires administrator priviledges, you should consider adding the user to the sudoers (and restrict the commands it can use!)"
+                    "DO NOT run the app's systemd service as root or www-data! Use a dedicated "
+                    "system user for this app! If your app requires administrator priviledges, "
+                    "you should consider adding the user to the sudoers (and restrict the "
+                    "commands it can use!)"
                 )
 
     @test()
@@ -147,12 +151,10 @@ class Configurations(TestSuite):
             if not file.name.endswith(".service"):
                 continue
 
-            if (
-                os.system(rf"grep -Eqi '^\s*Environment=.*(pass|secret|key)' '{file}'")
-                == 0
-            ):
+            if os.system(rf"grep -Eqi '^\s*Environment=.*(pass|secret|key)' '{file}'") == 0:
                 yield ReportError(
-                    "Systemd configurations are world-readable and should not contain cleartext password/secrets T_T"
+                    "Systemd configurations are world-readable and should not contain cleartext "
+                    "password/secrets T_T"
                 )
 
             if (
@@ -162,7 +164,10 @@ class Configurations(TestSuite):
                 or os.system(rf"grep -q '^\s*PrivateTmp=' '{file}'") != 0
             ):
                 yield ReportInfo(
-                    f"You are encouraged to harden the security of the systemd configuration {file.name}. You can have a look at https://github.com/YunoHost/example_ynh/blob/main/conf/systemd.service#L14-L46 for a baseline."
+                    "You are encouraged to harden the security of the systemd configuration "
+                    f"{file.name}. You can have a look at "
+                    "https://github.com/YunoHost/example_ynh/blob/main/conf/systemd.service#L14-L46"
+                    " for a baseline."
                 )
 
     @test()
@@ -185,20 +190,17 @@ class Configurations(TestSuite):
                 yield ReportWarning(f"Can't open/read {file.name} : {e}")
                 continue
 
-            matches = re.findall(
-                r"^ *(user|group) = (\S+)", content, flags=re.MULTILINE
-            )
+            matches = re.findall(r"^ *(user|group) = (\S+)", content, flags=re.MULTILINE)
             if not any(match[0] == "user" for match in matches):
                 yield ReportError(
                     "You should at least specify a 'user =' directive in your PHP conf file"
                 )
                 continue
 
-            if any(
-                match[1] == "root" or match == ("user", "www-data") for match in matches
-            ):
+            if any(match[1] == "root" or match == ("user", "www-data") for match in matches):
                 yield ReportError(
-                    "DO NOT run the app PHP worker as root or www-data! Use a dedicated system user for this app!"
+                    "DO NOT run the app PHP worker as root or www-data! Use a dedicated system "
+                    "user for this app!"
                 )
 
     @test()
@@ -229,7 +231,8 @@ class Configurations(TestSuite):
                 yield ReportError(
                     "Since Yunohost 4.3, the http->https redirect is handled by the core, "
                     "therefore having an if ($scheme = http) { rewrite ^ https://... } block "
-                    "in the nginx config file is deprecated. (This helps with supporting Yunohost-behind-reverse-proxy use case)"
+                    "in the nginx config file is deprecated. (This helps with supporting "
+                    "Yunohost-behind-reverse-proxy use case)"
                 )
 
     @test()
@@ -252,7 +255,8 @@ class Configurations(TestSuite):
             if "location" in content and "add_header" in content:
                 yield ReportError(
                     "Do not use 'add_header' in the NGINX conf. Use 'more_set_headers' instead. "
-                    "(See https://www.peterbe.com/plog/be-very-careful-with-your-add_header-in-nginx "
+                    "(See "
+                    "https://www.peterbe.com/plog/be-very-careful-with-your-add_header-in-nginx "
                     "and https://github.com/openresty/headers-more-nginx-module#more_set_headers )"
                 )
 
@@ -271,20 +275,12 @@ class Configurations(TestSuite):
 
             if "location" in content and "more_set_headers" in content:
                 lines = content.split("\n")
-                more_set_headers_lines = [
-                    zzz for zzz in lines if "more_set_headers" in zzz
-                ]
+                more_set_headers_lines = [zzz for zzz in lines if "more_set_headers" in zzz]
 
                 def right_syntax(line: str) -> re.Match[str] | None:
-                    return re.search(
-                        r"more_set_headers +[\"\'][\w-]+\s?: .*[\"\'];", line
-                    )
+                    return re.search(r"more_set_headers +[\"\'][\w-]+\s?: .*[\"\'];", line)
 
-                lines = [
-                    line.strip()
-                    for line in more_set_headers_lines
-                    if not right_syntax(line)
-                ]
+                lines = [line.strip() for line in more_set_headers_lines if not right_syntax(line)]
                 if lines:
                     yield ReportError(
                         "It looks like the syntax for the 'more_set_headers' "
@@ -310,7 +306,8 @@ class Configurations(TestSuite):
 
             if os.system(cmd) == 0:
                 yield ReportWarning(
-                    "When using regexp in the nginx location field (location ~ __PATH__), start the path with ^ (location ~ ^__PATH__)."
+                    "When using regexp in the nginx location field (location ~ __PATH__), start "
+                    "the path with ^ (location ~ ^__PATH__)."
                 )
 
     @test()
@@ -359,7 +356,8 @@ class Configurations(TestSuite):
                             continue
                         alias_path = alias[-1]
 
-                        # Ugly hack to ignore cases where aliasing to a specific file (e.g. favicon.ico or foobar.html)
+                        # Ugly hack to ignore cases where aliasing to a specific file
+                        # (e.g. favicon.ico or foobar.html)
                         if "." in alias_path[-5:]:
                             continue
 
@@ -374,8 +372,7 @@ class Configurations(TestSuite):
                         # helper, and therefore it is likely to be replaced by
                         # something ending with / ...
                         if not location.strip("'").endswith("/") and (
-                            alias_path.endswith("/")
-                            or "__INSTALL_DIR__" not in alias_path
+                            alias_path.endswith("/") or "__INSTALL_DIR__" not in alias_path
                         ):
                             yield location
 
@@ -403,7 +400,10 @@ class Configurations(TestSuite):
         content = nginx_conf.read_text()
         if "uwsgi_pass" in content:
             yield ReportWarning(
-                "Using uwsgi is deprecated (at least because it was never properly integrated in YunoHost, and also because the project is not really maintained anymore: https://github.com/unbit/uwsgi/blob/master/README ). Please consider switching to, for example, a gunicorn-based architecture with regular proxy_pass instead."
+                "Using uwsgi is deprecated (at least because it was never properly integrated in "
+                "YunoHost, and also because the project is not really maintained anymore: "
+                "https://github.com/unbit/uwsgi/blob/master/README ). Please consider switching "
+                "to, for example, a gunicorn-based architecture with regular proxy_pass instead."
             )
 
     @test()
@@ -413,9 +413,9 @@ class Configurations(TestSuite):
             self.app.manifest.get("integration", {}).get("yunohost", "").strip(">= ")
         )
 
-        if not yunohost_version_req or version.parse(
-            yunohost_version_req
-        ) < version.parse("12.1.38"):
+        if not yunohost_version_req or version.parse(yunohost_version_req) < version.parse(
+            "12.1.38"
+        ):
             return
 
         conf_dir: Path = self.app.path / "conf"
@@ -432,8 +432,7 @@ class Configurations(TestSuite):
                 continue
 
             has_reverse_proxy_statement = (
-                os.system(rf"grep -Iq '^\s*proxy_pass\s\|^\s*fastcgi_pass\s' '{file}'")
-                == 0
+                os.system(rf"grep -Iq '^\s*proxy_pass\s\|^\s*fastcgi_pass\s' '{file}'") == 0
             )
             include_params_no_auth = (
                 os.system(
@@ -459,23 +458,24 @@ class Configurations(TestSuite):
                 .strip()
             )
             manual_reverse_proxy_params_list = (
-                manual_reverse_proxy_params.split("\n")
-                if manual_reverse_proxy_params
-                else []
+                manual_reverse_proxy_params.split("\n") if manual_reverse_proxy_params else []
             )
             manual_reverse_proxy_params_dict = {
-                i.split(" ")[0]: i.split(" ")[1]
-                for i in manual_reverse_proxy_params_list
+                i.split(" ")[0]: i.split(" ")[1] for i in manual_reverse_proxy_params_list
             }
 
             if has_reverse_proxy_statement and not (
                 include_params_no_auth or include_params_with_auth
             ):
                 yield ReportWarning(
-                    "The nginx configuration reverse-proxies to another service (using proxy_pass or fastcgi_pass) but does not include the default set of params shipped in YunoHost, i.e: proxy_params_no/with_auth or fastcgi_params_no/with_auth, depending on what's the appropriate one for this use case."
+                    "The nginx configuration reverse-proxies to another service (using proxy_pass "
+                    "or fastcgi_pass) but does not include the default set of params shipped in "
+                    "YunoHost, i.e: proxy_params_no/with_auth or fastcgi_params_no/with_auth, "
+                    "depending on what's the appropriate one for this use case."
                 )
 
-            # The item that we are sure that should never be customized and so always raise a warning
+            # The item that we are sure that should never be customized and so always
+            # raise a warning
             # if set in the nginx config
             reverse_proxy_params_from_includes_blacklist = [
                 # Reverse proxy
@@ -502,7 +502,8 @@ class Configurations(TestSuite):
                 "SERVER_NAME",
             ]
             # The item that should generally not be customized but some app might need to override
-            # the default value and so if the non default value are used we just raise a info and not warning.
+            # the default value and so if the non default value are used we just raise a info
+            # and not warning.
             # Note that this list might need some adjustement depending of the use case
             # for instance if an app are overriding a parameter which is in black list
             # and it's justified to override it.'
@@ -531,7 +532,11 @@ class Configurations(TestSuite):
             )
             if reverse_proxy_params_from_includes_that_are_manually_set:
                 yield ReportWarning(
-                    f"In the nginx conf, manually defining a value for these reverse proxy params should not be necessary as they are already defined in the proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be included when using proxy_pass or fastcgi_pass: {reverse_proxy_params_from_includes_that_are_manually_set}"
+                    "In the nginx conf, manually defining a value for these reverse proxy params "
+                    "should not be necessary as they are already defined in the "
+                    "proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be "
+                    "included when using proxy_pass or fastcgi_pass: "
+                    f"{reverse_proxy_params_from_includes_that_are_manually_set}"
                 )
 
             reverse_proxy_params_from_includes_that_are_manually_set = ", ".join(
@@ -544,7 +549,11 @@ class Configurations(TestSuite):
             )
             if reverse_proxy_params_from_includes_that_are_manually_set:
                 yield ReportWarning(
-                    f"In the nginx conf, manually defining a value for these reverse proxy params should not be necessary as they are already defined in the proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be included when using proxy_pass or fastcgi_pass: {reverse_proxy_params_from_includes_that_are_manually_set}"
+                    "In the nginx conf, manually defining a value for these reverse proxy params "
+                    "should not be necessary as they are already defined in the "
+                    "proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be "
+                    "included when using proxy_pass or fastcgi_pass: "
+                    f"{reverse_proxy_params_from_includes_that_are_manually_set}"
                 )
 
             reverse_proxy_params_from_includes_that_are_manually_set = ", ".join(
@@ -557,19 +566,25 @@ class Configurations(TestSuite):
             )
             if reverse_proxy_params_from_includes_that_are_manually_set:
                 yield ReportInfo(
-                    f"In the nginx conf, manually defining a value for these reverse proxy params should not be necessary as they are already defined in the proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be included when using proxy_pass or fastcgi_pass. But in some specific case it would be useful to override the default value, if this is the case you can safely ignore this message: {reverse_proxy_params_from_includes_that_are_manually_set}"
+                    "In the nginx conf, manually defining a value for these reverse proxy params "
+                    "should not be necessary as they are already defined in the "
+                    "proxy_params_no/with_auth or fastcgi_params_no/with_auth that should be "
+                    "included when using proxy_pass or fastcgi_pass. But in some specific case it "
+                    "would be useful to override the default value, if this is the case you can "
+                    "safely ignore this message: "
+                    f"{reverse_proxy_params_from_includes_that_are_manually_set}"
                 )
 
         if sso is True and not include_params_with_auth_at_last_in_one_conf:
             yield ReportWarning(
-                "In manifest.toml, sso integration is set to true, but the nginx conf doesn't seem to include proxy_params_with_auth or fastcgi_params_with_auth."
+                "In manifest.toml, sso integration is set to true, but the nginx conf doesn't "
+                "seem to include proxy_params_with_auth or fastcgi_params_with_auth."
             )
-        elif (
-            sso in [False, "not_relevant"]
-            and include_params_with_auth_at_last_in_one_conf
-        ):
+        elif sso in [False, "not_relevant"] and include_params_with_auth_at_last_in_one_conf:
             yield ReportWarning(
-                "In manifest.toml, sso integration is set to false or not_relevant, but the nginx conf seems to include proxy_params_with_auth or fastcgi_params_with_auth with suggest maybe it does?"
+                "In manifest.toml, sso integration is set to false or not_relevant, but the nginx "
+                "conf seems to include proxy_params_with_auth or fastcgi_params_with_auth with "
+                "suggest maybe it does?"
             )
 
     @test()
@@ -593,9 +608,7 @@ class Configurations(TestSuite):
 
             for number, line in enumerate(content.split("\n"), 1):
                 comment = ("#", "//", ";", "/*", "*")
-                if ("0.0.0.0" in line or "::" in line) and not line.strip().startswith(
-                    comment
-                ):
+                if ("0.0.0.0" in line or "::" in line) and not line.strip().startswith(comment):
                     for ip in re.split(r"[ \t,='\"(){}\[\]]", line):
                         if ip == "::" or ip.startswith("0.0.0.0"):
                             yield ReportInfo(

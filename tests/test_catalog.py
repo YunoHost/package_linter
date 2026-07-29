@@ -113,12 +113,11 @@ class AppCatalog(TestSuite):
         if repo_url != "invalid":
             if repo_url.lower() not in [repo_org.lower(), repo_brique.lower()]:
                 if repo_url.lower().startswith("https://github.com/YunoHost-Apps/"):
-                    yield ReportWarning(
-                        f"The URL for this app in the catalog should be {repo_org}"
-                    )
+                    yield ReportWarning(f"The URL for this app in the catalog should be {repo_org}")
                 else:
                     yield ReportInfo(
-                        "Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily"
+                        "Consider adding your app to the YunoHost-Apps organization to allow "
+                        "the community to contribute more easily"
                     )
 
         else:
@@ -131,7 +130,8 @@ class AppCatalog(TestSuite):
 
             if not is_in_github_org() and not is_in_brique_org():
                 yield ReportInfo(
-                    "Consider adding your app to the YunoHost-Apps organization to allow the community to contribute more easily"
+                    "Consider adding your app to the YunoHost-Apps organization to allow "
+                    "the community to contribute more easily"
                 )
 
     @test()
@@ -143,11 +143,7 @@ class AppCatalog(TestSuite):
         #
 
         def git(cmd: list[str]) -> str:
-            return (
-                subprocess.check_output(["git", "-C", APPS_CACHE, *cmd])
-                .decode("utf-8")
-                .strip()
-            )
+            return subprocess.check_output(["git", "-C", APPS_CACHE, *cmd]).decode("utf-8").strip()
 
         def _time_points_until_today() -> Generator[datetime.datetime, None, None]:
 
@@ -191,18 +187,13 @@ class AppCatalog(TestSuite):
                     ]
                 )
                 if (
-                    os.system(
-                        f"git -C {APPS_CACHE}  cat-file -e {commit}:apps.json 2>/dev/null"
-                    )
+                    os.system(f"git -C {APPS_CACHE}  cat-file -e {commit}:apps.json 2>/dev/null")
                     == 0
                 ):
                     raw_catalog_at_this_date = git(["show", f"{commit}:apps.json"])
                     loader = json
 
-                elif (
-                    os.system(f"git -C {APPS_CACHE}  cat-file -e {commit}:apps.toml")
-                    == 0
-                ):
+                elif os.system(f"git -C {APPS_CACHE}  cat-file -e {commit}:apps.toml") == 0:
                     raw_catalog_at_this_date = git(["show", f"{commit}:apps.toml"])
                     loader = tomllib
                 else:
@@ -213,10 +204,12 @@ class AppCatalog(TestSuite):
                     catalog_at_this_date: dict[str, CatalogAppDescr] = loader.loads(
                         raw_catalog_at_this_date
                     )
-                # This can happen in stupid cases where there was a temporary syntax error in the json..
+                # This can happen in stupid cases where there was a temporary syntax error
+                # in the json..
                 except json.decoder.JSONDecodeError:
                     _print(
-                        f"Failed to parse apps.json/toml history for at commit {commit} / {timepoint} ... ignoring "
+                        "Failed to parse apps.json/toml history for at commit "
+                        f"{commit} / {timepoint}... ignoring "
                     )
                     continue
                 yield (timepoint, catalog_at_this_date.get(self.app_id))

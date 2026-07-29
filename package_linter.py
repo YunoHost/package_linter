@@ -10,9 +10,7 @@ from tests.test_app import App
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("app_path", type=Path, help="The path to the app to lint")
-    parser.add_argument(
-        "--json", action="store_true", help="Output json instead of plain text"
-    )
+    parser.add_argument("--json", action="store_true", help="Output json instead of plain text")
     args = parser.parse_args()
 
     if args.json:

@@ -27,7 +27,8 @@ class Issues(TestSuite):
         self.issues: list[dict] = []  # type: ignore[type-arg]  # ty: ignore[missing-type-argument]
         if "github.com" not in repo_url:
             report_warning_not_reliable(
-                "Can't check if there are any blocking issues pending, can only do this for apps hosted on github for now."
+                "Can't check if there are any blocking issues pending, can only do this for "
+                "apps hosted on github for now."
             )
             return
         repo = repo_url.replace("https://github.com/", "")
@@ -51,9 +52,11 @@ class Issues(TestSuite):
         ]
 
         if issues:
+            issues_str = "\n".join(f"      - {issue}" for issue in issues)
             yield ReportError(
-                "Those issues need to be solved to reach level5+ and be displayed by default on catalog:\n      - "
-                + "\n      - ".join(issues)
+                "Those issues need to be solved to reach level5+ and be displayed by default "
+                "on catalog:\n"
+                f"{issues_str}"
             )
 
     @test()
@@ -65,9 +68,11 @@ class Issues(TestSuite):
         ]
 
         if issues:
+            issues_str = "\n".join(f"      - {issue}" for issue in issues)
             yield ReportWarning(
-                "Those issues need to be solved to reach level7+ and be displayed as high quality apps:\n      - "
-                + "\n      - ".join(issues)
+                "Those issues need to be solved to reach level7+ and be displayed as high "
+                "quality apps:\n"
+                f"{issues_str}"
             )
 
     @test()
@@ -88,5 +93,6 @@ class Issues(TestSuite):
 
         if nb_bugs:
             yield ReportInfo(
-                f"{nb_bugs} small bugs are known in this package, it could be useful to try to fix them or close it if not relevant anymore."
+                f"{nb_bugs} small bugs are known in this package, it could be useful to try to "
+                "fix them or close it if not relevant anymore."
             )

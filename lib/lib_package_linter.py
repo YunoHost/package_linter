@@ -88,9 +88,7 @@ def not_empty(file: Path) -> bool:
     return file.is_file() and file.stat().st_size > 0
 
 
-def cache_file(
-    cachefile: Path, ttl_s: int
-) -> Callable[[Callable[..., str]], Callable[..., str]]:
+def cache_file(cachefile: Path, ttl_s: int) -> Callable[[Callable[..., str]], Callable[..., str]]:
     def cache_is_fresh() -> bool:
         return cachefile.exists() and time.time() - cachefile.stat().st_mtime < ttl_s
 
