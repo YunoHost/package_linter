@@ -224,8 +224,7 @@ class Script(TestSuite):
                 "doesn't mean what you think it means... If you want to check that the output of "
                 'the command is non-empty, use « [ -n "$(cmd)" ] ». If you want to check for the '
                 "return-code of the command, simply use « if cmd » "
-                "(possibly with >/dev/null 2>/dev/null).\nCulprit(s):\n\n"
-                + res
+                "(possibly with >/dev/null 2>/dev/null).\nCulprit(s):\n\n" + res
             )
 
     @test()
@@ -360,12 +359,10 @@ class Script(TestSuite):
 
     @test()
     def FIXMEs(self) -> TestResult:  # noqa: N802
-        removeme = f"grep -q '#REMOVEME?' '{self.path}'"
-        fixme = f"grep -q '# FIXMEhelpers2.1' '{self.path}'"
-
-        if os.system(removeme) == 0:
+        content = self.path.read_text()
+        if "#REMOVEME?" in content:
             yield ReportWarning("There are still some REMOVEME? flags to be taken care of")
-        if os.system(fixme) == 0:
+        if "# FIXMEhelpers2.1" in content:
             yield ReportWarning("There are still some FIXMEhelpers2.1 flags to be taken care of")
 
     @test()
@@ -667,7 +664,7 @@ class Script(TestSuite):
     def helpers_sourcing_backuprestore(self) -> TestResult:
         if self.contains("source _common.sh") or self.contains("source ./_common.sh"):
             yield ReportError(
-                'In the context of backup and restore scripts, you should load _common.sh '
+                "In the context of backup and restore scripts, you should load _common.sh "
                 'with "source ../settings/scripts/_common.sh"'
             )
 

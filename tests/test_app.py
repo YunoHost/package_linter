@@ -463,14 +463,11 @@ class App(TestSuite):
                 "extensive description of what the app is and does. Consider also adding a "
                 "'/doc/screenshots/' folder with a few screenshots of what the app looks like."
             )
-        elif (
-            os.system(
-                r'grep -inrq "Some long and extensive description\|lorem ipsum dolor sit amet'
-                rf'\|Ut enim ad minim veniam" {self.path}/doc/DESCRIPTION.md'
-            )
-            == 0
-        ):
-            yield ReportError("It looks like DESCRIPTION.md just contains placeholder texts")
+        else:
+            description = (self.path / "doc" / "DESCRIPTION.md").read_text()
+            tokens = ["Some long and extensive description", "lorem ipsum dolor sit amet"]
+            if any(token in description for token in tokens):
+                yield ReportError("It looks like DESCRIPTION.md just contains placeholder texts")
 
         if (self.path / "doc" / "DISCLAIMER.md").exists():
             yield ReportWarning(
@@ -608,22 +605,20 @@ class App(TestSuite):
         if not_empty(self.path / "config_panel.toml"):
             config_panel_path = self.path / "config_panel.toml"
             config_script_path = self.path / "scripts" / "config"
-            check_old_panel = os.system(f"grep -q 'version = \"0.1\"' '{config_panel_path}'")
-            if check_old_panel == 0:
+            check_old_panel = 'version = "0.1"' in config_panel_path.read_text()
+            if check_old_panel:
                 yield ReportError(
                     "Config panels version 0.1 are not supported anymore, should be adapted for "
                     "version 1.0"
                 )
-            elif (
-                config_script_path.exists()
-                and os.system(f"grep -q 'YNH_CONFIG_\\|yunohost app action' '{config_script_path}'")
-                == 0
-            ):
-                yield ReportError(
-                    "The config panel is set to version 1.x, but the config script is apparently "
-                    "still using some old code from 0.1 such as '$YNH_CONFIG_STUFF' or "
-                    "'yunohost app action'"
-                )
+            elif config_script_path.exists():
+                content = config_script_path.read_text()
+                if "YNH_CONFIG_" in content or "yunohost app action" in content:
+                    yield ReportError(
+                        "The config panel is set to version 1.x, but the config script is "
+                        "apparently still using some old code from 0.1 such as '$YNH_CONFIG_STUFF' "
+                        "or 'yunohost app action'"
+                    )
 
             yield from validate_schema(
                 "config_panel",

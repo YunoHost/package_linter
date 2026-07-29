@@ -2,11 +2,11 @@
 
 import datetime
 import json
-import os
 import subprocess
 import time
 import tomllib
 from collections.abc import Generator
+from functools import wraps
 from types import ModuleType
 
 from lib.lib_package_linter import (
@@ -39,6 +39,12 @@ from lib.print import _print
 ########################################
 
 
+@wraps(subprocess.check_output)
+def git(*args: str, **kwargs) -> str:  # noqa: ANN003
+    cmd = ["git", "-C", APPS_CACHE, *args]
+    return subprocess.check_output(cmd, **kwargs).decode("utf-8").strip()
+
+
 class AppCatalog(TestSuite):
     def __init__(self, app_id: str) -> None:
         self.app_id = app_id
@@ -61,20 +67,11 @@ class AppCatalog(TestSuite):
             return
 
         if not APPS_CACHE.exists():
-            subprocess.check_call(
-                [
-                    "git",
-                    "clone",
-                    "https://github.com/YunoHost/apps",
-                    APPS_CACHE,
-                    "--quiet",
-                ]
-            )
+            cmd = ["git", "clone", "https://github.com/YunoHost/apps", APPS_CACHE, "--quiet"]
+            subprocess.check_call(cmd)
         else:
-            subprocess.check_call(["git", "-C", APPS_CACHE, "fetch", "--quiet"])
-            subprocess.check_call(
-                ["git", "-C", APPS_CACHE, "reset", "origin/main", "--hard", "--quiet"]
-            )
+            git("fetch", "--quiet")
+            git("reset", "origin/main", "--hard", "--quiet")
 
         flagfile.touch()
 
@@ -142,9 +139,6 @@ class AppCatalog(TestSuite):
         # known + flagged working + level >= 5
         #
 
-        def git(cmd: list[str]) -> str:
-            return subprocess.check_output(["git", "-C", APPS_CACHE, *cmd]).decode("utf-8").strip()
-
         def _time_points_until_today() -> Generator[datetime.datetime, None, None]:
 
             # Prior to April 4th, 2019, we still had official.json and community.json
@@ -178,27 +172,19 @@ class AppCatalog(TestSuite):
 
                 # Fetch apps.json content at this date
                 time_str = timepoint.strftime("%b %d %Y")
-                commit = git(
-                    [
-                        "rev-list",
-                        "-1",
-                        f"--before='{time_str}'",
-                        "main",
-                    ]
-                )
-                if (
-                    os.system(f"git -C {APPS_CACHE}  cat-file -e {commit}:apps.json 2>/dev/null")
-                    == 0
-                ):
-                    raw_catalog_at_this_date = git(["show", f"{commit}:apps.json"])
+                commit = git("rev-list", "-1", f"--before='{time_str}'", "main")
+                try:
+                    git("cat-file", "-e", f"{commit}:apps.json", stderr=subprocess.PIPE)
+                    raw_catalog_at_this_date = git("show", f"{commit}:apps.json")
                     loader = json
-
-                elif os.system(f"git -C {APPS_CACHE}  cat-file -e {commit}:apps.toml") == 0:
-                    raw_catalog_at_this_date = git(["show", f"{commit}:apps.toml"])
-                    loader = tomllib
-                else:
-                    msg = "No apps.json/toml at this point in history?"
-                    raise RuntimeError(msg)
+                except subprocess.CalledProcessError:
+                    try:
+                        git("cat-file", "-e", f"{commit}:apps.toml", stderr=subprocess.PIPE)
+                        raw_catalog_at_this_date = git("show", f"{commit}:apps.toml")
+                        loader = tomllib
+                    except subprocess.CalledProcessError:
+                        msg = "No apps.json/toml at this point in history?"
+                        raise RuntimeError(msg) from None
 
                 try:
                     catalog_at_this_date: dict[str, CatalogAppDescr] = loader.loads(
