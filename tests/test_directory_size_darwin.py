@@ -1,8 +1,12 @@
 """macOS du rejects -b. Screenshot size must still be a byte count."""
 
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 from lib.directory_size import directory_apparent_bytes
 
