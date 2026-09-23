@@ -8,6 +8,7 @@ import tomllib
 from collections.abc import Generator
 from pathlib import Path
 
+from lib.directory_size import directory_apparent_bytes
 from lib.lib_package_linter import (
     ReportError,
     ReportInfo,
@@ -415,10 +416,7 @@ class App(TestSuite):
             )
 
         if (self.path / "doc" / "screenshots").exists():
-            du_output = subprocess.check_output(
-                ["du", "-sb", self.path / "doc" / "screenshots"], shell=False
-            )
-            screenshots_size = int(du_output.split()[0])
+            screenshots_size = directory_apparent_bytes(self.path / "doc" / "screenshots")
             if screenshots_size > 1024 * 1000:
                 yield ReportWarning(
                     "Please keep the content of doc/screenshots under ~512Kb. Having screenshots "
