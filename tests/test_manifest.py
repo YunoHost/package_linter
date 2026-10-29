@@ -495,17 +495,59 @@ class Manifest(TestSuite):
             if "php7.4-" in packages:
                 yield ReportError(
                     "The app currently runs on php7.4 which is pretty old (unsupported by the "
-                    "PHP group since January 2023). Ideally, upgrade it to at least php8.2."
+                    "PHP group since January 2023). Ideally, upgrade it to at least php8.4."
                 )
             elif "php8.0-" in packages:
-                yield ReportWarning(
+                yield ReportError(
                     "The app currently runs on php8.0 which is pretty old (unsupported by the "
-                    "PHP group since January 2024). Ideally, upgrade it to at least php8.2."
+                    "PHP group since November 2024). Ideally, upgrade it to at least php8.4."
                 )
             elif "php8.1-" in packages:
+                yield ReportError(
+                    "The app currently runs on php8.1 which is pretty old (unsupported by the "
+                    "PHP group since January 2026). Ideally, upgrade it to at least php8.4."
+                )
+
+            elif "php8.2-" in packages:
                 yield ReportWarning(
-                    "The app currently runs on php8.1 which is deprecated since January 2024. "
-                    "Ideally, upgrade it to at least php8.2."
+                    "The app currently runs on php8.2 which is deprecated since January 2025. "
+                    "Ideally, upgrade it to at least php8.4."
+                )
+
+    @test()
+    def old_resources_version(self) -> TestResult:
+
+        resources = self.manifest["resources"]
+
+        if "nodejs" in list(resources):
+            nodejs_version = resources["nodejs"]["version"]
+            nodejs_version_lts = int(nodejs_version)
+            if (nodejs_version_lts % 2) != 0:
+                yield ReportError(
+                    "The app doesn't seem to run an LTS version of NodeJS. Consider switching "
+                    "to a LTS version."
+                )
+            elif nodejs_version <= "20":
+                yield ReportWarning(
+                    "The app currently runs with NodeJS version 20 or older which is pretty old "
+                    "(unsupported by the NodeJS team since April 2026). Ideally , upgrade it to "
+                    "at least version 22."
+                )
+
+        if "ruby" in list(resources):
+            ruby_version = resources["ruby"]["version"]
+            if ruby_version < "3.3":
+                yield ReportWarning(
+                    "The app currently runs with an old Ruby version and is unsupported by the "
+                    "Ruby team). Ideally , upgrade it to at least version 3.3."
+                )
+
+        if "go" in list(resources):
+            go_version = resources["go"]["version"]
+            if go_version < "1.26":
+                yield ReportWarning(
+                    "The app currently runs with an old Go version and is unsupported by the "
+                    "Go team). Ideally , upgrade it to at least version 1.26"
                 )
 
     @test()
