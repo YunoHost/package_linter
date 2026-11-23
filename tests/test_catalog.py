@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import datetime
+import datetime as dt
 import json
 import subprocess
 import time
@@ -140,15 +140,15 @@ class AppCatalog(TestSuite):
         # known + flagged working + level >= 5
         #
 
-        def _time_points_until_today() -> Generator[datetime.datetime, None, None]:
+        def _time_points_until_today() -> Generator[dt.datetime, None, None]:
 
             # Prior to April 4th, 2019, we still had official.json and community.json
             # Nowadays we only have apps.json
             year = 2019
             month = 6
             day = 1
-            today = datetime.datetime.now(tz=datetime.UTC)
-            date = datetime.datetime(year, month, day, tzinfo=datetime.UTC)
+            today = dt.datetime.now(tz=dt.UTC)
+            date = dt.datetime(year, month, day, tzinfo=dt.UTC)
 
             while date < today:
                 yield date
@@ -162,11 +162,11 @@ class AppCatalog(TestSuite):
                     month = 1
                     year += 1
 
-                date = datetime.datetime(year, month, day, tzinfo=datetime.UTC)
+                date = dt.datetime(year, month, day, tzinfo=dt.UTC)
 
         def get_history(
             count: int,
-        ) -> Generator[tuple[datetime.datetime, CatalogAppDescr | None], None, None]:
+        ) -> Generator[tuple[dt.datetime, CatalogAppDescr | None], None, None]:
 
             for timepoint in list(_time_points_until_today())[(-1 * count) :]:
                 loader: ModuleType
