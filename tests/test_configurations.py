@@ -159,7 +159,7 @@ class Configurations(TestSuite):
 
             matches = ["CapabilityBoundingSet", "Protect.*", "SystemCallFilter", "PrivateTmp"]
             if any(
-                subprocess.call(rf"grep -q '^\s{match}=' '{file}'", shell=True) != 0
+                subprocess.call(rf"grep -q '^\s*{match}=' '{file}'", shell=True) != 0
                 for match in matches
             ):
                 yield ReportInfo(
